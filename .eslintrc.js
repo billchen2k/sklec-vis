@@ -3,7 +3,10 @@ module.exports = {
     browser: true,
     es2021: true,
   },
-  extends: ['plugin:react/recommended', 'google'],
+  extends: [
+    'plugin:react/recommended',
+    'google',
+  ],
   // parser: '@typescript-eslint/parser',
   parser: 'babel-eslint',
   parserOptions: {
