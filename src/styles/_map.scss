@@ -1,0 +1,17 @@
+
+/**
+Allow custom leaflet marker icon.
+Source: https://stackoverflow.com/a/52131216/10926869
+ */
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/**
+Workaround for fixing white lines between the tiles.
+Source: https://github.com/Leaflet/Leaflet/issues/3575#issuecomment-203821877
+ */
+.leaflet-tile-container img {
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.05);
+}
