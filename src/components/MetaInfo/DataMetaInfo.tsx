@@ -1,6 +1,7 @@
 import * as React from 'react';
+import {Box, Button} from '@mui/material';
 
-import {Card, CardContent, CardHeader, Typography} from '@mui/material';
+import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
 
 type DataMetaInfoProps = {
   datasetName?: string;
@@ -20,21 +21,33 @@ export class DataMetaInfo extends React.Component<DataMetaInfoProps, DataMetaInf
   }
 
   render() {
-    const detailsDom = Object.keys(this.props.meta).map((item) => {
-      return (<p key={item}>
-        <code>{item}: {this.props.meta[item]}</code>
-      </p>);
+    const detailsRows = Object.keys(this.props.meta).map((item) => {
+      return (<tr key={item}>
+        <td>{item}</td>
+        <td>{this.props.meta[item]}</td>
+      </tr>);
     });
+    const detailsTable = (<table className={'meta-table'}>
+      <tr>
+        <th>Attribute</th>
+        <th>Value</th>
+      </tr>
+      {detailsRows}
+    </table>);
 
     return (
-      <Card>
-        <CardContent>
-          <Typography variant='body2'>
-            <b>{this.props.datasetName}</b>
-          </Typography>
-          {detailsDom}
-        </CardContent>
-      </Card>
+      <Box>
+        <Card variant={'outlined'}>
+          <CardContent>
+            <Box sx={{display: 'flex'}}>
+              {detailsTable}
+            </Box>
+          </CardContent>
+        </Card>
+        <Box sx={{margin: '6px'}} className={'clearfix'}>
+          <Button sx={{float: 'right'}} size={'small'} variant={'outlined'}>Download</Button>
+        </Box>
+      </Box>
     );
   }
 }

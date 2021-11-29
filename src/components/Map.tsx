@@ -1,10 +1,9 @@
 import React, {Component} from 'react';
 import L, {DivIcon} from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import '@mui/material';
 
 import {MapContainer, TileLayer, Marker, Popup} from 'react-leaflet';
-import {LocationOn as LocationOnIcon} from '@material-ui/icons';
+import {LocationOn as LocationOnIcon} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
 import {DataMetaInfo} from './MetaInfo/DataMetaInfo';
@@ -39,7 +38,7 @@ class Map extends Component<any, any> {
     };
 
     return (
-      <MapContainer id={'map-layer'} center={center} zoom={10} style={{height: '100vh', width: '100vw'}}>
+      <MapContainer id={'map-layer'} center={center} zoom={10} style={{height: '100%'}}>
         <TileLayer
           url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}"
           attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
@@ -55,6 +54,7 @@ class Map extends Component<any, any> {
             <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={demoMetaData}></DataMetaInfo>
           </Popup>
         </Marker>
+        {this.props.children}
       </MapContainer>
     );
   }

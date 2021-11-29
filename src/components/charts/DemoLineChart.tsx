@@ -1,6 +1,6 @@
 import React from 'react';
-import {Block} from '@material-ui/icons';
-import {DataMetaInfo} from 'components/MetaInfo/DataMetaInfo';
+import {Block} from '@mui/icons-material';
+import {DataMetaInfo} from '@/components/MetaInfo/DataMetaInfo';
 
 export type DemoLineChartProps = {
   data: number[];

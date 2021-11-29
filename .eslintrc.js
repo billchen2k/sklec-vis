@@ -21,6 +21,7 @@ module.exports = {
     'require-jsdoc': 'warn',
     'max-len': 'warn',
     'no-unused-vars': 'warn',
+    'spaced-comment': 'warn'
   },
   settings: {
     'import/resolver': {

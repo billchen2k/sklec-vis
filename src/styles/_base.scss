@@ -11,3 +11,9 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
   monospace;
 }
+
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
