@@ -1,5 +1,6 @@
 import * as React from 'react';
-import {Box} from '@mui/material';
+import {Box, Grid} from '@mui/material';
+import LineChart from '@/components/Charts/LineChart';
 
 type VisualizerProps = {};
 
@@ -12,10 +13,10 @@ export class Visualizer extends React.Component<VisualizerProps, VisualizerState
   }
 
   render() {
+    const texts = [...Array<number>(24).keys()].map((one: number) => <Box sx={{paddingY: '12px'}} key={one}>Content</Box>);
     return (
       <Box className={'vis-panel'}>
-        <span>Container content</span>
-        <span>Container content</span>
+        <LineChart link={'dataset/CTD_201283_20201111_1520.csv'} xlabel={'Time'} type={'csv'}></LineChart>
       </Box>
     );
   }

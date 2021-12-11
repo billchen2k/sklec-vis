@@ -5,6 +5,7 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
     "moduleResolution": "Node",
+    "downlevelIteration": true,
     "module": "es6",
     "target": "es5",
     "allowJs": true,
@@ -12,6 +13,7 @@
     "sourceMap": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@dataset/*": ["./src/dataset/*"],
     }
   },
   "include": [

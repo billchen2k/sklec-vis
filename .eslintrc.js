@@ -7,8 +7,7 @@ module.exports = {
     'plugin:react/recommended',
     'google',
   ],
-  // parser: '@typescript-eslint/parser',
-  parser: 'babel-eslint',
+  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaFeatures: {
       jsx: true,
@@ -21,15 +20,15 @@ module.exports = {
     'require-jsdoc': 'warn',
     'max-len': 'warn',
     'no-unused-vars': 'warn',
-    'spaced-comment': 'warn'
+    'spaced-comment': 'warn',
   },
   settings: {
     'import/resolver': {
       // Allow `@/` to map to `src/client/`
       alias: {
         map: [
-          ['@', './src/client'],
-          ['@resources', './src/resources'],
+          ['@', './src'],
+          ['@dataset', './src/dataset'],
         ],
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
       },

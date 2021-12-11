@@ -1,24 +1,20 @@
 .vis-container {
-  position: absolute;
-  opacity: 0.8;
-  top: 96px;
-  flex-grow: 1;
-  height: 100%;
+  opacity: 0.9;
+  top: 0px;
   z-index: 1000;
+  position: absolute;
+  padding: 64px;
+  padding-top: 128px;
+  padding-bottom: 64px;
+  width: 100%;
+  height: 100%;
 }
 
 .vis-panel {
-  width: 100%;
   background-color: white;
+  padding: 2rem;
   border-radius: 4px;
-  height: 200px;
-  margin: 32px;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-evenly;
-  align-items: center;
+  height: 90%;
+  overflow-y: scroll;
 }
 
-.vis-panel > * {
-  flex-basis: 100px;
-}

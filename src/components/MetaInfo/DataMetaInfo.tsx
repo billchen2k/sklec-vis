@@ -28,11 +28,15 @@ export class DataMetaInfo extends React.Component<DataMetaInfoProps, DataMetaInf
       </tr>);
     });
     const detailsTable = (<table className={'meta-table'}>
-      <tr>
-        <th>Attribute</th>
-        <th>Value</th>
-      </tr>
-      {detailsRows}
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {detailsRows}
+      </tbody>
     </table>);
 
     return (

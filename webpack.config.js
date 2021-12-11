@@ -4,6 +4,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WorkboxWebpackPlugin = require('workbox-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const isProduction = process.env.NODE_ENV == 'production';
 
@@ -27,6 +28,14 @@ const config = {
 
     // Add your plugins here
     // Learn more about plugins from https://webpack.js.org/configuration/plugins/
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'public',
+          to: './',
+        },
+      ],
+    }),
   ],
   module: {
     rules: [
@@ -47,6 +56,15 @@ const config = {
         test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
         type: 'asset',
       },
+      // {
+      //   test: /\.csv$/i,
+      //   use: ['csv-loader'],
+      //   options: {
+      //     dynamicTyping: true,
+      //     header: true,
+      //     skipEmptyLines: true,
+      //   },
+      // },
 
       // Add your rules for custom modules here
       // Learn more about loaders from https://webpack.js.org/loaders/
@@ -56,6 +74,7 @@ const config = {
     extensions: ['.tsx', '.ts', '.js', 'json'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@dataset': path.resolve(__dirname, './src/dataset'),
     },
   },
 };

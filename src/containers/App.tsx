@@ -31,12 +31,10 @@ function App() {
           </Grid>
           <Grid item xs={9} sx={{height: '100%'}}>
             <Map></Map>
-            <Box className={'vis-container'}>
-              <Box>
-                {/* Float Layer Component */}
-                <Visualizer></Visualizer>
-              </Box>
-            </Box>
+            <Grid item xs={9} alignItems={'stretch'} className={'vis-container'}>
+              {/* Float Layer Component */}
+              <Visualizer></Visualizer>
+            </Grid>
           </Grid>
         </Grid>
       </Box>
