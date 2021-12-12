@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {Box, Typography} from '@mui/material';
-import {DataMetaInfo} from '@/components/MetaInfo/DataMetaInfo';
+import {DataMetaInfo} from '@/components/meta/DataMetaInfo';
 
 type SidebarProps = {};
 

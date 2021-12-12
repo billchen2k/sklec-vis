@@ -6,7 +6,7 @@ import {MapContainer, TileLayer, Marker, Popup} from 'react-leaflet';
 import {Folder, LocationOn} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
-import {DataMetaInfo} from './MetaInfo/DataMetaInfo';
+import {DataMetaInfo} from '@/components/meta/DataMetaInfo';
 
 class Map extends Component<any, any> {
   constructor(props: any) {

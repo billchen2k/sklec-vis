@@ -9,14 +9,13 @@ import {
   FormControlLabel,
   FormGroup,
   Checkbox,
-  FormLabel,
   Button,
   Typography,
   IconButton, Grid, ButtonGroup, Slider, Stack, InputLabel,
 } from '@mui/material';
 import Plot from 'react-plotly.js';
 import * as Plotly from 'plotly.js';
-import {DSVRowArray, lab} from 'd3';
+import {DSVRowArray} from 'd3';
 import {LayoutAxis} from 'plotly.js';
 import {
   CenterFocusStrong,
@@ -28,7 +27,6 @@ import {
   CompareArrows,
   OpenInFull,
 } from '@mui/icons-material';
-import {renderToStaticMarkup} from 'react-dom/server';
 import {muiIconToPlotlyIcon} from '@/utils';
 
 interface LineChartProps {
@@ -206,7 +204,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         });
         break;
       case 'json':
-        //todo: Handle json files with Line Charts.
+        // todo: Handle json files with Line charts.
         break;
     }
     setTimeout(() => {
@@ -261,14 +259,14 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
   render() {
     const checkBoxs = this.state.ylabels.map((label) => {
       return (
-        <span>
+        <span key={label}>
           <IconButton onClick={(e) => this.handleFocusClicked(e, label)}>
             <CenterFocusStrong/>
           </IconButton>
-          <FormControlLabel key={label} control={
+          <FormControlLabel control={
             <Checkbox checked={this.state.activatedYlabels.indexOf(label) > -1}
-                      onChange={(e) => this.handleCheckboxChanged(e)}
-                      name={label}/>
+              onChange={(e) => this.handleCheckboxChanged(e)}
+              name={label}/>
           } label={label}/>
         </span>
       );
@@ -289,9 +287,9 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
     return (<div>
       <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
         <Plot className={this.state.changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
-              data={this.state.plotData}
-              layout={this.state.plotLayout}
-              config={this.state.plotConfig}/>
+          data={this.state.plotData}
+          layout={this.state.plotLayout}
+          config={this.state.plotConfig}/>
       </Box>
       {/* Visualization Controller */}
       <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
@@ -338,15 +336,15 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid item xs={4}>
             <FormControlLabel control={
               <Checkbox checked={this.state.changablePlotConfig.showMarker}
-                        onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                        name={'showMarker'}/>
+                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                name={'showMarker'}/>
             } label={'Show Marker (May affect performance)'}/>
           </Grid>
           <Grid item xs={4}>
             <FormControlLabel control={
               <Checkbox
-                        onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                        name={'showMarker'}/>
+                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                name={'showMarker'}/>
             } label={'DownSampling'}/>
           </Grid>
         </Grid>
