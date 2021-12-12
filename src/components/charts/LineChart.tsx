@@ -47,6 +47,8 @@ interface LineChartStates {
     showMarker: boolean;
     fullscreen: boolean;
   };
+  shiftPressed: boolean;
+  lastSelectedLabel?: string;
 };
 
 class LineChart extends React.Component<LineChartProps, LineChartStates> {
@@ -64,6 +66,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         showMarker: false,
         fullscreen: false,
       },
+      shiftPressed: false,
     };
   }
 
@@ -73,6 +76,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
     if (!ylabels) {
       ylabels = this.state.activatedYlabels;
     }
+
     // Only a maximum number of 9 columns can display in a same plot.
     ylabels.splice(9);
 
@@ -191,6 +195,20 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
 
   componentDidMount() {
     window.addEventListener('resize', () => this.updatePlot());
+    window.addEventListener('keydown', (e) => {
+      if (e.shiftKey) {
+        this.setState({
+          shiftPressed: true,
+        });
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (!e.shiftKey) {
+        this.setState({
+          shiftPressed: false,
+        });
+      }
+    });
     switch (this.props.type) {
       case 'csv':
         d3.csv(this.props.link).then((data) => {
@@ -220,8 +238,30 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
     } else {
       activated.splice(activated.indexOf(event.target.name), 1);
     }
+    // Record last selected attributes.
+    if (!this.state.lastSelectedLabel) {
+      this.setState({
+        lastSelectedLabel: event.target.name,
+      });
+    }
+    // Valid Multiple Selection
+    if (this.state.lastSelectedLabel && this.state.shiftPressed) {
+      const beginIndex = this.state.ylabels.indexOf(this.state.lastSelectedLabel);
+      const endIndex = this.state.ylabels.indexOf(event.target.name);
+      const lastSelected = this.state.activatedYlabels.indexOf(this.state.lastSelectedLabel) !== -1;
+      if (Math.abs(endIndex - beginIndex) > 1) {
+        for (let i = Math.min(beginIndex, endIndex) + 1; i <= Math.max(beginIndex, endIndex); i++) {
+          if (lastSelected && activated.indexOf(this.state.ylabels[i]) === -1) {
+            activated.push(this.state.ylabels[i]);
+          } else if (!lastSelected && activated.indexOf(this.state.ylabels[i]) !== -1) {
+            activated.splice(activated.indexOf(this.state.ylabels[i]), 1);
+          }
+        }
+      }
+    }
     this.setState({
       activatedYlabels: activated,
+      lastSelectedLabel: event.target.name,
     });
     this.updatePlot(activated);
   }
@@ -260,6 +300,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
   render() {
     const checkBoxs = this.state.ylabels.map((label) => {
       const checked = this.state.activatedYlabels.indexOf(label) > -1;
+      const disabled = this.state.activatedYlabels.length == 9 && !checked;
       return (
         <span key={label}>
           <IconButton onClick={(e) => this.handleFocusClicked(e, label)}>
@@ -267,6 +308,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           </IconButton>
           <FormControlLabel control={
             <Checkbox checked={checked}
+                      disabled={disabled}
               onChange={(e) => this.handleCheckboxChanged(e)}
               name={label}/>
           } label={checked ? <b>{label}</b> : label}/>
@@ -335,7 +377,8 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid container justifyContent={'space-between'} spacing={2}>
             <Grid item key={'label'}>
               <Typography variant={'subtitle2'}>
-                Attributes to Display (Maximum of 9 attributes can be displayed at a time):
+                Attributes to Display{this.state.activatedYlabels.length == 9 ?
+                  ' (Maximum of 9 attributes can be displayed at a time)' : ''}:
               </Typography>
             </Grid>
             <Grid item key={'button-groups'}>
@@ -350,6 +393,9 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
             {checkBoxs}
           </FormGroup>
         </FormControl>
+        <Typography variant={'body2'} color={'gray'}>
+          You can hold shift while selecting to select / deselect multiple attributes.
+        </Typography>
       </Box>
     </div>);
   }
