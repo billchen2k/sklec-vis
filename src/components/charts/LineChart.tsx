@@ -60,7 +60,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
       activatedYlabels: [],
       dataColumns: {},
       changablePlotConfig: {
-        lineWidth: 1,
+        lineWidth: 1.5,
         showMarker: false,
         fullscreen: false,
       },
@@ -190,6 +190,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
   }
 
   componentDidMount() {
+    window.addEventListener('resize', () => this.updatePlot());
     switch (this.props.type) {
       case 'csv':
         d3.csv(this.props.link).then((data) => {
@@ -201,15 +202,15 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
             activatedYlabels: activated,
             dataColumns: this.parseRows(data),
           });
+          setTimeout(() => {
+            this.updatePlot(activated);
+          }, 100);
         });
         break;
       case 'json':
         // todo: Handle json files with Line charts.
         break;
     }
-    setTimeout(() => {
-      this.updatePlot();
-    }, 200);
   }
 
   handleCheckboxChanged(event: React.ChangeEvent<HTMLInputElement>) {
@@ -258,16 +259,17 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
 
   render() {
     const checkBoxs = this.state.ylabels.map((label) => {
+      const checked = this.state.activatedYlabels.indexOf(label) > -1;
       return (
         <span key={label}>
           <IconButton onClick={(e) => this.handleFocusClicked(e, label)}>
             <CenterFocusStrong/>
           </IconButton>
           <FormControlLabel control={
-            <Checkbox checked={this.state.activatedYlabels.indexOf(label) > -1}
+            <Checkbox checked={checked}
               onChange={(e) => this.handleCheckboxChanged(e)}
               name={label}/>
-          } label={label}/>
+          } label={checked ? <b>{label}</b> : label}/>
         </span>
       );
     });
@@ -285,6 +287,42 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
       />
     );
     return (<div>
+      <Typography variant={'subtitle2'} >
+        Plot Configurations:
+      </Typography>
+      <Box id={'container-plot-control'}>
+        <Grid container spacing={3}>
+          <Grid item container xs={4} sx={{'mt': 1}}>
+            <Grid item xs={3}>
+              <Typography variant={'subtitle1'}>
+                Line Width:
+              </Typography>
+            </Grid>
+            <Grid item xs={8}>
+              {lineWidthSlider}
+            </Grid>
+            <Grid item xs={1}>
+              <IconButton size={'small'} onClick={() => this.handlePlotConfigChange({lineWidth: 1})}>
+                <RotateLeft/>
+              </IconButton>
+            </Grid>
+          </Grid>
+          <Grid item xs={4}>
+            <FormControlLabel control={
+              <Checkbox checked={this.state.changablePlotConfig.showMarker}
+                        onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                        name={'showMarker'}/>
+            } label={'Show Marker (May affect performance)'}/>
+          </Grid>
+          <Grid item xs={4}>
+            <FormControlLabel control={
+              <Checkbox
+                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                name={'showMarker'}/>
+            } label={'DownSampling'}/>
+          </Grid>
+        </Grid>
+      </Box>
       <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
         <Plot className={this.state.changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
           data={this.state.plotData}
@@ -312,42 +350,6 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
             {checkBoxs}
           </FormGroup>
         </FormControl>
-      </Box>
-      <Typography variant={'subtitle2'} sx={{mt: 3}}>
-        Plot Configurations:
-      </Typography>
-      <Box>
-        <Grid container spacing={3}>
-          <Grid item container xs={4} sx={{'mt': 1}}>
-            <Grid item xs={3}>
-              <Typography variant={'subtitle1'}>
-                Line Width:
-              </Typography>
-            </Grid>
-            <Grid item xs={8}>
-              {lineWidthSlider}
-            </Grid>
-            <Grid item xs={1}>
-              <IconButton size={'small'} onClick={() => this.handlePlotConfigChange({lineWidth: 1})}>
-                <RotateLeft/>
-              </IconButton>
-            </Grid>
-          </Grid>
-          <Grid item xs={4}>
-            <FormControlLabel control={
-              <Checkbox checked={this.state.changablePlotConfig.showMarker}
-                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                name={'showMarker'}/>
-            } label={'Show Marker (May affect performance)'}/>
-          </Grid>
-          <Grid item xs={4}>
-            <FormControlLabel control={
-              <Checkbox
-                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                name={'showMarker'}/>
-            } label={'DownSampling'}/>
-          </Grid>
-        </Grid>
       </Box>
     </div>);
   }
