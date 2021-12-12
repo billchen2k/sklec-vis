@@ -7,20 +7,11 @@ import {Sidebar} from '@/containers/Sidebar';
 import SKToolbar from '@/containers/Toolbar';
 import {deepPurple, blueGrey} from '@mui/material/colors';
 import {Visualizer} from '@/containers/Visualizer';
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: blueGrey,
-    secondary: deepPurple,
-  },
-  typography: {
-    fontFamily: 'Roboto, Helvetica, -apple-system, Segoe UI, Helvetica Neue, Arial',
-  },
-});
+import config from '@/config';
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={config.theme}>
       <Box className={'app'}>
         <AppBar position='fixed'>
           <SKToolbar></SKToolbar>

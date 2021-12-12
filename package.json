@@ -2,7 +2,7 @@
   "name": "sklec-vis",
   "version": "0.1.0",
   "description": "Data visualization system for SKLEC spatial-temporal data.",
-  "license": "GPL",
+  "license": "GPL-3.0+",
   "author": {
     "email": "Bill.Chen@live.com",
     "name": "Bill Chen",

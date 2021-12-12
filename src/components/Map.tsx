@@ -3,7 +3,7 @@ import L, {DivIcon} from 'leaflet';
 import '@mui/material';
 
 import {MapContainer, TileLayer, Marker, Popup} from 'react-leaflet';
-import {LocationOn as LocationOnIcon} from '@mui/icons-material';
+import {Folder, LocationOn} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
 import {DataMetaInfo} from './MetaInfo/DataMetaInfo';
@@ -26,7 +26,7 @@ class Map extends Component<any, any> {
     const center = new L.LatLng(31.067777777777778, 122.2182222);
     const icon = new DivIcon({
       html: renderToStaticMarkup(
-          <LocationOnIcon sx={{color: common.white}} />,
+          <Folder sx={{color: common.white}} />,
       ),
     });
     const demoMetaData = {
