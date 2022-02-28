@@ -11,7 +11,7 @@ import {
   Checkbox,
   Button,
   Typography,
-  IconButton, Grid, ButtonGroup, Slider, Stack, InputLabel,
+  IconButton, Grid, ButtonGroup, Slider,
 } from '@mui/material';
 import Plot from 'react-plotly.js';
 import * as Plotly from 'plotly.js';
@@ -52,6 +52,9 @@ interface LineChartStates {
 };
 
 class LineChart extends React.Component<LineChartProps, LineChartStates> {
+  axisSpacing: number = 0.05;
+  maximumYLabels: number = 9;
+
   constructor(props: LineChartProps, states: LineChartStates) {
     super(props, states);
     this.state = {
@@ -78,7 +81,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
     }
 
     // Only a maximum number of 9 columns can display in a same plot.
-    ylabels.splice(9);
+    ylabels.splice(this.maximumYLabels);
 
     const traces: Plotly.Data[] = ylabels.map((y: string) => {
       const trace: Plotly.Data = {
@@ -104,7 +107,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
       title: ylabels.length > 0 ? /[^/]*$/.exec(this.props.link)[0] : 'Please select at least 1 attribute.',
       xaxis: {
         title: this.props.xlabel,
-        domain: [0, ylabels.length <= 2 ? 1 : 1 - (ylabels.length - 2) * 0.06],
+        domain: [0, ylabels.length <= 2 ? 1 : 1 - (ylabels.length - 2) * this.axisSpacing],
         linecolor: 'gray',
         linewidth: 1,
         mirror: true,
@@ -134,7 +137,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         yaxis = {
           title: ylabels[i],
           overlaying: 'y',
-          position: 1 - (i - 1) * 0.06,
+          position: 1 - (i - 1) * this.axisSpacing,
           side: 'right',
           linewidth: 1,
           autotick: true,
@@ -193,7 +196,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
     return dataRows;
   }
 
-  componentDidMount() {
+  addListeners() {
     window.addEventListener('resize', () => this.updatePlot());
     window.addEventListener('keydown', (e) => {
       if (e.shiftKey) {
@@ -209,6 +212,10 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         });
       }
     });
+  }
+
+  componentDidMount() {
+    this.addListeners();
     switch (this.props.type) {
       case 'csv':
         d3.csv(this.props.link).then((data) => {
@@ -219,6 +226,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
             ylabels: ylabels,
             activatedYlabels: activated,
             dataColumns: this.parseRows(data),
+            lastSelectedLabel: activated.length > 0 ? activated[0] : undefined,
           });
           setTimeout(() => {
             this.updatePlot(activated);
@@ -269,6 +277,9 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
   handleFocusClicked(event: React.MouseEvent<HTMLButtonElement>, label: string) {
     event.preventDefault();
     this.updatePlot([label]);
+    this.setState({
+      lastSelectedLabel: label,
+    });
   }
 
   handleSelectAll() {
@@ -298,21 +309,25 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
   }
 
   render() {
-    const checkBoxs = this.state.ylabels.map((label) => {
+    const checkBoxes = this.state.ylabels.map((label) => {
       const checked = this.state.activatedYlabels.indexOf(label) > -1;
       const disabled = this.state.activatedYlabels.length == 9 && !checked;
       return (
-        <span key={label}>
+        <Box key={label} sx={{
+          borderRadius: '3px',
+          backgroundColor: this.state.shiftPressed && label === this.state.lastSelectedLabel ? '#d1ff96' : undefined,
+          transition: 'all 0.2s',
+        }}>
           <IconButton onClick={(e) => this.handleFocusClicked(e, label)}>
             <CenterFocusStrong/>
           </IconButton>
           <FormControlLabel control={
             <Checkbox checked={checked}
-                      disabled={disabled}
+              disabled={disabled}
               onChange={(e) => this.handleCheckboxChanged(e)}
               name={label}/>
           } label={checked ? <b>{label}</b> : label}/>
-        </span>
+        </Box>
       );
     });
     const lineWidthSlider = (
@@ -352,8 +367,8 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid item xs={4}>
             <FormControlLabel control={
               <Checkbox checked={this.state.changablePlotConfig.showMarker}
-                        onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                        name={'showMarker'}/>
+                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                name={'showMarker'}/>
             } label={'Show Marker (May affect performance)'}/>
           </Grid>
           <Grid item xs={4}>
@@ -377,8 +392,9 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid container justifyContent={'space-between'} spacing={2}>
             <Grid item key={'label'}>
               <Typography variant={'subtitle2'}>
-                Attributes to Display{this.state.activatedYlabels.length == 9 ?
-                  ' (Maximum of 9 attributes can be displayed at a time)' : ''}:
+                Attributes to Display
+                {this.state.activatedYlabels.length == this.maximumYLabels ? ` (Maximum of ${this.maximumYLabels} attributes can be displayed at a time)` : ''}
+                :
               </Typography>
             </Grid>
             <Grid item key={'button-groups'}>
@@ -390,11 +406,12 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
             </Grid>
           </Grid>
           <FormGroup row={true}>
-            {checkBoxs}
+            {checkBoxes}
           </FormGroup>
         </FormControl>
         <Typography variant={'body2'} color={'gray'}>
-          You can hold shift while selecting to select / deselect multiple attributes.
+          You can hold shift while selecting to select / deselect multiple attributes.<br />
+          Use the focus icon before the attributes to focus on a specific attribute.
         </Typography>
       </Box>
     </div>);

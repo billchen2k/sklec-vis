@@ -16,16 +16,17 @@ const config = {
     path: path.resolve(__dirname, 'dist'),
   },
   devServer: {
+    historyApiFallback: true,
+    compress: false,
     open: true,
-    host: 'localhost',
+    port: 8080,
+    allowedHosts: 'all',
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: 'index.html',
     }),
-
     new MiniCssExtractPlugin(),
-
     // Add your plugins here
     // Learn more about plugins from https://webpack.js.org/configuration/plugins/
     new CopyWebpackPlugin({
@@ -65,7 +66,6 @@ const config = {
       //     skipEmptyLines: true,
       //   },
       // },
-
       // Add your rules for custom modules here
       // Learn more about loaders from https://webpack.js.org/loaders/
     ],
@@ -82,7 +82,6 @@ const config = {
 module.exports = () => {
   if (isProduction) {
     config.mode = 'production';
-
     config.plugins.push(new WorkboxWebpackPlugin.GenerateSW());
   } else {
     config.mode = 'development';

@@ -38,13 +38,12 @@
   },
   "scripts": {
     "start": "webpack serve --mode development",
-    "build": "webpack --mode=production --node-env=production",
     "format": "eslint --fix \"./src/**/*.{js,jsx,ts,tsx}\" \"./*.{js,ts}\"",
     "eslint": "eslint src/**/*.{ts,tsx}",
+    "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development",
     "build:prod": "webpack --mode=production --node-env=production",
-    "watch": "webpack --watch",
-    "serve": "webpack serve"
+    "serve": "webpack-dev-server --mode development"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",

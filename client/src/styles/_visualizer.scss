@@ -3,9 +3,9 @@
   top: 0px;
   z-index: 1000;
   position: absolute;
-  padding: 64px;
-  padding-top: 128px;
-  padding-bottom: 64px;
+  padding: 32px;
+  padding-top: 96px;
+  padding-bottom: 32px;
   width: 100%;
   height: 100%;
 }
@@ -16,5 +16,6 @@
   border-radius: 4px;
   height: 90%;
   overflow-y: scroll;
+  box-shadow: #666666 0px 0px 5px;
 }
 

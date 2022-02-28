@@ -1,0 +1,56 @@
+# Development docker compose.
+
+version: "3"
+services:
+
+  db:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: sklecVIS2022
+    volumes:
+      - sklec_vis_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile-dev
+    environment:
+      DJANGO_SETTINGS_MODULE: sklecvis.settings
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: sklecVIS2022
+      DB_NAME: sklecvis
+      PYTHONPATH: /app
+    expose:
+      - "8000"
+    volumes:
+      - ./server:/app
+    depends_on:
+      - mongo
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile-dev
+    volumes:
+      - ./client:/app
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile-dev
+    ports:
+      - "8060:80"
+    volumes:
+      - ./server/static/:/srv/server_static
+    depends_on:
+     - server
+     - client
+     - mongo
+
+volumes:
+  sklec_vis_db: {}
