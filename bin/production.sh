@@ -3,7 +3,6 @@
 
 if [ "$1" = "--start" ]; then
   echo "Starting production..."
-  # Collect python requirements.
   python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.prod.yml build
   docker-compose -f docker-compose.prod.yml up -d
