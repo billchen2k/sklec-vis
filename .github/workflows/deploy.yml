@@ -1,0 +1,20 @@
+name: AWS Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: AWS Deploy
+      run: |
+        eval $(ssh-agent -s)
+        echo "${{secrets.AWS_SECRET_KEY}}" > deploy.key
+        mkdir -p ~/.ssh
+        chmod 0600 deploy.key
+        ssh-add deploy.key
+        echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+        ssh ${{secrets.AWS_SERVER_USERNAME}}@${{secrets.AWS_SERVER_IP}} "cd ~/sklec-vis && git pull && ./bin/production.sh --start"
