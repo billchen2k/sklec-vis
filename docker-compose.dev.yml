@@ -4,6 +4,7 @@ version: "3"
 services:
 
   db:
+    container_name: sklecvis-db
     image: postgres
     restart: unless-stopped
     environment:
@@ -14,6 +15,7 @@ services:
       - "5432:5432"
 
   server:
+    container_name: sklecvis-server
     build:
       context: ./server
       dockerfile: Dockerfile-dev
@@ -29,10 +31,9 @@ services:
       - "8000"
     volumes:
       - ./server:/app
-    depends_on:
-      - mongo
 
   client:
+    container_name: sklecvis-client
     build:
       context: ./client
       dockerfile: Dockerfile-dev
@@ -40,6 +41,7 @@ services:
       - ./client:/app
 
   nginx:
+    container_name: sklecvis-nginx
     build:
       context: ./nginx
       dockerfile: Dockerfile-dev
@@ -47,10 +49,7 @@ services:
       - "8060:80"
     volumes:
       - ./server/static/:/srv/server_static
-    depends_on:
-     - server
-     - client
-     - mongo
+      - ./server/media/:/srv/server_media
 
 volumes:
   sklec_vis_db: {}

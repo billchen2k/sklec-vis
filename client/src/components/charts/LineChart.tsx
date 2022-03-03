@@ -3,29 +3,30 @@
  */
 import React from 'react';
 import * as d3 from 'd3';
+import {DSVRowArray} from 'd3';
 import {
   Box,
+  Button,
+  ButtonGroup,
+  Checkbox,
   FormControl,
   FormControlLabel,
   FormGroup,
-  Checkbox,
-  Button,
+  Grid,
+  IconButton,
+  Slider,
   Typography,
-  IconButton, Grid, ButtonGroup, Slider,
 } from '@mui/material';
 import Plot from 'react-plotly.js';
 import * as Plotly from 'plotly.js';
-import {DSVRowArray} from 'd3';
 import {LayoutAxis} from 'plotly.js';
 import {
   CenterFocusStrong,
-  PlaylistAddCheck,
-  PlaylistRemove,
-  Replay,
-  Refresh,
-  RotateLeft,
   CompareArrows,
   OpenInFull,
+  PlaylistAddCheck,
+  PlaylistRemove,
+  RotateLeft,
 } from '@mui/icons-material';
 import {muiIconToPlotlyIcon} from '@/utils';
 

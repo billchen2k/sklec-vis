@@ -13,6 +13,5 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 CMD ["uwsgi", "--ini", "uwsgi.ini", \
-    "--py-autoreload", "1", \
     "--socket", ":3000", \
     "--plugins", "python3"]

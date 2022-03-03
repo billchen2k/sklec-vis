@@ -2,7 +2,7 @@ import React from 'react';
 import '@/styles/index.scss';
 import Map from '@/components/Map';
 import {AppBar, Box, Grid, ThemeProvider, Toolbar} from '@mui/material';
-import {Sidebar} from '@/containers/Sidebar';
+import Sidebar from '@/containers/Sidebar';
 import SKToolbar from '@/containers/Toolbar';
 import {Visualizer} from '@/containers/Visualizer';
 import config from '@/config';
