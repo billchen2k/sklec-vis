@@ -4,7 +4,7 @@
 if [ "$1" = "--start" ]; then
   echo "Starting production..."
   python -m pipreqs.pipreqs ./server --force
-  docker-compose -f docker-compose.prod.yml build
+  docker-compose -f docker-compose.prod.yml build --memory='2g'
   docker-compose -f docker-compose.prod.yml up -d
   docker exec -it sklecvis-server python manage.py migrate
   docker exec -it sklecvis-server python manage.py collectstatic --noinput
@@ -17,7 +17,7 @@ elif [ "$1" = "--init" ]; then
   # Collect python requirements.
   python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.dev.yml build
-  docker-compose -f docker-compose.dev.yml up -d
+  docker-compose -f docker-compose.dev.yml up
   docker exec -it sklecvis-server python manage.py migrate
   docker exec -it sklecvis-server python manage.py collectstatic --noinput
 else

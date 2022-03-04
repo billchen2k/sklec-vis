@@ -2,12 +2,15 @@ import React from 'react';
 import '@/styles/index.scss';
 import Map from '@/components/Map';
 import {AppBar, Box, Grid, ThemeProvider, Toolbar} from '@mui/material';
-import Sidebar from '@/containers/Sidebar';
-import SKToolbar from '@/containers/Toolbar';
-import {Visualizer} from '@/containers/Visualizer';
+import Sidebar from '@/components/elements/Sidebar';
+import SKToolbar from '@/components/elements/Toolbar';
+import Visualizer from '@/components/Visualizer';
 import config from '@/config';
 
-function App() {
+export interface IAppProps {
+}
+
+const App = (props: IAppProps) => {
   return (
     <ThemeProvider theme={config.theme}>
       <Box className={'app'}>
@@ -29,6 +32,6 @@ function App() {
       </Box>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

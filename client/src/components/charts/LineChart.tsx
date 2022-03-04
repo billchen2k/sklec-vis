@@ -47,6 +47,7 @@ interface LineChartStates {
     lineWidth: number;
     showMarker: boolean;
     fullscreen: boolean;
+    downSampling: boolean;
   };
   shiftPressed: boolean;
   lastSelectedLabel?: string;
@@ -69,6 +70,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         lineWidth: 1.5,
         showMarker: false,
         fullscreen: false,
+        downSampling: false,
       },
       shiftPressed: false,
     };
@@ -368,6 +370,7 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid item xs={4}>
             <FormControlLabel control={
               <Checkbox checked={this.state.changablePlotConfig.showMarker}
+                value={this.state.changablePlotConfig.showMarker}
                 onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
                 name={'showMarker'}/>
             } label={'Show Marker (May affect performance)'}/>
@@ -375,7 +378,8 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
           <Grid item xs={4}>
             <FormControlLabel control={
               <Checkbox
-                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                value={this.state.changablePlotConfig.downSampling}
+                onChange={(e) => this.handlePlotConfigChange({downSampling: e.target.checked})}
                 name={'showMarker'}/>
             } label={'DownSampling'}/>
           </Grid>

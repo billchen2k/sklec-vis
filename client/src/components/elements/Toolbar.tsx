@@ -2,7 +2,10 @@ import * as React from 'react';
 import {Typography} from '@mui/material';
 import {Toolbar} from '@mui/material';
 
-function SKToolbar() {
+export interface ISKToolbarProps {
+}
+
+const SKToolbar = (props: ISKToolbarProps) => {
   return (
     <Toolbar>
       <Typography variant={'h6'}>
@@ -10,6 +13,6 @@ function SKToolbar() {
       </Typography>
     </Toolbar>
   );
-}
+};
 
 export default SKToolbar;
