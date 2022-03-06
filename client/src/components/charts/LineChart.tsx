@@ -346,80 +346,81 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
         onChange={(e, value: number) => this.handlePlotConfigChange({lineWidth: value})}
       />
     );
-    return (<div>
-      <Typography variant={'subtitle2'} >
+    return (
+      <Box>
+        <Typography variant={'subtitle2'} >
         Plot Configurations:
-      </Typography>
-      <Box id={'container-plot-control'}>
-        <Grid container spacing={3}>
-          <Grid item container xs={4} sx={{'mt': 1}}>
-            <Grid item xs={3}>
-              <Typography variant={'subtitle1'}>
+        </Typography>
+        <Box id={'container-plot-control'}>
+          <Grid container spacing={3}>
+            <Grid item container xs={4} sx={{'mt': 1}}>
+              <Grid item xs={3}>
+                <Typography variant={'subtitle1'}>
                 Line Width:
-              </Typography>
+                </Typography>
+              </Grid>
+              <Grid item xs={8}>
+                {lineWidthSlider}
+              </Grid>
+              <Grid item xs={1}>
+                <IconButton size={'small'} onClick={() => this.handlePlotConfigChange({lineWidth: 1})}>
+                  <RotateLeft/>
+                </IconButton>
+              </Grid>
             </Grid>
-            <Grid item xs={8}>
-              {lineWidthSlider}
+            <Grid item xs={4}>
+              <FormControlLabel control={
+                <Checkbox checked={this.state.changablePlotConfig.showMarker}
+                  value={this.state.changablePlotConfig.showMarker}
+                  onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
+                  name={'showMarker'}/>
+              } label={'Show Marker (May affect performance)'}/>
             </Grid>
-            <Grid item xs={1}>
-              <IconButton size={'small'} onClick={() => this.handlePlotConfigChange({lineWidth: 1})}>
-                <RotateLeft/>
-              </IconButton>
+            <Grid item xs={4}>
+              <FormControlLabel control={
+                <Checkbox
+                  value={this.state.changablePlotConfig.downSampling}
+                  onChange={(e) => this.handlePlotConfigChange({downSampling: e.target.checked})}
+                  name={'showMarker'}/>
+              } label={'DownSampling'}/>
             </Grid>
           </Grid>
-          <Grid item xs={4}>
-            <FormControlLabel control={
-              <Checkbox checked={this.state.changablePlotConfig.showMarker}
-                value={this.state.changablePlotConfig.showMarker}
-                onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                name={'showMarker'}/>
-            } label={'Show Marker (May affect performance)'}/>
-          </Grid>
-          <Grid item xs={4}>
-            <FormControlLabel control={
-              <Checkbox
-                value={this.state.changablePlotConfig.downSampling}
-                onChange={(e) => this.handlePlotConfigChange({downSampling: e.target.checked})}
-                name={'showMarker'}/>
-            } label={'DownSampling'}/>
-          </Grid>
-        </Grid>
-      </Box>
-      <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
-        <Plot className={this.state.changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
-          data={this.state.plotData}
-          layout={this.state.plotLayout}
-          config={this.state.plotConfig}/>
-      </Box>
-      {/* Visualization Controller */}
-      <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
-        <FormControl component={'fieldset'} variant={'standard'}>
-          <Grid container justifyContent={'space-between'} spacing={2}>
-            <Grid item key={'label'}>
-              <Typography variant={'subtitle2'}>
+        </Box>
+        <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
+          <Plot className={this.state.changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
+            data={this.state.plotData}
+            layout={this.state.plotLayout}
+            config={this.state.plotConfig}/>
+        </Box>
+        {/* Visualization Controller */}
+        <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
+          <FormControl component={'fieldset'} variant={'standard'}>
+            <Grid container justifyContent={'space-between'} spacing={2}>
+              <Grid item key={'label'}>
+                <Typography variant={'subtitle2'}>
                 Attributes to Display
-                {this.state.activatedYlabels.length == this.maximumYLabels ? ` (Maximum of ${this.maximumYLabels} attributes can be displayed at a time)` : ''}
+                  {this.state.activatedYlabels.length == this.maximumYLabels ? ` (Maximum of ${this.maximumYLabels} attributes can be displayed at a time)` : ''}
                 :
-              </Typography>
+                </Typography>
+              </Grid>
+              <Grid item key={'button-groups'}>
+                <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
+                  <Button onClick={() => this.handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
+                  <Button onClick={() => this.handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
+                  <Button onClick={() => this.handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
+                </ButtonGroup>
+              </Grid>
             </Grid>
-            <Grid item key={'button-groups'}>
-              <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
-                <Button onClick={() => this.handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
-                <Button onClick={() => this.handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
-                <Button onClick={() => this.handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
-              </ButtonGroup>
-            </Grid>
-          </Grid>
-          <FormGroup row={true}>
-            {checkBoxes}
-          </FormGroup>
-        </FormControl>
-        <Typography variant={'body2'} color={'gray'}>
+            <FormGroup row={true}>
+              {checkBoxes}
+            </FormGroup>
+          </FormControl>
+          <Typography variant={'body2'} color={'gray'}>
           You can hold shift while selecting to select / deselect multiple attributes.<br />
           Use the focus icon before the attributes to focus on a specific attribute.
-        </Typography>
-      </Box>
-    </div>);
+          </Typography>
+        </Box>
+      </Box>);
   }
 }
 

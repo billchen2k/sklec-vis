@@ -14,6 +14,9 @@ const config = {
       fontSize: 12,
     },
   }),
+  appearance: {
+    sideBarWidth: '20rem',
+  },
   API: '/api',
   map: {
     apiToken: 'pk.eyJ1IjoiYmlsbGNoZW4yayIsImEiOiJja3R2MDBwNWgyNDljMnBvMmdzbnU0dTZ5In0.To49SgD0gHYceQ8Ap2BG3g',

@@ -31,6 +31,8 @@ services:
       - "8000"
     volumes:
       - ./server:/app
+    depends_on:
+      - db
 
   nginx:
     container_name: sklecvis-nginx-prod
@@ -42,5 +44,9 @@ services:
     volumes:
       - ./server/static/:/srv/server_static
       - ./server/media/:/srv/server_media
+    depends_on:
+      - server
+      - client
+
 volumes:
   sklec_vis_db: {}

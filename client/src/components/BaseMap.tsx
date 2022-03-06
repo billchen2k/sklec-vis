@@ -1,19 +1,19 @@
-import React, {Component} from 'react';
+import React from 'react';
 import L, {DivIcon} from 'leaflet';
 import '@mui/material';
 
-import {MapContainer, TileLayer, Marker, Popup} from 'react-leaflet';
-import {Folder, LocationOn} from '@mui/icons-material';
+import {MapContainer, Marker, Popup, TileLayer} from 'react-leaflet';
+import {AttachFile, FilePresent, Folder} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
-import {DataMetaInfo} from '@/components/meta/DataMetaInfo';
+import DataMetaInfo from '@/components/meta/DataMetaInfo';
 import config from '@/config';
 
 export interface IMapProps {
   children?: any;
 }
 
-const Map = (props: IMapProps) => {
+const BaseMap = (props: IMapProps) => {
   const [lat, setLat] = React.useState(0);
   const [lng, setLng] = React.useState(0);
   const [zoom, setZoom] = React.useState(2);
@@ -24,9 +24,10 @@ const Map = (props: IMapProps) => {
 
   const icon = new DivIcon({
     html: renderToStaticMarkup(
-        <Folder sx={{color: common.white}} />,
+        <FilePresent sx={{color: '#71d0b8'}} />,
     ),
   });
+
   const demoMetaData = {
     'Instrument': '201283',
     'Sensors': 'Serial K175067, Channel 1',
@@ -36,10 +37,11 @@ const Map = (props: IMapProps) => {
   };
 
   return (
-    <MapContainer id={'map-layer'} center={center} zoom={10} style={{height: '100%'}}>
+    <MapContainer id={'map-layer'} center={center} zoom={10}
+      className={'layer-basemap'}>
       <TileLayer
         url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}"
-        attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
+        attribution='BaseMap data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
         id='mapbox/dark-v10'
         tileSize={512}
         maxZoom={18}
@@ -57,4 +59,4 @@ const Map = (props: IMapProps) => {
   );
 };
 
-export default Map;
+export default BaseMap;

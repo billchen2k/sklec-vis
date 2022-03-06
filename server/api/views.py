@@ -7,5 +7,5 @@ from rest_framework import status
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({
-        'detail': f'{request.method} {request.path} not found.'
+        'detail': f'{request.method} {request.path} not found!!!!!'
     }, status=status.HTTP_404_NOT_FOUND)

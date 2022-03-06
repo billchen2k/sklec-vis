@@ -1,6 +1,3 @@
-# if has --start argument
-#   start develop server
-
 if [ "$1" = "--start" ]; then
   echo "Starting develop..."
   # Collect python requirements.

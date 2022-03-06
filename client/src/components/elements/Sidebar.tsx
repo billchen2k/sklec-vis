@@ -1,11 +1,16 @@
 import * as React from 'react';
-import {Typography} from '@mui/material';
-import {DataMetaInfo} from '@/components/meta/DataMetaInfo';
+import {Box, Drawer, IconButton, Stack, SxProps, Typography} from '@mui/material';
+import DataMetaInfo from '@/components/meta/DataMetaInfo';
+import {useNavigate} from 'react-router-dom';
+import {ArrowBack} from '@mui/icons-material';
 
 export interface ISidebarProps {
+  sx?: SxProps;
 }
 
 const Sidebar = (props: ISidebarProps) => {
+  const navigate = useNavigate();
+
   const demoMetaData = {
     'Instrument': '201283',
     'Sensors': 'Serial K175067, Channel 1',
@@ -15,12 +20,17 @@ const Sidebar = (props: ISidebarProps) => {
   };
 
   return (
-    <div>
-      <Typography mb={'12px'} variant={'h5'} component={'div'}>
-          Dataset Name
-      </Typography>
-      <DataMetaInfo meta={demoMetaData}></DataMetaInfo>
-    </div>
+    <Box sx={props.sx}>
+      <Box padding={2}>
+        <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
+          <IconButton>
+            <ArrowBack onClick={() => navigate('/')} />
+          </IconButton>
+          <Typography variant={'h5'}>Dataset Name</Typography>
+        </Stack>
+        <DataMetaInfo meta={demoMetaData}></DataMetaInfo>
+      </Box>
+    </Box>
   );
 };
 
