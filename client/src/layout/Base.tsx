@@ -1,11 +1,10 @@
 import * as React from 'react';
-import {AppBar, Box, Grid} from '@mui/material';
+import {AppBar, Box} from '@mui/material';
 import SKToolbar from '@/components/elements/Toolbar';
 import Sidebar from '@/components/elements/Sidebar';
 import BaseMap from '@/components/BaseMap';
 import {Outlet} from 'react-router-dom';
 import config from '@/config';
-import LayerBox from '@/layout/LayerBox';
 
 export interface IBaseProps {
 

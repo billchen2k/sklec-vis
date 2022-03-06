@@ -46,7 +46,6 @@ services:
       - ./server/media/:/srv/server_media
     depends_on:
       - server
-      - client
 
 volumes:
   sklec_vis_db: {}
