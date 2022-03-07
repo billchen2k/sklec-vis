@@ -1,7 +1,8 @@
 import * as React from 'react';
-import {Box, IconButton, Typography} from '@mui/material';
+import {Box, CircularProgress, IconButton, Typography} from '@mui/material';
 import {Toolbar} from '@mui/material';
 import {Menu as MenuIcon} from '@mui/icons-material';
+import chroma from 'chroma-js';
 
 export interface ISKToolbarProps {
   sidebarOpen: boolean;
@@ -26,6 +27,8 @@ const SKToolbar = (props: ISKToolbarProps) => {
         SKLEC Spatial-temporal Data Visualization
       </Typography>
       <Box sx={{flexGrow: 1}} />
+      {/*<CircularProgress variant={'indeterminate'} size={24} color={'inherit'}  />*/}
+
     </Toolbar>
   );
 };

@@ -5,7 +5,7 @@ WORKDIR /app
 EXPOSE 3000
 ADD ./requirements.txt /app/requirements.txt
 RUN apk add --no-cache gcc libc-dev linux-headers musl-dev
-RUN apk add --no-cache --virtual .build-deps postgresql-dev
+RUN apk add --no-cache --virtual .build-deps postgresql-dev gdal
 RUN pip install uwsgi
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 

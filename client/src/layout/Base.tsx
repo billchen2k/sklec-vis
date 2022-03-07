@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {AppBar, Box} from '@mui/material';
 import SKToolbar from '@/components/elements/Toolbar';
-import Sidebar from '@/components/elements/Sidebar';
+import Sidebar from '@/components/sidebar/Sidebar';
 import BaseMap from '@/components/map/BaseMap';
 import {Outlet} from 'react-router-dom';
 import config from '@/config';
@@ -35,6 +35,7 @@ const Base = (props: IBaseProps) => {
         {sidebarOpen &&
          <Sidebar sx={{
            minWidth: config.appearance.sideBarWidth,
+           width: config.appearance.sideBarWidth,
            height: '100vh',
          }} />
         }

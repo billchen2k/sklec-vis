@@ -2,12 +2,14 @@ import React from 'react';
 import L, {DivIcon} from 'leaflet';
 import '@mui/material';
 
-import {MapContainer, Marker, Popup, TileLayer} from 'react-leaflet';
+import {MapContainer, Marker, Popup, TileLayer, LayersControl, LayerGroup} from 'react-leaflet';
 import {AttachFile, FilePresent, Folder} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
-import DataMetaInfo from '@/components/meta/DataMetaInfo';
+import DataMetaInfo from '@/components/sidebar/DataMetaInfo';
 import config from '@/config';
+import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
+import {useAppSelector} from '@/app/hooks';
 
 export interface IMapProps {
   children?: any;
@@ -19,8 +21,25 @@ const BaseMap = (props: IMapProps) => {
   const [zoom, setZoom] = React.useState(2);
   const [markers, setMarkers] = React.useState([]);
   const [data, setData] = React.useState([]);
+  const {rasterState} = useAppSelector(((state) => state.site));
+
+  const MapBoxThemes = [
+    {
+      name: 'Satellite Map',
+      id: 'mapbox/satellite-streets-v11',
+    },
+    {
+      name: 'Dark Street Map',
+      id: 'mapbox/dark-v10',
+    },
+    {
+      name: 'Light Street Map',
+      id: 'mapbox/light-v10',
+    },
+  ];
 
   const center = new L.LatLng(31.067777777777778, 122.2182222);
+
 
   const icon = new DivIcon({
     html: renderToStaticMarkup(
@@ -28,7 +47,15 @@ const BaseMap = (props: IMapProps) => {
     ),
   });
 
-  const demoMetaData = {
+  const ADCPMetaData = {
+    'Instrument': '201283',
+    'Sensors': 'Serial K175067, Channel 1',
+    'Sampling Period': '10000',
+    'Longtitude': '122˚13\'5.60"',
+    'Latitude': '31˚04\'4.00"',
+  };
+
+  const CTD = {
     'Instrument': '201283',
     'Sensors': 'Serial K175067, Channel 1',
     'Sampling Period': '10000',
@@ -37,24 +64,43 @@ const BaseMap = (props: IMapProps) => {
   };
 
   return (
-    <MapContainer id={'map-layer'} center={center} zoom={10}
+    <MapContainer id={'map-layer'} center={center} zoom={6}
       className={'layer-basemap'}>
-      <TileLayer
-        url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}"
-        attribution='BaseMap data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
-        // id='mapbox/dark-v10'
-        id = 'mapbox/satellite-streets-v11'
-        tileSize={512}
-        maxZoom={18}
-        zoomOffset={-1}
-        accessToken={config.map.apiToken}
-      />
-      <Marker position={center} icon={icon}>
-        <Popup>
-          <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={demoMetaData} mini link={'/view/1'}></DataMetaInfo>
-        </Popup>
-      </Marker>
-      {props.children}
+      <LayersControl>
+        {MapBoxThemes.map((theme, index) => {
+          return (
+            <LayersControl.BaseLayer key={index} name={theme.name} checked={index == 0}>
+              <TileLayer
+                url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}"
+                attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
+                id={theme.id}
+                tileSize={512}
+                maxZoom={18}
+                zoomOffset={-1}
+                accessToken={config.map.apiToken}
+              />
+            </LayersControl.BaseLayer>
+          );
+        })}
+        {/* <SKGeoRasterLayer georasterUrl={'dataset/sentinel3/RDI_S3A_20200429.tiff'} />*/}
+
+        <LayersControl.Overlay name={'Dataset List'} checked={true}>
+          <LayerGroup>
+            <Marker position={center} icon={icon}>
+              <Popup>
+                <DataMetaInfo datasetName={'ADCP_202009-10'} meta={ADCPMetaData} mini viewLink={'/view/1'}></DataMetaInfo>
+                <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={ADCPMetaData} mini viewLink={'/view/2'}></DataMetaInfo>
+              </Popup>
+            </Marker>
+          </LayerGroup>
+        </LayersControl.Overlay>
+        <LayerGroup>
+          {rasterState &&
+          <SKGeoRasterLayer/>
+          }
+        </LayerGroup>
+      </LayersControl>
+
     </MapContainer>
   );
 };

@@ -15,7 +15,7 @@ const config = {
     },
   }),
   appearance: {
-    sideBarWidth: '20rem',
+    sideBarWidth: '24rem',
   },
   API: '/api',
   map: {

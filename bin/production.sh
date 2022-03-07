@@ -10,11 +10,11 @@ if [ "$1" = "--start" ]; then
   docker exec -it sklecvis-server python manage.py migrate
   docker exec -it sklecvis-server python manage.py collectstatic --noinput
 elif [ "$1" = "--stop" ]; then
-  echo "Stopping develop...."
+  echo "Stopping production...."
   docker-compose -f docker-compose.dev.yml down
   kill $(ps aux | grep 'node ./bin/develop.js' | awk '{print $2}')
 elif [ "$1" = "--init" ]; then
-  echo "Initializing develop..."
+  echo "Initializing production..."
   # Collect python requirements.
   python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.dev.yml build
