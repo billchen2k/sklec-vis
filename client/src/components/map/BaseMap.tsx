@@ -51,7 +51,7 @@ const BaseMap = (props: IMapProps) => {
       />
       <Marker position={center} icon={icon}>
         <Popup>
-          <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={demoMetaData}></DataMetaInfo>
+          <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={demoMetaData} mini link={'/view/1'}></DataMetaInfo>
         </Popup>
       </Marker>
       {props.children}

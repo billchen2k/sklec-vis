@@ -6,6 +6,7 @@ if [ "$1" = "--start" ]; then
   python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.prod.yml build --memory='2g'
   docker-compose -f docker-compose.prod.yml up -d
+  docker exec -it sklecvis-server python manage.py makemigrations
   docker exec -it sklecvis-server python manage.py migrate
   docker exec -it sklecvis-server python manage.py collectstatic --noinput
 elif [ "$1" = "--stop" ]; then

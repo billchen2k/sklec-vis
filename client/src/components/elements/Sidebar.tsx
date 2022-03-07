@@ -19,16 +19,17 @@ const Sidebar = (props: ISidebarProps) => {
     'Latitude': '31˚04\'4.00"',
   };
 
+  const rdiMeta = {
+
+  };
+
   return (
     <Box sx={props.sx}>
       <Box padding={2}>
-        <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
-          <IconButton>
-            <ArrowBack onClick={() => navigate('/')} />
-          </IconButton>
-          <Typography variant={'h5'}>Dataset Name</Typography>
-        </Stack>
-        <DataMetaInfo meta={demoMetaData}></DataMetaInfo>
+        <DataMetaInfo meta={demoMetaData}
+          datasetName={'ADCP_202009-10'}
+          link={'/view/1'}
+        ></DataMetaInfo>
       </Box>
     </Box>
   );

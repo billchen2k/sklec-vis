@@ -1,10 +1,12 @@
 import * as React from 'react';
-import {Box, Button} from '@mui/material';
-import {useNavigate} from 'react-router-dom';
+import {Box, Button, IconButton, Stack} from '@mui/material';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
+import {ArrowBack} from '@mui/icons-material';
 
 export interface IDataMetaInfoProps {
   datasetName?: string;
+  link?: string;
   meta: any;
   mini?: boolean;
 }
@@ -32,6 +34,14 @@ const DataMetaInfo = (props: IDataMetaInfoProps) => {
 
   return (
     <Box>
+      {!props.mini &&
+        <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
+          <IconButton>
+            <ArrowBack onClick={() => navigate('/')} />
+          </IconButton>
+          <Typography variant={'h5'}>{props.datasetName}</Typography>
+        </Stack>
+      }
       <Card variant={'outlined'}>
         <CardContent>
           <Box sx={{display: 'flex'}}>
@@ -42,9 +52,9 @@ const DataMetaInfo = (props: IDataMetaInfoProps) => {
       <Box sx={{margin: '6px'}} className={'clearfix'}>
         <Button sx={{float: 'right'}} size={'small'} variant={'outlined'}
           onClick={() => {
-            navigate('/view', {replace: true});
+            navigate(props.link, {replace: true});
           }}
-        >View</Button>
+        >Details</Button>
       </Box>
     </Box>
   );

@@ -11,7 +11,7 @@ const AppRoutes = (props: IAppRoutesProps) => {
     <Routes>
       <Route path={'/'} element={<Base />}>
         <Route index element={<div />}/>
-        <Route path={'/view'} element={<DataViewer />}/>
+        <Route path={'/view/:datasetId'} element={<DataViewer />}/>
       </Route>
     </Routes>
   );

@@ -2,7 +2,7 @@ import * as React from 'react';
 import {AppBar, Box} from '@mui/material';
 import SKToolbar from '@/components/elements/Toolbar';
 import Sidebar from '@/components/elements/Sidebar';
-import BaseMap from '@/components/BaseMap';
+import BaseMap from '@/components/map/BaseMap';
 import {Outlet} from 'react-router-dom';
 import config from '@/config';
 
