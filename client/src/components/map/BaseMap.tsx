@@ -42,11 +42,11 @@ const BaseMap = (props: IMapProps) => {
       <TileLayer
         url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}{r}?access_token={accessToken}"
         attribution='BaseMap data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
-        id='mapbox/dark-v10'
+        // id='mapbox/dark-v10'
+        id = 'mapbox/satellite-streets-v11'
         tileSize={512}
         maxZoom={18}
         zoomOffset={-1}
-        /* eslint-disable-next-line max-len */
         accessToken={config.map.apiToken}
       />
       <Marker position={center} icon={icon}>
