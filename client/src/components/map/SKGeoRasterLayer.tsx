@@ -15,20 +15,28 @@ export interface IGeoRasterLayerProps {
 const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
   // const {georasterUrl} = props;
   const context = useLeafletContext();
-  const {rasterState} = useAppSelector((state) => state.site);
+  const map = useMap();
 
+  const {rasterState} = useAppSelector((state) => state.site);
   if (!rasterState) {
     return null;
   }
+  let layer: Layer = null;
 
   React.useEffect(() => {
-    let layer: Layer = null;
     const container = context.layerContainer || context.map;
     const control = context.layersControl;
     fetch(rasterState.rasterLink)
         .then((response) => response.arrayBuffer())
         .then((arrayBuffer) => {
           parseGeoraster(arrayBuffer).then((georaster: any) => {
+            let layerToRemove: Layer = null;
+            map.eachLayer((layer) => {
+              // @ts-ignore
+              if (layer.georasters) {
+                layerToRemove = layer;
+              }
+            });
             const min = 0.0;
             const max = 0.2;
             // const min = georaster.mins[0]
@@ -38,7 +46,6 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
             // const scale = chroma.scale('Viridis');
             // const scale = chroma.scale('Spectral');
             const scale = chroma.scale(rasterState.colorScale || 'RdYlGn');
-
             layer = new GeoRasterLayer({
               georaster: georaster,
               opacity: rasterState.opacity || 0.75,
@@ -55,14 +62,22 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
             });
             container.addLayer(layer);
             control.addOverlay(layer, 'Raster');
+            setTimeout(() => {
+              if (layerToRemove) {
+                container.removeLayer(layerToRemove);
+                control.removeLayer(layerToRemove);
+              }
+            }, 300);
           });
         });
 
     return () => {
-      container.removeLayer(layer);
-      control.removeLayer(layer);
+      layer && setTimeout(() => {
+        container.removeLayer(layer);
+        control.removeLayer(layer);
+      }, 300);
     };
-  }, [rasterState, context.layersControl]);
+  }, [rasterState]);
 
   return null;
 };

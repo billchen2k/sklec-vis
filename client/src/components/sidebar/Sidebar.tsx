@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Box, Drawer, IconButton, Stack, SxProps, Typography} from '@mui/material';
+import {Box, ButtonGroup, Drawer, IconButton, Stack, SxProps, Typography} from '@mui/material';
 import DataMetaInfo from '@/components/sidebar/DataMetaInfo';
 import {useNavigate} from 'react-router-dom';
 import {ArrowBack} from '@mui/icons-material';
@@ -54,7 +54,7 @@ const demoData: { [key: string]: any } = {
 
 const Sidebar = (props: ISidebarProps) => {
   const navigate = useNavigate();
-  const {globalState, currentData, currentType} = useAppSelector((state) => state.site);
+  const {globalState, currentData, currentType, rasterState} = useAppSelector((state) => state.site);
 
   let sidebarContent = null;
   switch (globalState) {
