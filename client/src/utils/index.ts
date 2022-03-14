@@ -16,3 +16,28 @@ export function muiIconToPlotlyIcon(icon:JSX.Element): Plotly.Icon {
   };
   return plotlyIcon;
 };
+
+/**
+ * Downsample an array of data.
+ */
+export function downsampleValue(src: number[] | string[], n: number): number[] {
+  const dst: number[] = [];
+  for (let i = 0; i < src.length; i += n) {
+    let currentSum = 0;
+    for (let j = 0; j < n && i + j < src.length; j++) {
+      currentSum += parseFloat(src[i + j] as string);
+    }
+    dst.push(currentSum / n);
+  }
+  console.log(src);
+  console.log(dst);
+  return dst;
+}
+
+export function downsampleAxis(src: any[], n: number): any[] {
+  const dst: any[] = [];
+  for (let i = 0; i < src.length; i += n) {
+    dst.push(src[i]);
+  }
+  return dst;
+}

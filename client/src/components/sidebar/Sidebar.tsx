@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {Box, ButtonGroup, Drawer, IconButton, Stack, SxProps, Typography} from '@mui/material';
-import DataMetaInfo from '@/components/sidebar/DataMetaInfo';
+import DataDetails from '@/components/sidebar/DataDetails';
 import {useNavigate} from 'react-router-dom';
 import {ArrowBack} from '@mui/icons-material';
 import {useAppSelector} from '@/app/hooks';
@@ -66,7 +66,7 @@ const Sidebar = (props: ISidebarProps) => {
     case 'data-inspecting':
       sidebarContent = (
         <Box sx={{p: 2}}>
-          <DataMetaInfo
+          <DataDetails
             meta={demoData[currentData as string]['meta']}
             datasetName={demoData[currentData as string]['name']}
             downloadLink={''}

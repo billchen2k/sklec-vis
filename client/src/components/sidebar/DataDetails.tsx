@@ -5,16 +5,16 @@ import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/mater
 import {ArrowBack} from '@mui/icons-material';
 import {siteSlice} from '@/store/siteSlice';
 import {useAppDispatch} from '@/app/hooks';
+import DataMetaTable from '@/components/containers/DataMetaTable';
 
 export interface IDataMetaInfoProps {
   datasetName?: string;
   downloadLink?: string;
-  viewLink?: string;
   meta: any;
   mini?: boolean;
 }
 
-const DataMetaInfo = (props: IDataMetaInfoProps) => {
+const DataDetails = (props: IDataMetaInfoProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -53,19 +53,11 @@ const DataMetaInfo = (props: IDataMetaInfoProps) => {
       }
       <Card variant={'outlined'}>
         <CardContent>
-          <Box sx={{display: 'flex'}}>
-            {detailsTable}
-          </Box>
+          <DataMetaTable meta={props.meta} />
         </CardContent>
       </Card>
+
       <Box sx={{margin: '6px'}} className={'clearfix'}>
-        {props.viewLink &&
-          <Button sx={{float: 'right'}} size={'small'} variant={'outlined'}
-            onClick={() => {
-              navigate(props.viewLink, {replace: true});
-            }}
-          >Detail</Button>
-        }
         {props.downloadLink &&
           <Button sx={{float: 'right'}} size={'small'} variant={'outlined'}
             onClick={() => {
@@ -79,4 +71,4 @@ const DataMetaInfo = (props: IDataMetaInfoProps) => {
   );
 };
 
-export default DataMetaInfo;
+export default DataDetails;

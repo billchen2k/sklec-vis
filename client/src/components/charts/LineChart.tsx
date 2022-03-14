@@ -1,7 +1,7 @@
 /**
  * Render a line chart with Plotly.js.
  */
-import React from 'react';
+import React, {useDebugValue, useEffect} from 'react';
 import * as d3 from 'd3';
 import {DSVRowArray} from 'd3';
 import {
@@ -13,7 +13,7 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
-  IconButton,
+  IconButton, LinearProgress, MenuItem, Select,
   Slider,
   Typography,
 } from '@mui/material';
@@ -28,164 +28,43 @@ import {
   PlaylistRemove,
   RotateLeft,
 } from '@mui/icons-material';
-import {muiIconToPlotlyIcon} from '@/utils';
+import {downsampleAxis, downsampleValue, muiIconToPlotlyIcon} from '@/utils';
 
-interface LineChartProps {
+
+export interface ILineChartProps {
   xlabel?: string;
-  type: 'csv' | 'json';
+  type: 'csv' | 'raw';
   link: | string
-};
+}
 
-interface LineChartStates {
-  plotData: | Plotly.Data[];
-  plotLayout: | Partial<Plotly.Layout>;
-  plotConfig: | Partial<Plotly.Config>;
-  ylabels: string[] ;
-  activatedYlabels: string[];
-  dataColumns: {[key: string]: string[]};
-  changablePlotConfig?: {
+export interface IChangablePlotConfig {
     lineWidth: number;
     showMarker: boolean;
     fullscreen: boolean;
-    downSampling: boolean;
+    downSampling: number;
+    downSamplingEnabled: boolean;
   };
-  shiftPressed: boolean;
-  lastSelectedLabel?: string;
-};
 
-class LineChart extends React.Component<LineChartProps, LineChartStates> {
-  axisSpacing: number = 0.05;
-  maximumYLabels: number = 9;
+const LineChart = (props: ILineChartProps) => {
+  const [loading, setLoading] = React.useState(true);
+  const [ylabels, setYlabels] = React.useState<string[]>([]);
+  const [activatedYlabels, setActivatedYlabels] = React.useState<string[]>([]);
+  useDebugValue('activated Y labels');
+  const [dataColumns, setDataColumns] = React.useState<any>({});
+  const [changablePlotConfig, setChangablePlotConfig] = React.useState<IChangablePlotConfig>({
+    lineWidth: 1.5,
+    showMarker: false,
+    fullscreen: false,
+    downSampling: 2,
+    downSamplingEnabled: false,
+  });
+  const [shiftPressed, setShiftPressed] = React.useState<boolean>(false);
+  const [lastSelectedLabel, setLastSelectedLabel] = React.useState<string>();
 
-  constructor(props: LineChartProps, states: LineChartStates) {
-    super(props, states);
-    this.state = {
-      plotData: [],
-      plotLayout: {},
-      plotConfig: {},
-      ylabels: [],
-      activatedYlabels: [],
-      dataColumns: {},
-      changablePlotConfig: {
-        lineWidth: 1.5,
-        showMarker: false,
-        fullscreen: false,
-        downSampling: false,
-      },
-      shiftPressed: false,
-    };
-  }
+  const axisSpacing: number = 0.05;
+  const maximumYLabels: number = 9;
 
-  updatePlot(ylabels?: string[]) {
-    const plotFontFamily = 'Helvetica, Roboto, Arial';
-    const plotFontSize = 11;
-    if (!ylabels) {
-      ylabels = this.state.activatedYlabels;
-    }
-
-    // Only a maximum number of 9 columns can display in a same plot.
-    ylabels.splice(this.maximumYLabels);
-
-    const traces: Plotly.Data[] = ylabels.map((y: string) => {
-      const trace: Plotly.Data = {
-        x: this.state.dataColumns[this.props.xlabel],
-        y: this.state.dataColumns[y],
-        name: y,
-        type: 'scatter',
-        mode: this.state.changablePlotConfig.showMarker ? 'lines+markers' : 'lines',
-        line: {
-          width: this.state.changablePlotConfig.lineWidth,
-        },
-        marker: {
-          size: this.state.changablePlotConfig.lineWidth * 3,
-        },
-      };
-      if (ylabels.indexOf(y) > 0) {
-        trace.yaxis = `y${ylabels.indexOf(y) + 1}`;
-      }
-      return trace;
-    });
-
-    const layout: Partial<Plotly.Layout> = {
-      title: ylabels.length > 0 ? /[^/]*$/.exec(this.props.link)[0] : 'Please select at least 1 attribute.',
-      xaxis: {
-        title: this.props.xlabel,
-        domain: [0, ylabels.length <= 2 ? 1 : 1 - (ylabels.length - 2) * this.axisSpacing],
-        linecolor: 'gray',
-        linewidth: 1,
-        mirror: true,
-      },
-      font: {
-        family: plotFontFamily,
-        size: plotFontSize,
-      },
-      autosize: true,
-      legend: {
-        x: 0,
-        y: 1,
-        traceorder: 'normal',
-        bgcolor: 'RGBA(255, 255, 255, 0.3)',
-      },
-    };
-    for (let i = 0; i < ylabels.length; i++) {
-      let yaxis: Partial<LayoutAxis>;
-      if (i == 0) {
-        yaxis = {
-          title: ylabels[i],
-          linecolor: 'gray',
-          linewidth: 1,
-          mirror: true,
-        };
-      } else {
-        yaxis = {
-          title: ylabels[i],
-          overlaying: 'y',
-          position: 1 - (i - 1) * this.axisSpacing,
-          side: 'right',
-          linewidth: 1,
-          autotick: true,
-        };
-      }
-      const axis = (i == 0) ? 'yaxis' : `yaxis${i + 1}`;
-      // @ts-ignore
-      layout[axis] = yaxis;
-    }
-    const config: Partial<Plotly.Config> = {
-      autosizable: true,
-      toImageButtonOptions: {
-        format: 'svg',
-        filename: /[^/]*$/.exec(this.props.link)[0],
-        height: 600,
-        width: 800,
-      },
-      displaylogo: false,
-      modeBarButtonsToAdd: [
-        {
-          name: 'Fullscreen',
-          title: 'Toggle Fullscreen',
-          icon: muiIconToPlotlyIcon(<OpenInFull />),
-          click: () => {
-            this.setState({
-              changablePlotConfig: {
-                ...this.state.changablePlotConfig,
-                fullscreen: !this.state.changablePlotConfig.fullscreen,
-              },
-            });
-            this.updatePlot();
-          },
-        },
-      ],
-    };
-
-    this.setState({
-      plotData: traces,
-      plotLayout: layout,
-      plotConfig: config,
-      activatedYlabels: ylabels,
-    });
-  }
-
-  parseRows(d3data: DSVRowArray<string>) {
+  const parseRows = (d3data: DSVRowArray<string>) => {
     const dataRows: {[key: string]: string[]} = {};
     for (let i = 0; i < d3data.length; i++) {
       const row = d3data[i];
@@ -197,231 +76,342 @@ class LineChart extends React.Component<LineChartProps, LineChartStates> {
       }
     }
     return dataRows;
-  }
+  };
 
-  addListeners() {
-    window.addEventListener('resize', () => this.updatePlot());
+  const addListeners = () => {
     window.addEventListener('keydown', (e) => {
       if (e.shiftKey) {
-        this.setState({
-          shiftPressed: true,
-        });
+        setShiftPressed(true);
       }
     });
     window.addEventListener('keyup', (e) => {
       if (!e.shiftKey) {
-        this.setState({
-          shiftPressed: false,
-        });
+        setShiftPressed(false);
       }
     });
-  }
+  };
 
-  componentDidMount() {
-    this.addListeners();
-    switch (this.props.type) {
-      case 'csv':
-        d3.csv(this.props.link).then((data) => {
-          const fields = Object.keys(data[0]);
-          const ylabels = fields.filter((field) => field !== this.props.xlabel);
-          const activated = ylabels.slice(0, 4);
-          this.setState({
-            ylabels: ylabels,
-            activatedYlabels: activated,
-            dataColumns: this.parseRows(data),
-            lastSelectedLabel: activated.length > 0 ? activated[0] : undefined,
-          });
-          setTimeout(() => {
-            this.updatePlot(activated);
-          }, 100);
-        });
-        break;
-      case 'json':
-        // todo: Handle json files with Line charts.
-        break;
-    }
-  }
-
-  handleCheckboxChanged(event: React.ChangeEvent<HTMLInputElement>) {
-    const activated = this.state.activatedYlabels;
+  const handleCheckboxChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const activated = activatedYlabels;
     if (event.target.checked) {
       activated.push(event.target.name);
     } else {
       activated.splice(activated.indexOf(event.target.name), 1);
     }
     // Record last selected attributes.
-    if (!this.state.lastSelectedLabel) {
-      this.setState({
-        lastSelectedLabel: event.target.name,
-      });
+    if (!lastSelectedLabel) {
+      setLastSelectedLabel(event.target.name);
     }
     // Valid Multiple Selection
-    if (this.state.lastSelectedLabel && this.state.shiftPressed) {
-      const beginIndex = this.state.ylabels.indexOf(this.state.lastSelectedLabel);
-      const endIndex = this.state.ylabels.indexOf(event.target.name);
-      const lastSelected = this.state.activatedYlabels.indexOf(this.state.lastSelectedLabel) !== -1;
+    if (lastSelectedLabel && shiftPressed) {
+      const beginIndex = ylabels.indexOf(lastSelectedLabel);
+      const endIndex = ylabels.indexOf(event.target.name);
+      const lastSelected = activatedYlabels.indexOf(lastSelectedLabel) !== -1;
       if (Math.abs(endIndex - beginIndex) > 1) {
         for (let i = Math.min(beginIndex, endIndex) + 1; i <= Math.max(beginIndex, endIndex); i++) {
-          if (lastSelected && activated.indexOf(this.state.ylabels[i]) === -1) {
-            activated.push(this.state.ylabels[i]);
-          } else if (!lastSelected && activated.indexOf(this.state.ylabels[i]) !== -1) {
-            activated.splice(activated.indexOf(this.state.ylabels[i]), 1);
+          if (lastSelected && activated.indexOf(ylabels[i]) === -1) {
+            activated.push(ylabels[i]);
+          } else if (!lastSelected && activated.indexOf(ylabels[i]) !== -1) {
+            activated.splice(activated.indexOf(ylabels[i]), 1);
           }
         }
       }
     }
-    this.setState({
-      activatedYlabels: activated,
-      lastSelectedLabel: event.target.name,
-    });
-    this.updatePlot(activated);
-  }
+    setActivatedYlabels(activated.slice(0, maximumYLabels));
+    setLastSelectedLabel(event.target.name);
+  };
 
-  handleFocusClicked(event: React.MouseEvent<HTMLButtonElement>, label: string) {
+  const handleFocusClicked = (event: React.MouseEvent<HTMLButtonElement>, label: string) => {
     event.preventDefault();
-    this.updatePlot([label]);
-    this.setState({
-      lastSelectedLabel: label,
-    });
-  }
+    setActivatedYlabels([label]);
+    setLastSelectedLabel(label);
+  };
 
-  handleSelectAll() {
-    this.updatePlot([...this.state.ylabels]);
-  }
+  const handleSelectAll = () => {
+    setActivatedYlabels(ylabels.slice(0, maximumYLabels));
+  };
 
-  handleDeselectAll() {
-    this.updatePlot([]);
-  }
+  const handleDeselectAll = () => {
+    setActivatedYlabels([]);
+  };
 
-  handleInvertSelection() {
-    const activated = this.state.activatedYlabels;
-    const inverted = this.state.ylabels.filter((label) => !activated.includes(label));
-    this.updatePlot(inverted);
-  }
+  const handleInvertSelection = () => {
+    const activated = activatedYlabels;
+    const inverted = ylabels.filter((label) => !activated.includes(label));
+    setActivatedYlabels(inverted.slice(0, maximumYLabels));
+  };
 
-  handlePlotConfigChange(config: {[key in keyof LineChartStates['changablePlotConfig']]?: any}) {
-    this.setState({
-      changablePlotConfig: {
-        ...this.state.changablePlotConfig,
-        ...config,
+  const changeDownsamplingChecked = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.checked) {
+      handlePlotConfigChange({downSampling: 0});
+    }
+  };
+
+  const handlePlotConfigChange = (config: {[key in keyof IChangablePlotConfig]?: any}) => {
+    const newConfig = {...changablePlotConfig, ...config};
+    setChangablePlotConfig(newConfig);
+  };
+
+  useEffect(() => {
+    addListeners();
+    switch (props.type) {
+      case 'csv':
+        d3.csv(props.link).then((data) => {
+          const fields = Object.keys(data[0]);
+          const ylabels = fields.filter((field) => field !== props.xlabel);
+          const activated = ylabels.slice(0, 4);
+          setYlabels(ylabels);
+          setActivatedYlabels(activated);
+          // @ts-ignore
+          setDataColumns(parseRows(data));
+          setLastSelectedLabel(activated.length > 0 ? activated[0] : undefined);
+        });
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+        break;
+      case 'raw':
+        // todo: Handle json files with Line charts.
+        break;
+    }
+  }, [props.link, props.type]);
+
+  // /////// DRAW PLOT
+  const plotFontFamily = 'Helvetica, Roboto, Arial';
+  const plotFontSize = 11;
+
+
+  // Aka traces
+  const plotData: Plotly.Data[] = activatedYlabels.map((y: string, index) => {
+    const trace: Plotly.Data = {
+      x: changablePlotConfig.downSamplingEnabled ? downsampleAxis(dataColumns[props.xlabel], changablePlotConfig.downSampling) : dataColumns[props.xlabel],
+      y: changablePlotConfig.downSamplingEnabled ? downsampleValue(dataColumns[y], changablePlotConfig.downSampling) : dataColumns[y],
+      name: y,
+      type: 'scatter',
+      mode: changablePlotConfig.showMarker ? 'lines+markers' : 'lines',
+      line: {
+        width: changablePlotConfig.lineWidth,
       },
-    });
-    setTimeout(() => {
-      this.updatePlot();
-    }, 100);
-  }
+      marker: {
+        size: changablePlotConfig.lineWidth * 3,
+      },
+    };
+    trace.yaxis = index > 0 ? `y${index + 1}` : `y`;
+    return trace;
+  });
 
-  render() {
-    const checkBoxes = this.state.ylabels.map((label) => {
-      const checked = this.state.activatedYlabels.indexOf(label) > -1;
-      const disabled = this.state.activatedYlabels.length == 9 && !checked;
-      return (
-        <Box key={label} sx={{
-          borderRadius: '3px',
-          backgroundColor: this.state.shiftPressed && label === this.state.lastSelectedLabel ? '#d1ff96' : undefined,
-          transition: 'all 0.2s',
-        }}>
-          <IconButton onClick={(e) => this.handleFocusClicked(e, label)}>
-            <CenterFocusStrong/>
-          </IconButton>
-          <FormControlLabel control={
-            <Checkbox checked={checked}
-              disabled={disabled}
-              onChange={(e) => this.handleCheckboxChanged(e)}
-              name={label}/>
-          } label={checked ? <b>{label}</b> : label}/>
-        </Box>
-      );
-    });
-    const lineWidthSlider = (
-      <Slider
-        id={'slider-line-width'}
-        defaultValue={1}
-        value={this.state.changablePlotConfig.lineWidth}
-        valueLabelDisplay={'auto'}
-        step={0.1}
-        min={0.2}
-        max={5}
-        size={'small'}
-        onChange={(e, value: number) => this.handlePlotConfigChange({lineWidth: value})}
-      />
-    );
+  const plotLayout: Partial<Plotly.Layout> = {
+    title: activatedYlabels.length > 0 ? /[^/]*$/.exec(props.link)[0] : 'Please select at least 1 attribute.',
+    xaxis: {
+      title: props.xlabel,
+      domain: [0, activatedYlabels.length <= 2 ? 1 : 1 - (activatedYlabels.length - 2) * axisSpacing],
+      linecolor: 'gray',
+      linewidth: 1,
+      mirror: true,
+    },
+    font: {
+      family: plotFontFamily,
+      size: plotFontSize,
+    },
+    autosize: true,
+    legend: {
+      x: 0,
+      y: 1,
+      traceorder: 'normal',
+      bgcolor: 'RGBA(255, 255, 255, 0.3)',
+    },
+  };
+
+  for (let i = 0; i < activatedYlabels.length; i++) {
+    let yaxis: Partial<LayoutAxis>;
+    if (i == 0) {
+      yaxis = {
+        title: activatedYlabels[i],
+        linecolor: 'gray',
+        linewidth: 1,
+        mirror: true,
+      };
+    } else {
+      yaxis = {
+        title: activatedYlabels[i],
+        overlaying: 'y',
+        position: 1 - (i - 1) * axisSpacing,
+        side: 'right',
+        linewidth: 1,
+        autotick: true,
+      };
+    }
+    const axis = (i == 0) ? 'yaxis' : `yaxis${i + 1}`;
+    // @ts-ignore
+    plotLayout[axis] = yaxis;
+  }
+  const plotConfig: Partial<Plotly.Config> = {
+    autosizable: true,
+    toImageButtonOptions: {
+      format: 'svg',
+      filename: /[^/]*$/.exec(props.link)[0],
+      height: 600,
+      width: 800,
+    },
+    displaylogo: false,
+    modeBarButtonsToAdd: [
+      {
+        name: 'Fullscreen',
+        title: 'Toggle Fullscreen',
+        icon: muiIconToPlotlyIcon(<OpenInFull />),
+        click: () => {
+          handlePlotConfigChange({fullscreen: !changablePlotConfig.fullscreen});
+        },
+      },
+    ],
+  };
+
+  console.log(plotLayout, plotData);
+
+  const checkBoxes = ylabels.map((label) => {
+    const checked = activatedYlabels.indexOf(label) > -1;
+    const disabled = activatedYlabels.length == 9 && !checked;
     return (
-      <Box>
-        <Typography variant={'subtitle2'} >
+      <Box key={label} sx={{
+        borderRadius: '3px',
+        backgroundColor: shiftPressed && label === lastSelectedLabel ? '#d1ff96' : undefined,
+        transition: 'all 0.2s',
+      }}>
+        <IconButton onClick={(e) => handleFocusClicked(e, label)}>
+          <CenterFocusStrong/>
+        </IconButton>
+        <FormControlLabel control={
+          <Checkbox checked={checked}
+            disabled={disabled}
+            onChange={(e) => handleCheckboxChanged(e)}
+            name={label}/>
+        } label={checked ? <b>{label}</b> : label}/>
+      </Box>
+    );
+  });
+
+
+  const lineWidthSlider = (
+    <Slider
+      id={'slider-line-width'}
+      defaultValue={1}
+      value={changablePlotConfig.lineWidth}
+      valueLabelDisplay={'auto'}
+      step={0.1}
+      min={0.2}
+      max={5}
+      size={'small'}
+      onChange={(e, value: number) => handlePlotConfigChange({lineWidth: value})}
+    />
+  );
+
+  const downsamplingSlider = (
+    <Slider
+      id={'slider-downsampling'}
+      defaultValue={0}
+      value={changablePlotConfig.downSampling}
+      valueLabelDisplay={'auto'}
+      step={1}
+      min={1}
+      max={dataColumns[props.xlabel] ? Math.floor(Math.log2(dataColumns[props.xlabel].length)) : 10}
+      size={'small'}
+      disabled={!changablePlotConfig.downSamplingEnabled}
+      onChange={(e, value: number) => handlePlotConfigChange({downSampling: value})}
+    />
+  );
+
+
+  return (
+    <Box>
+      <Typography variant={'subtitle2'} >
         Plot Configurations:
-        </Typography>
-        <Box id={'container-plot-control'}>
-          <Grid container spacing={3}>
-            <Grid item container xs={4} sx={{'mt': 1}}>
-              <Grid item xs={3}>
-                <Typography variant={'subtitle1'}>
+      </Typography>
+      <Box id={'container-plot-control'}>
+        <Grid container spacing={3}>
+          <Grid item container xs={4} sx={{'mt': 1}}>
+            <Grid item xs={3}>
+              <Typography variant={'subtitle1'}>
                 Line Width:
-                </Typography>
-              </Grid>
-              <Grid item xs={8}>
-                {lineWidthSlider}
-              </Grid>
-              <Grid item xs={1}>
-                <IconButton size={'small'} onClick={() => this.handlePlotConfigChange({lineWidth: 1})}>
-                  <RotateLeft/>
-                </IconButton>
-              </Grid>
+              </Typography>
             </Grid>
-            <Grid item xs={4}>
-              <FormControlLabel control={
-                <Checkbox checked={this.state.changablePlotConfig.showMarker}
-                  value={this.state.changablePlotConfig.showMarker}
-                  onChange={(e) => this.handlePlotConfigChange({showMarker: e.target.checked})}
-                  name={'showMarker'}/>
-              } label={'Show Marker (May affect performance)'}/>
+            <Grid item xs={8}>
+              {lineWidthSlider}
             </Grid>
-            <Grid item xs={4}>
-              <FormControlLabel control={
-                <Checkbox
-                  value={this.state.changablePlotConfig.downSampling}
-                  onChange={(e) => this.handlePlotConfigChange({downSampling: e.target.checked})}
-                  name={'showMarker'}/>
-              } label={'DownSampling'}/>
+            <Grid item xs={1}>
+              <IconButton size={'small'} onClick={() => handlePlotConfigChange({lineWidth: 1})}>
+                <RotateLeft/>
+              </IconButton>
             </Grid>
           </Grid>
-        </Box>
-        <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
-          <Plot className={this.state.changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
-            data={this.state.plotData}
-            layout={this.state.plotLayout}
-            config={this.state.plotConfig}/>
-        </Box>
-        {/* Visualization Controller */}
-        <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
-          <FormControl component={'fieldset'} variant={'standard'}>
-            <Grid container justifyContent={'space-between'} spacing={2}>
-              <Grid item key={'label'}>
-                <Typography variant={'subtitle2'}>
-                Attributes to Display
-                  {this.state.activatedYlabels.length == this.maximumYLabels ? ` (Maximum of ${this.maximumYLabels} attributes can be displayed at a time)` : ''}
-                :
-                </Typography>
+          <Grid item xs={4}>
+            <FormControlLabel control={
+              <Checkbox checked={changablePlotConfig.showMarker}
+                value={changablePlotConfig.showMarker}
+                onChange={(e) => handlePlotConfigChange({showMarker: e.target.checked})}
+                name={'showMarker'}/>
+            } label={'Show Marker (May affect performance)'}/>
+          </Grid>
+          <Grid item xs={4}>
+            <Grid item container >
+              <Grid item xs={4}>
+                <FormControlLabel control={
+                  <Checkbox
+                    value={changablePlotConfig.downSamplingEnabled}
+                    onChange={(e) => handlePlotConfigChange({downSamplingEnabled: e.target.checked})}
+                    name={'showMarker'}/>
+                } label={'DownSampling'}/>
               </Grid>
-              <Grid item key={'button-groups'}>
-                <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
-                  <Button onClick={() => this.handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
-                  <Button onClick={() => this.handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
-                  <Button onClick={() => this.handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
-                </ButtonGroup>
+              <Grid item xs={8} sx={{'mt': 1}}>
+                {downsamplingSlider}
               </Grid>
             </Grid>
-            <FormGroup row={true}>
-              {checkBoxes}
-            </FormGroup>
-          </FormControl>
-          <Typography variant={'body2'} color={'gray'}>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
+        <Plot className={changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
+          data={plotData}
+          layout={plotLayout}
+          config={plotConfig}
+          useResizeHandler={true}
+        />
+      </Box>
+      {loading &&
+        <LinearProgress variant={'indeterminate'} sx={{width: '100%'}}/>
+      }
+      {/* Visualization Controller */}
+      <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
+        <Grid container justifyContent={'space-between'} spacing={2}>
+          <Grid item key={'label'}>
+            <Typography variant={'subtitle2'}>
+                Attributes to Display
+              {activatedYlabels.length == maximumYLabels ? ` (Maximum of ${maximumYLabels} attributes can be displayed at a time)` : ''}
+                :
+            </Typography>
+          </Grid>
+          <Grid item key={'button-groups'}>
+            <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
+              <Button onClick={() => handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
+              <Button onClick={() => handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
+              <Button onClick={() => handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
+            </ButtonGroup>
+          </Grid>
+        </Grid>
+        <FormControl component={'fieldset'} variant={'standard'}>
+          <FormGroup row={true}>
+            {checkBoxes}
+          </FormGroup>
+        </FormControl>
+        <Typography variant={'body2'} color={'gray'}>
           You can hold shift while selecting to select / deselect multiple attributes.<br />
           Use the focus icon before the attributes to focus on a specific attribute.
-          </Typography>
-        </Box>
-      </Box>);
-  }
-}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
 
 export default LineChart;
+
+

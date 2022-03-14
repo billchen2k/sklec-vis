@@ -6,10 +6,11 @@ import {MapContainer, Marker, Popup, TileLayer, LayersControl, LayerGroup} from 
 import {AttachFile, FilePresent, Folder} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {common} from '@mui/material/colors';
-import DataMetaInfo from '@/components/sidebar/DataMetaInfo';
+import DataDetails from '@/components/sidebar/DataDetails';
 import config from '@/config';
 import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
 import {useAppSelector} from '@/app/hooks';
+import DataMarkerPopupContent from '@/components/map/DataMarkerPopupContent';
 
 export interface IMapProps {
   children?: any;
@@ -88,8 +89,8 @@ const BaseMap = (props: IMapProps) => {
           <LayerGroup>
             <Marker position={center} icon={icon}>
               <Popup>
-                <DataMetaInfo datasetName={'ADCP_202009-10'} meta={ADCPMetaData} mini viewLink={'/view/1'}></DataMetaInfo>
-                <DataMetaInfo datasetName={'CTD_201283_20201111_1520'} meta={ADCPMetaData} mini viewLink={'/view/2'}></DataMetaInfo>
+                <DataMarkerPopupContent name={'ADCP_202009-10'} meta={ADCPMetaData} link={'/view/1'}></DataMarkerPopupContent>
+                <DataMarkerPopupContent name={'CTD_201283_20201111_1520'} meta={ADCPMetaData} link={'/view/2'}></DataMarkerPopupContent>
               </Popup>
             </Marker>
           </LayerGroup>
