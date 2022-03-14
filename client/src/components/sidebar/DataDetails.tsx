@@ -2,16 +2,18 @@ import * as React from 'react';
 import {Box, Button, IconButton, Stack} from '@mui/material';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
-import {ArrowBack} from '@mui/icons-material';
+import {ArrowBack, CopyAll, Download, Edit} from '@mui/icons-material';
 import {siteSlice} from '@/store/siteSlice';
 import {useAppDispatch} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
+import MDEditor from '@uiw/react-md-editor';
+import {copyMetaToClipboard} from '@/utils/dataset';
+import {uiSlice} from '@/store/uiSlice';
 
 export interface IDataMetaInfoProps {
   datasetName?: string;
   downloadLink?: string;
   meta: any;
-  mini?: boolean;
 }
 
 const DataDetails = (props: IDataMetaInfoProps) => {
@@ -43,30 +45,57 @@ const DataDetails = (props: IDataMetaInfoProps) => {
 
   return (
     <Box>
-      {!props.mini &&
-        <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
-          <IconButton onClick={handleNavigateBack}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant={'h5'}>{props.datasetName}</Typography>
-        </Stack>
-      }
+
+      <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
+        <IconButton onClick={handleNavigateBack}>
+          <ArrowBack />
+        </IconButton>
+        <Typography variant={'h5'}>{props.datasetName}</Typography>
+      </Stack>
+
+      <Box sx={{my: 1}}>
+        <MDEditor.Markdown
+          style={{'fontSize': '14px'}}
+          source={'## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.'}
+        />
+      </Box>
+
+
       <Card variant={'outlined'}>
         <CardContent>
           <DataMetaTable meta={props.meta} />
         </CardContent>
       </Card>
 
-      <Box sx={{margin: '6px'}} className={'clearfix'}>
+      <Stack direction={'column'} sx={{margin: '6px'}} spacing={1}>
+        <Button variant={'outlined'} size={'small'} startIcon={<CopyAll />}
+          onClick={() => {
+            copyMetaToClipboard(props.meta);
+            dispatch(uiSlice.actions.openSnackbar({
+              message: 'Metadata copied to clipboard.',
+              severity: 'success',
+            }));
+          }}
+        >
+          Copy Metadata to Clipboard
+        </Button>
+
+        <Button variant={'outlined'} size={'small'}
+          startIcon={<Edit />}
+        >
+          Edit description and attachments
+        </Button>
+
         {props.downloadLink &&
-          <Button sx={{float: 'right'}} size={'small'} variant={'outlined'}
+          <Button size={'small'} variant={'outlined'}
+            startIcon={<Download />}
             onClick={() => {
-              navigate(props.downloadLink, {replace: true});
+              window.open(props.downloadLink, '_blank');
             }}
-          >Download</Button>
+          >Download Original</Button>
         }
 
-      </Box>
+      </Stack>
     </Box>
   );
 };

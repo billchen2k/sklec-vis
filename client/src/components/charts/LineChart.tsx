@@ -14,22 +14,25 @@ import {
   FormGroup,
   Grid,
   IconButton, LinearProgress, MenuItem, Select,
-  Slider,
+  Slider, Stack,
   Typography,
 } from '@mui/material';
 import Plot from 'react-plotly.js';
 import * as Plotly from 'plotly.js';
-import {LayoutAxis} from 'plotly.js';
+import {ClickAnnotationEvent, LayoutAxis, PlotMouseEvent, PlotSelectionEvent} from 'plotly.js';
 import {
-  CenterFocusStrong,
-  CompareArrows,
+  BlurCircular,
+  BlurOn,
+  CenterFocusStrong, Clear,
+  CompareArrows, Group, HighlightOff,
   OpenInFull,
   PlaylistAddCheck,
   PlaylistRemove,
-  RotateLeft,
+  RotateLeft, SkipNext, SkipPrevious,
 } from '@mui/icons-material';
-import {downsampleAxis, downsampleValue, muiIconToPlotlyIcon} from '@/utils';
-
+import {muiIconToPlotlyIcon} from '@/utils';
+import {downsampleAxis, downsampleValue, genYLablesGrouping} from '@/utils/chartData';
+import {IGroupingResult} from '@/types';
 
 export interface ILineChartProps {
   xlabel?: string;
@@ -44,6 +47,8 @@ export interface IChangablePlotConfig {
     downSampling: number;
     downSamplingEnabled: boolean;
   };
+
+export type IAttributeSelectorType = 'custom' | 'grouped';
 
 const LineChart = (props: ILineChartProps) => {
   const [loading, setLoading] = React.useState(true);
@@ -60,7 +65,10 @@ const LineChart = (props: ILineChartProps) => {
   });
   const [shiftPressed, setShiftPressed] = React.useState<boolean>(false);
   const [lastSelectedLabel, setLastSelectedLabel] = React.useState<string>();
-
+  const [highlightChartXIndex, setHighlightChartXIndex] = React.useState<number>(-1);
+  const [ylabelGrouping, setYlabelGrouping] = React.useState<| IGroupingResult>(null);
+  const [attributeSelectorType, setAttributeSelectorType] = React.useState<IAttributeSelectorType>('custom');
+  const [selectedGroupingIndex, setSelectedGroupingIndex] = React.useState<number>(0);
   const axisSpacing: number = 0.05;
   const maximumYLabels: number = 9;
 
@@ -141,15 +149,47 @@ const LineChart = (props: ILineChartProps) => {
     setActivatedYlabels(inverted.slice(0, maximumYLabels));
   };
 
-  const changeDownsamplingChecked = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.checked) {
-      handlePlotConfigChange({downSampling: 0});
-    }
-  };
-
   const handlePlotConfigChange = (config: {[key in keyof IChangablePlotConfig]?: any}) => {
     const newConfig = {...changablePlotConfig, ...config};
     setChangablePlotConfig(newConfig);
+  };
+
+  const handlePlotClicked = (e: Readonly<PlotMouseEvent>) => {
+    if (changablePlotConfig.downSamplingEnabled) {
+      setHighlightChartXIndex(e.points[0].pointIndex * changablePlotConfig.downSampling);
+    } else {
+      setHighlightChartXIndex(e.points[0].pointIndex);
+    }
+  };
+
+  const handleAnnotationClicked = (e: Readonly<ClickAnnotationEvent>) => {
+    setHighlightChartXIndex(-1);
+  };
+
+  const handlePlotSelected = (e: Readonly<PlotSelectionEvent>) => {
+    console.log(e);
+  };
+
+  const mapLabel2Checkboxes = (label: string) => {
+    const checked = activatedYlabels.indexOf(label) > -1;
+    const disabled = activatedYlabels.length == 9 && !checked;
+    return (
+      <Box key={label} sx={{
+        borderRadius: '3px',
+        backgroundColor: shiftPressed && label === lastSelectedLabel ? '#d1ff96' : undefined,
+        transition: 'all 0.2s',
+      }}>
+        <IconButton onClick={(e) => handleFocusClicked(e, label)}>
+          <CenterFocusStrong/>
+        </IconButton>
+        <FormControlLabel control={
+          <Checkbox checked={checked}
+            disabled={disabled}
+            onChange={(e) => handleCheckboxChanged(e)}
+            name={label}/>
+        } label={checked ? <b>{label}</b> : label}/>
+      </Box>
+    );
   };
 
   useEffect(() => {
@@ -165,6 +205,7 @@ const LineChart = (props: ILineChartProps) => {
           // @ts-ignore
           setDataColumns(parseRows(data));
           setLastSelectedLabel(activated.length > 0 ? activated[0] : undefined);
+          setYlabelGrouping(genYLablesGrouping(ylabels));
         });
         setTimeout(() => {
           setLoading(false);
@@ -200,6 +241,39 @@ const LineChart = (props: ILineChartProps) => {
     return trace;
   });
 
+  let annotationLayouts: Partial<Plotly.Layout> = {};
+  if (highlightChartXIndex >= 0) {
+    annotationLayouts = {
+      shapes: [
+        {
+          type: 'line',
+          yref: 'paper',
+          x0: dataColumns[props.xlabel][highlightChartXIndex],
+          y0: 0,
+          x1: dataColumns[props.xlabel][highlightChartXIndex],
+          y1: 1,
+          line: {
+            color: '#15e7c0',
+            width: 3,
+          },
+        },
+      ],
+      annotations: [
+        {
+          x: activatedYlabels.length > 1 ? 1 - (activatedYlabels.length - 2) * axisSpacing : 1,
+          y: 1,
+          yref: 'paper',
+          xref: 'paper',
+          xanchor: 'right',
+          text: `${dataColumns[props.xlabel][highlightChartXIndex]}<br>` + activatedYlabels.map((y: string) => `${y}: ${dataColumns[y][highlightChartXIndex]}`).join('<br>'),
+          showarrow: false,
+          align: 'right',
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
+        },
+      ],
+    };
+  }
+
   const plotLayout: Partial<Plotly.Layout> = {
     title: activatedYlabels.length > 0 ? /[^/]*$/.exec(props.link)[0] : 'Please select at least 1 attribute.',
     xaxis: {
@@ -220,6 +294,7 @@ const LineChart = (props: ILineChartProps) => {
       traceorder: 'normal',
       bgcolor: 'RGBA(255, 255, 255, 0.3)',
     },
+    ...annotationLayouts,
   };
 
   for (let i = 0; i < activatedYlabels.length; i++) {
@@ -263,33 +338,18 @@ const LineChart = (props: ILineChartProps) => {
           handlePlotConfigChange({fullscreen: !changablePlotConfig.fullscreen});
         },
       },
+      ...(highlightChartXIndex >= 0 ? [{
+        name: 'Clear Highlight',
+        title: 'Clear Highlight',
+        icon: muiIconToPlotlyIcon(<HighlightOff />),
+        click: () => {
+          setHighlightChartXIndex(-1);
+        },
+      }]: []),
     ],
   };
 
-  console.log(plotLayout, plotData);
-
-  const checkBoxes = ylabels.map((label) => {
-    const checked = activatedYlabels.indexOf(label) > -1;
-    const disabled = activatedYlabels.length == 9 && !checked;
-    return (
-      <Box key={label} sx={{
-        borderRadius: '3px',
-        backgroundColor: shiftPressed && label === lastSelectedLabel ? '#d1ff96' : undefined,
-        transition: 'all 0.2s',
-      }}>
-        <IconButton onClick={(e) => handleFocusClicked(e, label)}>
-          <CenterFocusStrong/>
-        </IconButton>
-        <FormControlLabel control={
-          <Checkbox checked={checked}
-            disabled={disabled}
-            onChange={(e) => handleCheckboxChanged(e)}
-            name={label}/>
-        } label={checked ? <b>{label}</b> : label}/>
-      </Box>
-    );
-  });
-
+  // console.log(plotLayout, plotData);
 
   const lineWidthSlider = (
     <Slider
@@ -319,6 +379,113 @@ const LineChart = (props: ILineChartProps) => {
       onChange={(e, value: number) => handlePlotConfigChange({downSampling: value})}
     />
   );
+
+  const mainPlot = (
+    <Plot className={changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
+      data={plotData}
+      layout={plotLayout}
+      config={plotConfig}
+      useResizeHandler={true}
+      onClick={handlePlotClicked}
+      onDoubleClick={() => setHighlightChartXIndex(-1)}
+      onClickAnnotation={handleAnnotationClicked}
+      onSelected={handlePlotSelected}
+    />
+  );
+
+  const CustomSelector = () => {
+    const checkBoxes = ylabels.map(mapLabel2Checkboxes);
+    return (<Box>
+      <FormControl component={'fieldset'} variant={'standard'}>
+        <FormGroup row={true}>
+          {checkBoxes}
+        </FormGroup>
+      </FormControl>
+      <Typography variant={'body2'} color={'gray'}>
+          You can hold shift while selecting to select / deselect multiple attributes.<br />
+          Use the focus icon before the attributes to focus on a specific attribute.
+      </Typography>
+    </Box>);
+  };
+
+
+  const GroupedSelector = () => {
+    if (!ylabelGrouping) {
+      return (
+        <Typography variant={'body1'} sx={{mt: 1}}>
+        Current dataset does not support grouping. Please use the custom attribute selector for data navigating.
+        </Typography>
+      );
+    }
+    const ungroupedCheckboxes = ylabelGrouping.ungrouped.map(mapLabel2Checkboxes);
+    const grouped = ylabelGrouping.grouped;
+    const handleGroupSelectionChange = (e: Event, value: number) => {
+      if (value < 0 || value > grouped.length - 1) {
+        return;
+      }
+      const oldGroup = grouped[selectedGroupingIndex];
+      const newGroup = grouped[value];
+      const handledLabels = activatedYlabels;
+      oldGroup.labels.forEach((label) => {
+        const index = handledLabels.indexOf(label);
+        if (index >= 0) {
+          activatedYlabels.splice(index, 1);
+        }
+      });
+      newGroup.labels.forEach((label) => {
+        const index = handledLabels.indexOf(label);
+        if (index < 0) {
+          handledLabels.push(label);
+        }
+      });
+      setSelectedGroupingIndex(value);
+      setActivatedYlabels(handledLabels);
+    };
+
+    return (<Box>
+      <FormControl component={'fieldset'} variant={'standard'}>
+        <FormGroup row={true}>
+          {ungroupedCheckboxes}
+        </FormGroup>
+      </FormControl>
+      <Typography variant={'body2'} color={'gray'}>
+          You can hold shift while selecting to select / deselect multiple attributes.<br />
+          Use the focus icon before the attributes to focus on a specific attribute.
+      </Typography>
+      <Typography variant={'body2'} sx={{fontWeight: 'bold', mt: 1}}>
+          Grouped attributes:
+      </Typography>
+      <Stack direction={'row'} spacing={1} alignItems={'center'}>
+        <Typography variant={'body2'} sx={{width: '150px'}}>Select attribute group:</Typography>
+        <Slider
+          value={selectedGroupingIndex}
+          min={0}
+          max={grouped.length - 1}
+          step={1}
+          size={'medium'}
+          onChange={handleGroupSelectionChange}
+          valueLabelDisplay={'auto'}
+          marks={true}
+        />
+      </Stack>
+      <Stack direction={'row'} spacing={1} alignItems={'center'}>
+        <Typography variant={'body2'} sx={{width: '150px'}}>Now Displaying:</Typography>
+        <Typography variant={'body1'}>{grouped[selectedGroupingIndex].name}: <b>{grouped[selectedGroupingIndex].labels.join(', ')}</b></Typography>
+        <Box sx={{flexGrow: 1}} />
+        <ButtonGroup size={'small'} variant={'outlined'}>
+          <Button onClick={() => handleGroupSelectionChange(null, selectedGroupingIndex - 1)} startIcon={<SkipPrevious />}
+            disabled={selectedGroupingIndex === 0}
+          >
+            Last Group
+          </Button>
+          <Button onClick={() => handleGroupSelectionChange(null, selectedGroupingIndex + 1)} startIcon={<SkipNext />}
+            disabled={selectedGroupingIndex === grouped.length - 1}
+          >
+            Next Group</Button>
+        </ButtonGroup>
+      </Stack>
+    </Box>);
+  };
 
 
   return (
@@ -370,43 +537,38 @@ const LineChart = (props: ILineChartProps) => {
       </Box>
 
       <Box id={'chart-container'} sx={{border: 'solid 1px #999999', borderRadius: '2px'}}>
-        <Plot className={changablePlotConfig.fullscreen ? 'plotly-chart-fullscreen' : 'plotly-chart'}
-          data={plotData}
-          layout={plotLayout}
-          config={plotConfig}
-          useResizeHandler={true}
-        />
+        {mainPlot}
       </Box>
       {loading &&
         <LinearProgress variant={'indeterminate'} sx={{width: '100%'}}/>
       }
       {/* Visualization Controller */}
       <Box sx={{display: 'flex', flexDirection: 'column', mt: '1rem'}}>
-        <Grid container justifyContent={'space-between'} spacing={2}>
-          <Grid item key={'label'}>
-            <Typography variant={'subtitle2'}>
+
+        <Stack direction={'row'} spacing={1} alignItems={'center'}>
+          <Select size={'small'}
+            value={attributeSelectorType}
+            onChange={(e) => setAttributeSelectorType(e.target.value as IAttributeSelectorType)}>
+            <MenuItem value={'custom'}>Custom Selector</MenuItem>
+            <MenuItem value={'grouped'}>Groupped Selector</MenuItem>
+          </Select>
+          <Typography variant={'subtitle2'}>
                 Attributes to Display
-              {activatedYlabels.length == maximumYLabels ? ` (Maximum of ${maximumYLabels} attributes can be displayed at a time)` : ''}
+            {activatedYlabels.length == maximumYLabels ? ` (Maximum of ${maximumYLabels} attributes can be displayed at a time)` : ''}
                 :
-            </Typography>
-          </Grid>
-          <Grid item key={'button-groups'}>
-            <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
-              <Button onClick={() => handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
-              <Button onClick={() => handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
-              <Button onClick={() => handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
-            </ButtonGroup>
-          </Grid>
-        </Grid>
-        <FormControl component={'fieldset'} variant={'standard'}>
-          <FormGroup row={true}>
-            {checkBoxes}
-          </FormGroup>
-        </FormControl>
-        <Typography variant={'body2'} color={'gray'}>
-          You can hold shift while selecting to select / deselect multiple attributes.<br />
-          Use the focus icon before the attributes to focus on a specific attribute.
-        </Typography>
+          </Typography>
+          <Box sx={{flexGrow: 1}} />
+
+          <ButtonGroup size={'small'} variant={'outlined'} color={'primary'}>
+            <Button onClick={() => handleSelectAll()}><PlaylistAddCheck/> Select All</Button>
+            <Button onClick={() => handleDeselectAll()}><PlaylistRemove/> Deselect All</Button>
+            <Button onClick={() => handleInvertSelection()}><CompareArrows /> Invert Selection</Button>
+          </ButtonGroup>
+        </Stack>
+
+        {attributeSelectorType === 'custom' && <CustomSelector />}
+        {attributeSelectorType === 'grouped' && <GroupedSelector />}
+
       </Box>
     </Box>
   );

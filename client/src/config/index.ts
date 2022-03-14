@@ -1,4 +1,4 @@
-import {createTheme} from '@mui/material';
+import {createTheme, SnackbarOrigin} from '@mui/material';
 import {blueGrey, cyan} from '@mui/material/colors';
 
 const config = {
@@ -16,11 +16,16 @@ const config = {
   }),
   appearance: {
     sideBarWidth: '24rem',
+    snackBarAutoHideDuration: 5000, // in ms
+    snackBarAnchorOrigin: {
+      vertical: 'bottom',
+      horizontal: 'right',
+    } as SnackbarOrigin,
   },
   API: '/api',
   map: {
     apiToken: 'pk.eyJ1IjoiYmlsbGNoZW4yayIsImEiOiJja3R2MDBwNWgyNDljMnBvMmdzbnU0dTZ5In0.To49SgD0gHYceQ8Ap2BG3g',
-  }
+  },
 };
 
 export default config;

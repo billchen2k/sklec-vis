@@ -5,7 +5,8 @@ import {useNavigate} from 'react-router-dom';
 import {ArrowBack} from '@mui/icons-material';
 import {useAppSelector} from '@/app/hooks';
 import DatasetList from '@/components/sidebar/DatasetList';
-
+import $ from 'jquery';
+import {useEffect} from 'react';
 export interface ISidebarProps {
   sx?: SxProps;
 }
@@ -22,7 +23,7 @@ const demoData: { [key: string]: any } = {
       'File Version': '1.0',
       'Ruskin Version': '1.0',
     },
-    downloadLink: '',
+    downloadLink: '/dataset/ADCP_202009-10.csv',
   },
   '2': {
     name: 'CTD_201283_20201111_1520',
@@ -35,7 +36,7 @@ const demoData: { [key: string]: any } = {
       'File Version': '1.0',
       'Ruskin Version': '1.0',
     },
-    downloadLink: '',
+    downloadLink: '/dataset/CTD_201283_20201111_1520.csv',
   },
   '3': {
     name: 'RDI_S3A_20200220',
@@ -48,7 +49,7 @@ const demoData: { [key: string]: any } = {
       'File Version': '1.0',
       'Ruskin Version': '1.0',
     },
-    downloadLink: '',
+    downloadLink: '/dataset/sentinel3/RDI_S3A_20200220_VIS.tiff',
   },
 };
 
@@ -69,7 +70,7 @@ const Sidebar = (props: ISidebarProps) => {
           <DataDetails
             meta={demoData[currentData as string]['meta']}
             datasetName={demoData[currentData as string]['name']}
-            downloadLink={''}
+            downloadLink={demoData[currentData as string]['downloadLink']}
           />
         </Box>
 
@@ -78,7 +79,7 @@ const Sidebar = (props: ISidebarProps) => {
   }
 
   return (
-    <Box sx={props.sx}>
+    <Box sx={props.sx} id={'container-sidebar'}>
       {sidebarContent}
     </Box>
   );

@@ -7,6 +7,7 @@ import AppRoutes from '@/app/AppRoutes';
 import AppHeaders from '@/app/AppHeaders';
 import {Provider, ReactReduxContext} from 'react-redux';
 import {store} from '@/store';
+import GlobalSnackBar from '@/components/elements/GlobalSnackBar';
 
 export interface IAppProps {
 }
@@ -16,6 +17,7 @@ const App = (props: IAppProps) => {
     <ThemeProvider theme={config.theme}>
       <Provider store={store}>
         <AppHeaders />
+        <GlobalSnackBar />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>

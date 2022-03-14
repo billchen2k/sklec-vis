@@ -1,9 +1,11 @@
 import {configureStore} from '@reduxjs/toolkit';
 import {siteSlice} from '@/store/siteSlice';
+import {uiSlice} from '@/store/uiSlice';
 
 export const store = configureStore({
   reducer: {
     site: siteSlice.reducer,
+    ui: uiSlice.reducer,
   },
 });
 
