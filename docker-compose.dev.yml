@@ -21,8 +21,8 @@ services:
       dockerfile: Dockerfile-dev
     environment:
       DJANGO_SETTINGS_MODULE: sklecvis.settings
-#       DB_HOST: sklecvis-db # For local debugging
-      DB_HOST: aws-jp.billc.io          # To maintain the consistence of the database
+      DB_HOST: sklecvis-db # For local debugging
+#       DB_HOST: aws-jp.billc.io          # To maintain the consistence of the database
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: sklecVIS2022

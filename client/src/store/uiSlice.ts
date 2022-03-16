@@ -10,6 +10,7 @@ export interface OpenSnackbarPayload {
 export interface IUIState {
   isLoading: boolean,
   title: string,
+  loadingText: string,
   snackbar: {
     open: boolean,
     message: string,
@@ -20,6 +21,7 @@ export interface IUIState {
 const initialState: IUIState = {
   isLoading: false,
   title: 'SKLEC Spatial-temporal Data Visualization',
+  loadingText: '',
   snackbar: {
     open: false,
     message: '',
@@ -43,6 +45,14 @@ export const uiSlice = createSlice({
     },
     setTitle(state: IUIState, action: PayloadAction<string>) {
       state.title = action.payload;
+    },
+    beginLoading(state: IUIState, action: PayloadAction<| string>) {
+      state.isLoading = true;
+      state.loadingText = action.payload || '';
+    },
+    endLoading(state: IUIState) {
+      state.isLoading = false;
+      state.loadingText = '';
     },
   },
 });

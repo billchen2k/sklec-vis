@@ -16,6 +16,7 @@ const config = {
   }),
   appearance: {
     sideBarWidth: '24rem',
+    appBarHeight: '48px',
     snackBarAutoHideDuration: 5000, // in ms
     snackBarAnchorOrigin: {
       vertical: 'bottom',

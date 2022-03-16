@@ -22,6 +22,7 @@
     "@testing-library/user-event": "^12.1.10",
     "@uiw/react-md-editor": "^3.10.2",
     "axios": "^0.24.0",
+    "axios-hooks": "^3.0.1",
     "chroma-js": "^2.4.2",
     "d3": "^7.1.1",
     "georaster": "^1.5.6",

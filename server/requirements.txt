@@ -1,5 +1,7 @@
 Django==4.0.2
-djangorestframework==3.13.1
+drf_yasg==1.20.0
+geopy==2.2.0
 Pillow==9.0.1
 psycopg2==2.9.3
+pyRSKTools==0.1.8
 tqdm==4.63.0
