@@ -7,6 +7,9 @@ import {FilePresent} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
 import {useAppDispatch} from '@/app/hooks';
 import {uiSlice} from '@/store/uiSlice';
+import {useEffect} from 'react';
+import {Simulate} from 'react-dom/test-utils';
+import load = Simulate.load;
 
 export interface IDatasetMarkersProps {
 }
@@ -20,6 +23,12 @@ export const markerIcons = {
   redCircle: new Icon({
     iconUrl: '/img/markers/marker-red.png',
     iconRetinaUrl: '/img/markers/marker-red@2x.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  }),
+  cyanCircle: new Icon({
+    iconUrl: '/img/markers/marker-cyan.png',
+    iconRetinaUrl: '/img/markers/marker-cyan@2x.png',
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   }),
@@ -45,19 +54,23 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     'Latitude': '31˚04\'4.00"',
   };
 
-  if (loading ) {
-    dispatch(uiSlice.actions.beginLoading('Loading datasets...'));
+  useEffect(() => {
+    if (loading) {
+      dispatch(uiSlice.actions.beginLoading('Loading datasets...'));
+    } else {
+      dispatch(uiSlice.actions.endLoading());
+    }
+    if (error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'Error fetching dataset list.' + error && error.message || 'Unknown error.',
+        severity: 'error',
+      }));
+    }
+  }, [loading, error]);
+
+  if (!data) {
     return null;
   }
-  dispatch(uiSlice.actions.endLoading());
-  if (error || !data) {
-    dispatch(uiSlice.actions.openSnackbar({
-      message: 'Error fetching datasets: ' + error && error.message || 'Unknown error.',
-      severity: 'error',
-    }));
-    return null;
-  }
-  console.log(data);
 
   const markers = data.results.map((one: any) => {
     const center = new L.LatLng(one.latitude, one.longitude);
@@ -72,7 +85,7 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
   return (
     <LayersControl.Overlay name={'Dataset List'} checked={true}>
       <LayerGroup>
-        <Marker position={center} icon={markerIcons.greenFolder}>
+        <Marker position={center} icon={markerIcons.cyanCircle}>
           <Popup>
             <DataMarkerPopupContent name={'ADCP_202009-10'} meta={ADCPMetaData} link={'/view/1'}></DataMarkerPopupContent>
             <DataMarkerPopupContent name={'CTD_201283_20201111_1520'} meta={ADCPMetaData} link={'/view/2'}></DataMarkerPopupContent>

@@ -23,6 +23,14 @@ class SiteUser(models.Model):
     state = models.CharField(max_length=50, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
 
+class DatasetTag(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=30, blank=True, null=True)
+    long_name = models.CharField(max_length=100, blank=True, null=True)
+    fa_icon = models.CharField(max_length=50, blank=True, null=True)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    description = models.CharField(max_length=200, blank=True, null=True)
+
 class Dataset(models.Model):
 
     class DatasetType(models.TextChoices):
@@ -48,14 +56,17 @@ class Dataset(models.Model):
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
     dataset_type = models.CharField(choices=DatasetType.choices, max_length=20, default=DatasetType.GENERAL)
+    tags = models.ManyToManyField(DatasetTag, blank=True, null=True)
 
     def __str__(self):
         return self.name
+
 
 class VisFile(models.Model):
     class FileFormat(models.TextChoices):
         RSK = 'rsk'
         CSV = 'csv'
+        NCF = 'ncf'
         TIFF = 'tiff'
         OTHER = 'other'
 
@@ -72,6 +83,7 @@ class VisFile(models.Model):
     format = models.CharField(choices=FileFormat.choices, max_length=20, default=FileFormat.OTHER)
     default_sample_count = models.IntegerField(default=1)
     meta_data = models.JSONField(default=dict)
+    first_dimension_name = models.CharField(max_length=50, blank=True, null=True, default='Time')
     is_georeferenced = models.BooleanField(default=False)
     longitude1 = models.FloatField(default=0.0)
     latitude1 = models.FloatField(default=0.0)
@@ -79,12 +91,12 @@ class VisFile(models.Model):
     latitude2 = models.FloatField(default=0.0)
 
 class DataChannel(models.Model):
-
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, related_name='data_channels')
     shape = models.CharField(max_length=50, blank=True, null=True, default='')
     name = models.CharField(max_length=50, blank=True, null=True)
     label = models.CharField(max_length=50, blank=True, null=True)
+    description = models.CharField(max_length=200, blank=True, null=True)
     unit = models.CharField(max_length=50, blank=True, null=True)
     unit_symbol = models.CharField(max_length=50, blank=True, null=True)
     datetime_start = models.DateTimeField(blank=True, null=True)

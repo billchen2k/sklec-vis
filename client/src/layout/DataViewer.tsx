@@ -9,6 +9,8 @@ import {SkipNext, SkipPrevious} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
 import demoData from '@/utils/demoData';
 import {uiSlice} from '@/store/uiSlice';
+import {useEffect} from 'react';
+import {endpoints} from '@/config/endpoints';
 
 export interface IVisualizerProps {
 }
@@ -17,44 +19,71 @@ const DataViewer = (props: IVisualizerProps) => {
   const dispatch = useAppDispatch();
   const {datasetId} = useParams();
   const [currentRaster, setCurrentRaster] = React.useState(0);
+  const [{data, loading, error}] = useAxios(endpoints.getDatasetDetail(datasetId));
   const rasters = ['RDI_S3A_20200220_VIS.tiff', 'RDI_S3A_20200429_VIS.tiff', 'RDI_S3A_20200803_VIS.tiff', 'RDI_S3A_20200812_VIS.tiff', 'RDI_S3A_20200815_VIS.tiff', 'RDI_S3A_20200816_VIS.tiff', 'RDI_S3A_20200819_VIS.tiff', 'RDI_S3A_20200820_VIS.tiff', 'RDI_S3A_20200823_VIS.tiff', 'RDI_S3A_20200831_VIS.tiff', 'RDI_S3A_20210220_VIS.tiff', 'RDI_S3A_20210221_VIS.tiff', 'RDI_S3A_20210323_VIS.tiff', 'RDI_S3A_20210419_VIS.tiff', 'RDI_S3A_20210430_VIS.tiff', 'RDI_S3A_20210505_VIS.tiff', 'RDI_S3A_20210601_VIS.tiff', 'RDI_S3A_20210720_VIS.tiff', 'RDI_S3A_20210721_VIS.tiff', 'RDI_S3A_20210828_VIS.tiff', 'RDI_S3A_20210829_VIS.tiff', 'RDI_S3A_20210901_VIS.tiff', 'RDI_S3A_20210917_VIS.tiff', 'RDI_S3A_20210921_VIS.tiff', 'RDI_S3A_20210924_VIS.tiff', 'RDI_S3B_20200218_VIS.tiff', 'RDI_S3B_20200320_VIS.tiff', 'RDI_S3B_20200416_VIS.tiff', 'RDI_S3B_20200428_VIS.tiff', 'RDI_S3B_20200513_VIS.tiff', 'RDI_S3B_20200802_VIS.tiff', 'RDI_S3B_20200813_VIS.tiff', 'RDI_S3B_20200814_VIS.tiff', 'RDI_S3B_20200817_VIS.tiff', 'RDI_S3B_20200818_VIS.tiff', 'RDI_S3B_20200821_VIS.tiff'];
 
   let viewerContent = null;
 
-  if (datasetId in Object.keys(demoData)) {
-    // Demo DATA
+  useEffect(() => {
     if (parseInt(datasetId) < 3) {
       dispatch(siteSlice.actions.enterDataInspecting({
         dataId: parseInt(datasetId),
-        datasetType: 'table',
+        datasetType: 'TABLE',
       }));
     } else if (parseInt(datasetId) == 3) {
       dispatch(siteSlice.actions.enterDataInspecting({
         dataId: parseInt(datasetId),
-        datasetType: 'raster',
+        datasetType: 'RT',
+      }));
+      dispatch(siteSlice.actions.setRasterState({
+        rasterLink: `/dataset/sentinel3/${rasters[currentRaster]}`,
+        // rasterLink: '/dataset/4dim.nc',
+        open: true,
       }));
     }
+  }, [datasetId]);
+
+  useEffect(() => {
+    if (loading) {
+      dispatch(uiSlice.actions.beginLoading('Retrieving dataset details...'));
+    } else {
+      dispatch(uiSlice.actions.endLoading());
+    }
+    if (error && !Object.keys(demoData).includes(datasetId)) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'Error retrieving dataset details: ' + error && error.message || 'Unknown error',
+        severity: 'error',
+      }));
+    }
+
+    if (data) {
+      dispatch(siteSlice.actions.setDatasetDetailCache(data));
+      dispatch(siteSlice.actions.enterDataInspecting({
+        dataId: data.uuid,
+        datasetType: data.dataset_type,
+      }));
+    }
+  }, [loading, error]);
+
+  if (Object.keys(demoData).includes(datasetId)) {
+    // Demo DATA
+
     switch (parseInt(datasetId)) {
       case 1:
         viewerContent = (
           <LayerBox mode={'inset'}>
-            <LineChart link={'/dataset/ADCP_202009-10.csv'} xlabel={'DateTime'} type={'csv'}></LineChart>
+            <LineChart localLink={'/dataset/ADCP_202009-10.csv'} xlabel={'DateTime'} type={'csv-local'}></LineChart>
           </LayerBox>
         );
         break;
       case 2:
         viewerContent = (
           <LayerBox mode={'inset'}>
-            <LineChart link={'/dataset/CTD_201283_20201111_1520.csv'} xlabel={'Time'} type={'csv'}></LineChart>
+            <LineChart localLink={'/dataset/CTD_201283_20201111_1520.csv'} xlabel={'Time'} type={'csv-local'}></LineChart>
           </LayerBox>
         );
         break;
       case 3:
-        dispatch(siteSlice.actions.setRasterState({
-          rasterLink: `/dataset/sentinel3/${rasters[currentRaster]}`,
-          // rasterLink: '/dataset/4dim.nc',
-          open: true,
-        }));
         viewerContent = (
           <LayerBox mode={'rb'}>
             <Stack spacing={1}>
@@ -92,23 +121,18 @@ const DataViewer = (props: IVisualizerProps) => {
     }
   } else {
     // Real Data
-    const [{data, loading, error}] = useAxios(`/api/dataset/${datasetId}`);
-    if (loading) {
-      dispatch(uiSlice.actions.beginLoading('Retrieving dataset details...'));
-      return null;
+    if (data && data['dataset_type'] == 'RBR') {
+      if (data['vis_files'].length == 0) {
+        console.error('No vis file');
+        return null;
+      }
+      viewerContent = (
+        <LayerBox mode={'inset'}>
+          <LineChart type={'rsk'} xlabel={data['vis_files'][0]['first_dimension_name']} visfile={data['vis_files'][0].uuid}></LineChart>
+        </LayerBox>
+      );
     }
-    dispatch(uiSlice.actions.endLoading());
-    if (error || !data) {
-      dispatch(uiSlice.actions.openSnackbar({
-        message: 'Error retrieving dataset details: ' + error && error.message || 'Unknown error',
-        severity: 'error',
-      }));
-      return null;
-    }
-
-    console.log(data);
   }
-
 
   return (
     <Box>

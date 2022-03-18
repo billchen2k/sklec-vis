@@ -1,4 +1,10 @@
-export type DatasetType = 'raster' | 'ncf' | 'table';
+/**
+ * RT = Raster files
+ * NCF = NetCDF files
+ * RBR = RBR files
+ * GNR = General Files
+ */
+export type DatasetType = 'RT' | 'NCF' | 'TABLE' | 'RBR' | 'TABLE' | 'GNR';
 
 export interface IYLableGroupingItem {
   order: number;

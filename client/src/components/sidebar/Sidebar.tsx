@@ -11,10 +11,11 @@ export interface ISidebarProps {
 }
 
 const Sidebar = (props: ISidebarProps) => {
-  const navigate = useNavigate();
-  const {globalState, currentData, currentType, rasterState} = useAppSelector((state) => state.site);
+  const {globalState, currentData, currentType, rasterState, datasetDetailCache} = useAppSelector((state) => state.site);
 
   let sidebarContent = null;
+  let detailContent = null;
+
   switch (globalState) {
     case 'data-listing':
       sidebarContent = (
@@ -22,15 +23,29 @@ const Sidebar = (props: ISidebarProps) => {
       );
       break;
     case 'data-inspecting':
-      sidebarContent = (
-        <Box sx={{p: 2}}>
+      if (Object.keys(demoData).includes(String(currentData))) {
+        // DEMO DATA
+        detailContent = (
           <DataDetails
             meta={demoData[currentData as string]['meta']}
             datasetName={demoData[currentData as string]['name']}
             downloadLink={demoData[currentData as string]['downloadLink']}
           />
+        );
+      } else if (datasetDetailCache) {
+        detailContent = (
+          <DataDetails
+            meta={datasetDetailCache['meta_data']}
+            datasetName={datasetDetailCache['name']}
+            description={datasetDetailCache['description']}
+            downloadLink={datasetDetailCache['raw_files'].length > 0 ? datasetDetailCache['raw_files'][0]['file'] : null}
+          />
+        );
+      }
+      sidebarContent = (
+        <Box sx={{p: 2}}>
+          {detailContent}
         </Box>
-
       );
       break;
   }

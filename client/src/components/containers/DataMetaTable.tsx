@@ -1,15 +1,17 @@
 import * as React from 'react';
 import {Box} from '@mui/material';
+import {flatten} from 'flat';
 
 export interface IDataMetaTableProps {
   meta: any;
 }
 
 const DataMetaTable = (props: IDataMetaTableProps) => {
-  const detailsRows = Object.keys(props.meta).map((item) => {
+  const flattendMeta = flatten(props.meta) as any;
+  const detailsRows = Object.keys(flattendMeta).map((item) => {
     return (<tr key={item}>
       <td>{item}</td>
-      <td>{props.meta[item]}</td>
+      <td>{flattendMeta[item]}</td>
     </tr>);
   });
   const detailsTable = (<table className={'meta-table'}>

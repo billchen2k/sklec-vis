@@ -1,11 +1,13 @@
 from abc import abstractmethod
+from typing import List
 
 
 class SKLECBaseCore:
     """
     所有关于数据处理的类的基类。
     """
-    def __init__(self):
+    @abstractmethod
+    def __init__(self, file):
         pass
 
     @abstractmethod
@@ -33,7 +35,7 @@ class SKLECBaseCore:
         pass
 
     @abstractmethod
-    def get_data(self, channel, start_time, end_time, **kwargs):
+    def get_channel_data(self, channel, start_time, end_time, **kwargs):
         """
         获取数据。
         :param channel: 通道名称。

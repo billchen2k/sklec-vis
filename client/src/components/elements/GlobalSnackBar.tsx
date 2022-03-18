@@ -7,7 +7,6 @@ import {uiSlice} from '@/store/uiSlice';
 
 export default function GlobalSnackBar() {
   const dispatch = useAppDispatch();
-
   const {open, message, severity} = useAppSelector( (state) => state.ui.snackbar);
 
   function handleClose() {
@@ -20,7 +19,6 @@ export default function GlobalSnackBar() {
       open={open}
       autoHideDuration={config.appearance.snackBarAutoHideDuration}
       onClose={handleClose}
-      onClick={handleClose}
     >
       <Alert variant={'filled'} onClose={handleClose} severity={severity} sx={{width: '100%'}}>
         {message}

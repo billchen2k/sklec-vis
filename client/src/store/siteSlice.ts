@@ -16,6 +16,8 @@ export interface ISiteState {
   currentData?: string | number;
   currentType?: DatasetType;
   rasterState?: IRasterState;
+  datasetListCache?: any;
+  datasetDetailCache?: any;
 }
 
 const initState: ISiteState = {
@@ -23,6 +25,8 @@ const initState: ISiteState = {
   currentData: undefined,
   currentType: undefined,
   rasterState: undefined,
+  datasetListCache: undefined,
+  datasetDetailCache: undefined,
 };
 
 export const siteSlice = createSlice({
@@ -59,6 +63,12 @@ export const siteSlice = createSlice({
       state.currentData = undefined;
       state.currentType = undefined;
       state.rasterState = undefined;
+    },
+    setDatasetListCache: (state, action: PayloadAction<any>) => {
+      state.datasetListCache = action.payload;
+    },
+    setDatasetDetailCache: (state, action: PayloadAction<any>) => {
+      state.datasetDetailCache = action.payload;
     },
   },
 });

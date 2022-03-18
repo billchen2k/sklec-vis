@@ -4,6 +4,7 @@ import django
 from django.core.files import File
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sklecvis.settings')
 django.setup()
+
 from api.models import *
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 

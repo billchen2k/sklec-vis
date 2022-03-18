@@ -15,6 +15,7 @@ import {useNavigate} from 'react-router-dom';
 import {Attachment, Launch} from '@mui/icons-material';
 import {useAppDispatch} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
+import {useEffect} from 'react';
 
 export interface IDatasetListProps {
 }
@@ -27,23 +28,27 @@ interface IDataListItem {
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  dispatch(siteSlice.actions.setGlobalState('data-listing'));
+
+  useEffect(() => {
+    dispatch(siteSlice.actions.setGlobalState('data-listing'));
+  }, []);
+
 
   const demoList: IDataListItem[]= [
     {
       'name': 'ADCP_202009-10',
       'link': '/view/1',
-      'type': 'table',
+      'type': 'TABLE',
     },
     {
       'name': 'CTD_201283_20201111_1520',
       'link': '/view/2',
-      'type': 'table',
+      'type': 'TABLE',
     },
     {
       'name': 'RDI_S3A_20200220',
       'link': '/view/3',
-      'type': 'raster',
+      'type': 'RT',
     },
   ];
 
@@ -68,7 +73,6 @@ const DatasetList = (props: IDatasetListProps) => {
                   secondary={item.type}
                 />
               </ListItemButton>
-
             </ListItem>
           );
         })}

@@ -15,13 +15,15 @@ module.exports = {
     ecmaVersion: 12,
     sourceType: 'module',
   },
-  plugins: ['react', '@typescript-eslint', 'import'],
+  plugins: ['react', '@typescript-eslint', 'import', 'react-hooks'],
   rules: {
     'require-jsdoc': 'warn',
     'max-len': 'warn',
     'no-unused-vars': 'warn',
     'spaced-comment': 'warn',
     'valid-jsdoc': 'warn',
+    'react-hooks/rules-of-hooks': 'error', // Checks rules of Hooks
+    'react-hooks/exhaustive-deps': 'warn', // Checks effect dependencies
   },
   settings: {
     'import/resolver': {

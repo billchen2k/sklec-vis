@@ -13,6 +13,7 @@ import {uiSlice} from '@/store/uiSlice';
 export interface IDataMetaInfoProps {
   datasetName?: string;
   downloadLink?: string;
+  description?: string;
   meta: any;
 }
 
@@ -43,6 +44,7 @@ const DataDetails = (props: IDataMetaInfoProps) => {
     </tbody>
   </table>);
 
+  const demoSource = '## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.';
   return (
     <Box>
 
@@ -56,7 +58,7 @@ const DataDetails = (props: IDataMetaInfoProps) => {
       <Box sx={{my: 1}}>
         <MDEditor.Markdown
           style={{'fontSize': '14px'}}
-          source={'## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.'}
+          source={props.description || demoSource}
         />
       </Box>
 

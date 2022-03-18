@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Box, CircularProgress, IconButton, Typography} from '@mui/material';
+import {Box, CircularProgress, Icon, IconButton, Typography} from '@mui/material';
 import {Toolbar} from '@mui/material';
 import {Menu as MenuIcon} from '@mui/icons-material';
 import chroma from 'chroma-js';

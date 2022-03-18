@@ -2,6 +2,7 @@
  * Render a line chart with Plotly.js.
  */
 import React, {useDebugValue, useEffect} from 'react';
+import debounce from 'lodash/debounce';
 import * as d3 from 'd3';
 import {DSVRowArray} from 'd3';
 import {
@@ -33,11 +34,19 @@ import {
 import {muiIconToPlotlyIcon} from '@/utils';
 import {downsampleAxis, downsampleValue, genYLablesGrouping} from '@/utils/chartData';
 import {IGroupingResult} from '@/types';
+import SKSlider, {SKThumbComponent} from '@/components/elements/SKSlider';
+import useAxios from 'axios-hooks';
+import axios from 'axios';
+import {endpoints} from '@/config/endpoints';
+import {useAppDispatch} from '@/app/hooks';
+import {uiSlice} from '@/store/uiSlice';
+import {getDateTimeMarks, getDateTimeByPortion} from '@/utils/datetime';
 
 export interface ILineChartProps {
   xlabel?: string;
-  type: 'csv' | 'raw';
-  link: | string
+  type: 'csv-local' | 'csv' | 'rsk' | 'raw';
+  localLink?: | string;
+  visfile?: string;
 }
 
 export interface IChangablePlotConfig {
@@ -51,8 +60,17 @@ export interface IChangablePlotConfig {
 export type IAttributeSelectorType = 'custom' | 'grouped';
 
 const LineChart = (props: ILineChartProps) => {
+  // Configs
+  const axisSpacing: number = 0.05;
+  const maximumYLabels: number = 9;
+  const dateTimeRangeMaxValue: number = 2000;
+
+
+  const dispatch = useAppDispatch();
+  // States
   const [loading, setLoading] = React.useState(true);
   const [ylabels, setYlabels] = React.useState<string[]>([]);
+  const [plotTitle, setPlotTitle] = React.useState(props.localLink ?/[^/]*$/.exec(props.localLink)[0]: '');
   const [activatedYlabels, setActivatedYlabels] = React.useState<string[]>([]);
   useDebugValue('activated Y labels');
   const [dataColumns, setDataColumns] = React.useState<any>({});
@@ -69,8 +87,10 @@ const LineChart = (props: ILineChartProps) => {
   const [ylabelGrouping, setYlabelGrouping] = React.useState<| IGroupingResult>(null);
   const [attributeSelectorType, setAttributeSelectorType] = React.useState<IAttributeSelectorType>('custom');
   const [selectedGroupingIndex, setSelectedGroupingIndex] = React.useState<number>(0);
-  const axisSpacing: number = 0.05;
-  const maximumYLabels: number = 9;
+  const [selectedDateTimeRange, setSelectedDateTimeRange] = React.useState<[| Date, | Date]>([null, null]);
+  const [selectedDateTimeRangeIndex, setSelectedDateTimeRangeIndex] = React.useState<[number, number]>([0, dateTimeRangeMaxValue]);
+  const [totalDateTimeRange, setTotalDateTimeRange] = React.useState<[| Date, | Date]>([null, null]);
+
 
   const parseRows = (d3data: DSVRowArray<string>) => {
     const dataRows: {[key: string]: string[]} = {};
@@ -170,6 +190,18 @@ const LineChart = (props: ILineChartProps) => {
     console.log(e);
   };
 
+  const updateSelectedDateTimeRange = React.useCallback(debounce((dateRange, selectIndex) => {
+    const startTime = getDateTimeByPortion(dateRange[0], dateRange[1], selectIndex[0] / dateTimeRangeMaxValue);
+    const endTime = getDateTimeByPortion(dateRange[0], dateRange[1], selectIndex[1] / dateTimeRangeMaxValue);
+    console.log(startTime, endTime);
+    setSelectedDateTimeRange([startTime, endTime]);
+  }, 300), []);
+
+  const handleDateTimeRangeChange = (e: Event, value: number[]) => {
+    setSelectedDateTimeRangeIndex([value[0], value[1]]);
+    updateSelectedDateTimeRange(totalDateTimeRange, [value[0], value[1]]);
+  };
+
   const mapLabel2Checkboxes = (label: string) => {
     const checked = activatedYlabels.indexOf(label) > -1;
     const disabled = activatedYlabels.length == 9 && !checked;
@@ -195,8 +227,8 @@ const LineChart = (props: ILineChartProps) => {
   useEffect(() => {
     addListeners();
     switch (props.type) {
-      case 'csv':
-        d3.csv(props.link).then((data) => {
+      case 'csv-local':
+        d3.csv(props.localLink).then((data) => {
           const fields = Object.keys(data[0]);
           const ylabels = fields.filter((field) => field !== props.xlabel);
           const activated = ylabels.slice(0, 4);
@@ -215,7 +247,45 @@ const LineChart = (props: ILineChartProps) => {
         // todo: Handle json files with Line charts.
         break;
     }
-  }, [props.link, props.type]);
+  }, [props.localLink, props.type]);
+
+  useEffect(() => {
+    switch (props.type) {
+      case 'rsk':
+        setLoading(true);
+        axios(endpoints.getVisdataContent(
+            props.visfile,
+            true,
+            selectedDateTimeRange[0],
+            selectedDateTimeRange[1],
+            [],
+        )).then((response) => {
+          const data = response.data.data;
+          const fields = data.channels as string[];
+          const ylabels = fields.filter((field) => field !== props.xlabel);
+          const activated = ylabels.slice(0, 4);
+          setYlabels(ylabels);
+          setActivatedYlabels(activated);
+          setDataColumns(data.vis_data);
+          setYlabelGrouping(genYLablesGrouping(ylabels));
+          setPlotTitle(data.file_name);
+          if (!totalDateTimeRange[0]) {
+            const startDate = new Date(data.vis_data[props.xlabel][0]);
+            const endDate = new Date(data.vis_data[props.xlabel][data.vis_data[props.xlabel].length - 1]);
+            console.log('total date time range', startDate, endDate);
+            setTotalDateTimeRange([startDate, endDate]);
+          }
+        }).catch((error) => {
+          dispatch(uiSlice.actions.openSnackbar({
+            message: 'Failed to load data.' + error,
+            severity: 'error',
+          }));
+        }).finally(() => {
+          setLoading(false);
+        });
+        break;
+    }
+  }, [props.visfile, selectedDateTimeRange]);
 
   // /////// DRAW PLOT
   const plotFontFamily = 'Helvetica, Roboto, Arial';
@@ -223,6 +293,7 @@ const LineChart = (props: ILineChartProps) => {
 
 
   // Aka traces
+  const totalDataSize = loading ? 0 : dataColumns[props.xlabel].length;
   const plotData: Plotly.Data[] = activatedYlabels.map((y: string, index) => {
     const trace: Plotly.Data = {
       x: changablePlotConfig.downSamplingEnabled ? downsampleAxis(dataColumns[props.xlabel], changablePlotConfig.downSampling) : dataColumns[props.xlabel],
@@ -275,7 +346,7 @@ const LineChart = (props: ILineChartProps) => {
   }
 
   const plotLayout: Partial<Plotly.Layout> = {
-    title: activatedYlabels.length > 0 ? /[^/]*$/.exec(props.link)[0] : 'Please select at least 1 attribute.',
+    title: activatedYlabels.length > 0 ? plotTitle : 'Please select at least 1 attribute.',
     xaxis: {
       title: props.xlabel,
       domain: [0, activatedYlabels.length <= 2 ? 1 : 1 - (activatedYlabels.length - 2) * axisSpacing],
@@ -324,7 +395,7 @@ const LineChart = (props: ILineChartProps) => {
     autosizable: true,
     toImageButtonOptions: {
       format: 'svg',
-      filename: /[^/]*$/.exec(props.link)[0],
+      filename: /[^/]*$/.exec(props.localLink)[0],
       height: 600,
       width: 800,
     },
@@ -463,7 +534,7 @@ const LineChart = (props: ILineChartProps) => {
           max={grouped.length - 1}
           step={1}
           size={'medium'}
-          onChange={handleGroupSelectionChange}
+          onChange={handleDateTimeRangeChange}
           valueLabelDisplay={'auto'}
           marks={true}
         />
@@ -494,7 +565,7 @@ const LineChart = (props: ILineChartProps) => {
         Plot Configurations:
       </Typography>
       <Box id={'container-plot-control'}>
-        <Grid container spacing={3}>
+        <Grid container spacing={1}>
           <Grid item container xs={4} sx={{'mt': 1}}>
             <Grid item xs={3}>
               <Typography variant={'subtitle1'}>
@@ -532,6 +603,24 @@ const LineChart = (props: ILineChartProps) => {
                 {downsamplingSlider}
               </Grid>
             </Grid>
+
+          </Grid>
+          <Grid item xs={12}>
+            <Box sx={{px: 6, height: 50}}>
+              {totalDateTimeRange[0] && totalDateTimeRange[1] &&
+                 <SKSlider
+                   min={0}
+                   disabled={loading}
+                   max={dateTimeRangeMaxValue}
+                   onChange={handleDateTimeRangeChange}
+                   value={[selectedDateTimeRangeIndex[0], selectedDateTimeRangeIndex[1]]}
+                   step={1}
+                   valueLabelDisplay={'auto'}
+                   valueLabelFormat={(value) => getDateTimeByPortion(totalDateTimeRange[0], totalDateTimeRange[1], value / dateTimeRangeMaxValue).toISOString()}
+                   marks={getDateTimeMarks(totalDateTimeRange[0], totalDateTimeRange[1], 7, dateTimeRangeMaxValue)}
+                 />
+              }
+            </Box>
           </Grid>
         </Grid>
       </Box>
