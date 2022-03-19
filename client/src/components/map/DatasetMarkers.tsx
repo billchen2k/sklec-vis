@@ -10,6 +10,7 @@ import {uiSlice} from '@/store/uiSlice';
 import {useEffect} from 'react';
 import {Simulate} from 'react-dom/test-utils';
 import load = Simulate.load;
+import {siteSlice} from '@/store/siteSlice';
 
 export interface IDatasetMarkersProps {
 }
@@ -66,7 +67,10 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
         severity: 'error',
       }));
     }
-  }, [loading, error]);
+    if (data) {
+      dispatch(siteSlice.actions.setDatasetListCache(data.results));
+    }
+  }, [loading, error, data]);
 
   if (!data) {
     return null;

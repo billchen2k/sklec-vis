@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import {useNavigate} from 'react-router-dom';
 import {Attachment, Launch} from '@mui/icons-material';
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {useEffect} from 'react';
 
@@ -28,6 +28,7 @@ interface IDataListItem {
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const {datasetListCache} = useAppSelector((state) => state.site);
 
   useEffect(() => {
     dispatch(siteSlice.actions.setGlobalState('data-listing'));
@@ -51,6 +52,17 @@ const DatasetList = (props: IDatasetListProps) => {
       'type': 'RT',
     },
   ];
+
+  if (datasetListCache) {
+    console.log('datasetListCache', datasetListCache);
+    for (const item of datasetListCache) {
+      demoList.push({
+        'name': item.name,
+        'link': '/view/' + item.uuid,
+        'type': item.dataset_type,
+      });
+    }
+  }
 
   return (
     <Box>

@@ -9,8 +9,12 @@ export interface IDataMetaTableProps {
 const DataMetaTable = (props: IDataMetaTableProps) => {
   const flattendMeta = flatten(props.meta) as any;
   const detailsRows = Object.keys(flattendMeta).map((item) => {
+    let outputKey: string = item;
+    if (item.includes('.')) {
+      outputKey = item.split('.').slice(-1)[0];
+    }
     return (<tr key={item}>
-      <td>{item}</td>
+      <td>{outputKey}</td>
       <td>{flattendMeta[item]}</td>
     </tr>);
   });

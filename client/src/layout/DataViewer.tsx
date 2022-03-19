@@ -121,7 +121,13 @@ const DataViewer = (props: IVisualizerProps) => {
     }
   } else {
     // Real Data
-    if (data && data['dataset_type'] == 'RBR') {
+    if (data && data['uuid'] == 'e0966e96-82d1-450b-91f1-a2680ccb4d05') {
+      viewerContent = (
+        <LayerBox mode={'inset'}>
+          <LineChart type={'csv-local'} xlabel={'DateTime'} localLink={'/dataset/ADCP_04.csv'}></LineChart>
+        </LayerBox>
+      );
+    } else if (data && data['dataset_type'] == 'RBR') {
       if (data['vis_files'].length == 0) {
         console.error('No vis file');
         return null;

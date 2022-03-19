@@ -232,6 +232,8 @@ const LineChart = (props: ILineChartProps) => {
           const fields = Object.keys(data[0]);
           const ylabels = fields.filter((field) => field !== props.xlabel);
           const activated = ylabels.slice(0, 4);
+          console.log(data);
+
           setYlabels(ylabels);
           setActivatedYlabels(activated);
           // @ts-ignore
