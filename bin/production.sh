@@ -1,6 +1,8 @@
 # if has --start argument
 #   start develop server
 
+# cd client && yarn build && cd .. && docker-compose -f docker-compose.prod.yml up --build
+
 if [ "$1" = "--start" ]; then
   echo "Starting production..."
   python -m pipreqs.pipreqs ./server --force

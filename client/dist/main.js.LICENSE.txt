@@ -16,6 +16,16 @@ object-assign
  */
 
 /*!
+ * @uiw/copy-to-clipboard v1.0.12
+ * Copy to clipboard.
+ * 
+ * Copyright (c) 2021 Kenny Wang
+ * https://github.com/uiwjs/copy-to-clipboard.git
+ * 
+ * Licensed under the MIT license.
+ */
+
+/*!
  * Determine if an object is a Buffer
  *
  * @author   Feross Aboukhadijeh <https://feross.org>
@@ -65,6 +75,15 @@ object-assign
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+/**
+ * Prism: Lightweight, robust, elegant syntax highlighting
+ *
+ * @license MIT <https://opensource.org/licenses/MIT>
+ * @author Lea Verou <https://lea.verou.me>
+ * @namespace
+ * @public
+ */
 
 /**
  * React Router v6.2.2
@@ -169,6 +188,15 @@ object-assign
 
 /** @license React v17.0.2
  * react-dom.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/** @license React v17.0.2
+ * react-is.production.min.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *

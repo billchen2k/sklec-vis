@@ -73,7 +73,9 @@ const LineChart = (props: ILineChartProps) => {
   const [plotTitle, setPlotTitle] = React.useState(props.localLink ?/[^/]*$/.exec(props.localLink)[0]: '');
   const [activatedYlabels, setActivatedYlabels] = React.useState<string[]>([]);
   useDebugValue('activated Y labels');
-  const [dataColumns, setDataColumns] = React.useState<any>({});
+  const initDataColumns: any = {};
+  initDataColumns[props.xlabel] = [];
+  const [dataColumns, setDataColumns] = React.useState<any>(initDataColumns);
   const [changablePlotConfig, setChangablePlotConfig] = React.useState<IChangablePlotConfig>({
     lineWidth: 1.5,
     showMarker: false,
@@ -240,10 +242,8 @@ const LineChart = (props: ILineChartProps) => {
           setDataColumns(parseRows(data));
           setLastSelectedLabel(activated.length > 0 ? activated[0] : undefined);
           setYlabelGrouping(genYLablesGrouping(ylabels));
-        });
-        setTimeout(() => {
           setLoading(false);
-        }, 1000);
+        });
         break;
       case 'raw':
         // todo: Handle json files with Line charts.
@@ -295,7 +295,7 @@ const LineChart = (props: ILineChartProps) => {
 
 
   // Aka traces
-  const totalDataSize = loading ? 0 : dataColumns[props.xlabel].length;
+  const totalDataSize = loading || !dataColumns[props.xlabel] ? 0 : dataColumns[props.xlabel].length;
   const plotData: Plotly.Data[] = activatedYlabels.map((y: string, index) => {
     const trace: Plotly.Data = {
       x: changablePlotConfig.downSamplingEnabled ? downsampleAxis(dataColumns[props.xlabel], changablePlotConfig.downSampling) : dataColumns[props.xlabel],

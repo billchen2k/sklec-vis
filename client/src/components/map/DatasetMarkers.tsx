@@ -81,7 +81,7 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     return (
       <Marker position={[one.latitude, one.longitude]} key={one.uuid} icon={markerIcons.redCircle}>
         <Popup>
-          <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} />
+          <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
         </Popup>
       </Marker>
     );
