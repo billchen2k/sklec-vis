@@ -22,6 +22,12 @@ const config = {
     open: false,
     port: 8080,
     allowedHosts: 'all',
+    client: {
+      webSocketURL: {
+        hostname: 'localhost',
+        port: 8060,
+      },
+    },
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -42,7 +48,7 @@ const config = {
   module: {
     rules: [
       {
-        test: /\.(ts|tsx)$/i,
+        test: /\.(ts|tsx|jsx)$/i,
         loader: 'ts-loader',
         exclude: ['/node_modules/'],
       },
@@ -72,7 +78,7 @@ const config = {
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', 'json'],
+    extensions: ['.tsx', '.ts', '.js', '.json', '.jsx'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@dataset': path.resolve(__dirname, './src/dataset'),

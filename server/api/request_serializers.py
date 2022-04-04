@@ -34,6 +34,7 @@ class GetVisContentRequestSerializer(serializers.Serializer):
     channels = serializers.ListField(child=serializers.CharField(), required=False, help_text='要获取的数据通道。如果指定了 all_channel，请留空。')
     all_channels = serializers.BooleanField(required=False, help_text='是否获取所有通道。如果为 true，则 channels 字段将被忽略。', default=False)
     target_samples = serializers.IntegerField(required=False, help_text='要获取的样本数。默认为 1000，不一定精确。')
+    smooth_algorithm = serializers.CharField(required=False, help_text='平滑算法。默认为 None。')
 
     def validate_target_samples(self, value):
         if value and (int(value) < 500 or int(value) > 10000):

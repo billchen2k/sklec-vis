@@ -33,6 +33,18 @@ export const markerIcons = {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   }),
+  greenCircle: new Icon({
+    iconUrl: '/img/markers/marker-green.png',
+    iconRetinaUrl: '/img/markers/marker-green@2x.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  }),
+  crossSymbol: new Icon({
+    iconUrl: '/img/anchor.png',
+    iconRetinaUrl: '/img/anchor@2x.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  }),
 };
 
 const DatasetMarkers = (props: IDatasetMarkersProps) => {
@@ -79,7 +91,7 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
   const markers = data.results.map((one: any) => {
     const center = new L.LatLng(one.latitude, one.longitude);
     return (
-      <Marker position={[one.latitude, one.longitude]} key={one.uuid} icon={markerIcons.redCircle}>
+      <Marker position={center} key={one.uuid} icon={markerIcons.redCircle}>
         <Popup>
           <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
         </Popup>

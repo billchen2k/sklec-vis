@@ -2,7 +2,6 @@ import datetime
 import traceback
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
-from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, generics
 from rest_framework import views

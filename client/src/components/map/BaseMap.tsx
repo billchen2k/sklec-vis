@@ -13,6 +13,8 @@ import {useAppSelector} from '@/app/hooks';
 import DataMarkerPopupContent from '@/components/map/DataMarkerPopupContent';
 import useAxios from 'axios-hooks';
 import DatasetMarkers from '@/components/map/DatasetMarkers';
+import CoordinateDisplay from '@/components/map/CoordinateDisplay';
+import MapToolbar from '@/components/map/MapToolbar';
 
 export interface IMapProps {
   children?: any;
@@ -36,14 +38,7 @@ const MapBoxThemes = [
 
 const BaseMap = (props: IMapProps) => {
   const defaultCenter = new L.LatLng(31.067777777777778, 122.2182222);
-
-  // const [lat, setLat] = React.useState(0);
-  // const [lng, setLng] = React.useState(0);
-  // const [zoom, setZoom] = React.useState(2);
-  // const [markers, setMarkers] = React.useState([]);
-  // const [data, setData] = React.useState([]);
   const {rasterState} = useAppSelector(((state) => state.site));
-
 
   const icon = new DivIcon({
     html: renderToStaticMarkup(
@@ -74,6 +69,7 @@ const BaseMap = (props: IMapProps) => {
         {/* <SKGeoRasterLayer georasterUrl={'dataset/sentinel3/RDI_S3A_20200429.tiff'} />*/}
 
         <DatasetMarkers />
+        <MapToolbar />
         <LayerGroup>
           {rasterState &&
           <SKGeoRasterLayer/>
