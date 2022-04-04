@@ -27,8 +27,6 @@ class SuccessResponseSerializer(ResponseSerializer):
 
 class GetVisContentRequestSerializer(serializers.Serializer):
 
-
-
     datetime_start = serializers.DateTimeField(required=False, help_text='开始时间。')
     datetime_end = serializers.DateTimeField(required=False, help_text='结束时间。')
     channels = serializers.ListField(child=serializers.CharField(), required=False, help_text='要获取的数据通道。如果指定了 all_channel，请留空。')

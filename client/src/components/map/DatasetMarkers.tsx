@@ -11,6 +11,7 @@ import {useEffect} from 'react';
 import {Simulate} from 'react-dom/test-utils';
 import load = Simulate.load;
 import {siteSlice} from '@/store/siteSlice';
+import {IDataset} from '@/types';
 
 export interface IDatasetMarkersProps {
 }
@@ -88,10 +89,23 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     return null;
   }
 
-  const markers = data.results.map((one: any) => {
+  const markers = data.results.map((one: IDataset) => {
     const center = new L.LatLng(one.latitude, one.longitude);
+    let icon = markerIcons.redCircle;
+    switch (one.dataset_type) {
+      case 'RT':
+        icon = markerIcons.greenCircle;
+        break;
+      case 'RBR':
+        icon = markerIcons.redCircle;
+        break;
+      case 'TABLE':
+        icon = markerIcons.cyanCircle;
+        break;
+    }
+    console.log(one);
     return (
-      <Marker position={center} key={one.uuid} icon={markerIcons.redCircle}>
+      <Marker position={center} key={one.uuid} icon={icon}>
         <Popup>
           <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
         </Popup>
