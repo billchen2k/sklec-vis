@@ -14,7 +14,7 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
-  IconButton, LinearProgress, MenuItem, Select,
+  IconButton, InputLabel, LinearProgress, MenuItem, Select,
   Slider, Stack,
   Typography,
 } from '@mui/material';
@@ -32,10 +32,9 @@ import {
   RotateLeft, SkipNext, SkipPrevious,
 } from '@mui/icons-material';
 import {muiIconToPlotlyIcon} from '@/utils';
-import {downsampleAxis, downsampleValue, genYLablesGrouping} from '@/utils/chartData';
+import {downsampleAxis, downsampleValue, genYLablesGrouping, Smoothing, SmoothingType} from '@/utils/chartData';
 import {IGroupingResult} from '@/types';
 import SKSlider, {SKThumbComponent} from '@/components/elements/SKSlider';
-import useAxios from 'axios-hooks';
 import axios from 'axios';
 import {endpoints} from '@/config/endpoints';
 import {useAppDispatch} from '@/app/hooks';
@@ -55,6 +54,10 @@ export interface IChangablePlotConfig {
     fullscreen: boolean;
     downSampling: number;
     downSamplingEnabled: boolean;
+    smoothing: SmoothingType;
+    smoothingWindowSize: number;
+    smoothingFactor: number;
+    smoothingPolynomialOrder: number;
   };
 
 export type IAttributeSelectorType = 'custom' | 'grouped';
@@ -82,6 +85,10 @@ const LineChart = (props: ILineChartProps) => {
     fullscreen: false,
     downSampling: 2,
     downSamplingEnabled: false,
+    smoothing: 'none',
+    smoothingFactor: 0.5,
+    smoothingWindowSize: 10,
+    smoothingPolynomialOrder: 3,
   });
   const [shiftPressed, setShiftPressed] = React.useState<boolean>(false);
   const [lastSelectedLabel, setLastSelectedLabel] = React.useState<string>();
@@ -264,7 +271,7 @@ const LineChart = (props: ILineChartProps) => {
         )).then((response) => {
           const data = response.data.data;
           const fields = data.channels as string[];
-          const ylabels = fields.filter((field) => field !== props.xlabel);
+          const ylabels = fields.filter((field) => field.indexOf(props.xlabel) === -1);
           const activated = ylabels.slice(0, 4);
           setYlabels(ylabels);
           setActivatedYlabels(activated);
@@ -297,14 +304,31 @@ const LineChart = (props: ILineChartProps) => {
   // Aka traces
   const totalDataSize = loading || !dataColumns[props.xlabel] ? 0 : dataColumns[props.xlabel].length;
   const plotData: Plotly.Data[] = activatedYlabels.map((y: string, index) => {
+    let xdata = dataColumns[props.xlabel];
+    let ydata = dataColumns[y];
+    if (changablePlotConfig.downSamplingEnabled) {
+      xdata = downsampleAxis(xdata, changablePlotConfig.downSampling);
+      ydata = downsampleValue(ydata, changablePlotConfig.downSampling);
+    }
+    if (changablePlotConfig.smoothing != 'none' && ydata.length > 0) {
+      console.log(ydata);
+      const smooth = new Smoothing(ydata, changablePlotConfig.smoothing, {
+        windowSize: changablePlotConfig.smoothingWindowSize,
+        factor: changablePlotConfig.smoothingFactor,
+        polynomialOrder: changablePlotConfig.smoothingPolynomialOrder,
+      });
+      smooth.smooth();
+      ydata = smooth.smoothedData;
+    }
     const trace: Plotly.Data = {
-      x: changablePlotConfig.downSamplingEnabled ? downsampleAxis(dataColumns[props.xlabel], changablePlotConfig.downSampling) : dataColumns[props.xlabel],
-      y: changablePlotConfig.downSamplingEnabled ? downsampleValue(dataColumns[y], changablePlotConfig.downSampling) : dataColumns[y],
+      x: xdata,
+      y: ydata,
       name: y,
       type: 'scatter',
       mode: changablePlotConfig.showMarker ? 'lines+markers' : 'lines',
       line: {
         width: changablePlotConfig.lineWidth,
+        shape: changablePlotConfig.smoothing === 'none' ? 'linear' : 'spline',
       },
       marker: {
         size: changablePlotConfig.lineWidth * 3,
@@ -567,8 +591,8 @@ const LineChart = (props: ILineChartProps) => {
         Plot Configurations:
       </Typography>
       <Box id={'container-plot-control'}>
-        <Grid container spacing={1}>
-          <Grid item container xs={4} sx={{'mt': 1}}>
+        <Grid container columnSpacing={1} rowSpacing={0} alignItems={'center'}>
+          <Grid item container xs={3} height={40} alignItems={'center'}>
             <Grid item xs={3}>
               <Typography variant={'subtitle1'}>
                 Line Width:
@@ -583,30 +607,59 @@ const LineChart = (props: ILineChartProps) => {
               </IconButton>
             </Grid>
           </Grid>
-          <Grid item xs={4}>
-            <FormControlLabel control={
-              <Checkbox checked={changablePlotConfig.showMarker}
-                value={changablePlotConfig.showMarker}
-                onChange={(e) => handlePlotConfigChange({showMarker: e.target.checked})}
-                name={'showMarker'}/>
-            } label={'Show Marker (May affect performance)'}/>
-          </Grid>
-          <Grid item xs={4}>
+
+          <Grid item xs={3} height={40} alignItems={'center'}>
             <Grid item container >
-              <Grid item xs={4}>
+              <Grid item xs={6}>
                 <FormControlLabel control={
                   <Checkbox
+                    disabled={!totalDataSize}
                     value={changablePlotConfig.downSamplingEnabled}
+                    size={'small'}
                     onChange={(e) => handlePlotConfigChange({downSamplingEnabled: e.target.checked})}
                     name={'showMarker'}/>
                 } label={'DownSampling'}/>
               </Grid>
-              <Grid item xs={8} sx={{'mt': 1}}>
+              <Grid item xs={6}>
                 {downsamplingSlider}
               </Grid>
             </Grid>
 
           </Grid>
+
+          <Grid item container xs={3} height={40} alignItems={'center'}>
+            <Grid item xs={4} sx={{pl: 1}}>
+              <Typography variant={'subtitle1'}>Smoothing:</Typography>
+            </Grid>
+            <Grid item xs={8}>
+              <FormControl fullWidth>
+                <Select
+                  id="smoothing-select"
+                  size={'small'}
+                  value={changablePlotConfig.smoothing}
+                  variant={'standard'}
+                  onChange={(e) => handlePlotConfigChange({smoothing: e.target.value})}
+                >
+                  <MenuItem value={'none'}>None</MenuItem>
+                  <MenuItem value={'ma'}>Moving Average</MenuItem>
+                  <MenuItem value={'ema'}>Exponential Moving Average</MenuItem>
+                  <MenuItem value={'sg'}>Savitzky Golay Filter</MenuItem>
+                </Select>
+
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          <Grid item xs={3} height={40} alignItems={'center'}>
+            <FormControlLabel control={
+              <Checkbox checked={changablePlotConfig.showMarker}
+                value={changablePlotConfig.showMarker}
+                onChange={(e) => handlePlotConfigChange({showMarker: e.target.checked})}
+                size={'small'} sx={{m: 0}}
+                name={'showMarker'}/>
+            } label={'Show Marker'}/>
+          </Grid>
+
           <Grid item xs={12}>
             <Box sx={{px: 6, height: 50}}>
               {totalDateTimeRange[0] && totalDateTimeRange[1] &&
