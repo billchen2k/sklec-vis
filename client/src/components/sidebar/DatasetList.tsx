@@ -29,6 +29,7 @@ const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const {datasetListCache} = useAppSelector((state) => state.site);
+  const [searchText, setSearchText] = React.useState('');
 
   useEffect(() => {
     dispatch(siteSlice.actions.setGlobalState('data-listing'));
@@ -64,10 +65,16 @@ const DatasetList = (props: IDatasetListProps) => {
     }
   }
 
+  const datasetListRender = demoList.filter((one) => {
+    return one.name.match(searchText);
+  });
+
   return (
     <Box>
       <Box sx={{width: '90%', m: 2}}>
-        <TextField label={'Search'} variant={'standard'} size={'small'} fullWidth={true}/>
+        <TextField label={'Search'} variant={'standard'} size={'small'} fullWidth={true}
+          value={searchText} onChange={(e) => setSearchText(e.target.value)}
+        />
       </Box>
       <List dense={true}>
         {demoList.map((item, index) => {

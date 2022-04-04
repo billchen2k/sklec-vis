@@ -30,6 +30,7 @@
     "georaster-layer-for-leaflet": "^3.5.0",
     "leaflet": "^1.7.1",
     "leaflet-panel-layers": "^1.2.7",
+    "leaflet-toolbar": "^0.4.0-alpha.2",
     "lodash": "^4.17.21",
     "plotly.js": "^2.7.0",
     "react": "^17.0.2",
