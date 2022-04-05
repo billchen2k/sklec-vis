@@ -4,7 +4,7 @@ import DataDetails from '@/components/sidebar/DataDetails';
 import {useNavigate} from 'react-router-dom';
 import {useAppSelector} from '@/app/hooks';
 import DatasetList from '@/components/sidebar/DatasetList';
-import demoData from '@/utils/demoData';
+import demoData from '@/lib/demoData';
 
 export interface ISidebarProps {
   sx?: SxProps;

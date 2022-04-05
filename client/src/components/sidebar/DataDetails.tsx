@@ -7,7 +7,7 @@ import {siteSlice} from '@/store/siteSlice';
 import {useAppDispatch} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
 import MDEditor from '@uiw/react-md-editor';
-import {copyMetaToClipboard} from '@/utils/dataset';
+import {copyMetaToClipboard} from '@/lib/dataset';
 import {uiSlice} from '@/store/uiSlice';
 
 export interface IDataMetaInfoProps {

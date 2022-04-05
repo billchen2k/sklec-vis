@@ -7,7 +7,7 @@ import {useAppDispatch} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {SkipNext, SkipPrevious} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
-import demoData from '@/utils/demoData';
+import demoData from '@/lib/demoData';
 import {uiSlice} from '@/store/uiSlice';
 import {useEffect} from 'react';
 import {endpoints} from '@/config/endpoints';
@@ -20,7 +20,7 @@ const DataViewer = (props: IVisualizerProps) => {
   const {datasetId} = useParams();
   const [currentRaster, setCurrentRaster] = React.useState(0);
   const [{data, loading, error}] = useAxios(endpoints.getDatasetDetail(datasetId));
-  const rasters = ['RDI_S3A_20200220_VIS.tiff', 'RDI_S3A_20200429_VIS.tiff', 'RDI_S3A_20200803_VIS.tiff', 'RDI_S3A_20200812_VIS.tiff', 'RDI_S3A_20200815_VIS.tiff', 'RDI_S3A_20200816_VIS.tiff', 'RDI_S3A_20200819_VIS.tiff', 'RDI_S3A_20200820_VIS.tiff', 'RDI_S3A_20200823_VIS.tiff', 'RDI_S3A_20200831_VIS.tiff', 'RDI_S3A_20210220_VIS.tiff', 'RDI_S3A_20210221_VIS.tiff', 'RDI_S3A_20210323_VIS.tiff', 'RDI_S3A_20210419_VIS.tiff', 'RDI_S3A_20210430_VIS.tiff', 'RDI_S3A_20210505_VIS.tiff', 'RDI_S3A_20210601_VIS.tiff', 'RDI_S3A_20210720_VIS.tiff', 'RDI_S3A_20210721_VIS.tiff', 'RDI_S3A_20210828_VIS.tiff', 'RDI_S3A_20210829_VIS.tiff', 'RDI_S3A_20210901_VIS.tiff', 'RDI_S3A_20210917_VIS.tiff', 'RDI_S3A_20210921_VIS.tiff', 'RDI_S3A_20210924_VIS.tiff', 'RDI_S3B_20200218_VIS.tiff', 'RDI_S3B_20200320_VIS.tiff', 'RDI_S3B_20200416_VIS.tiff', 'RDI_S3B_20200428_VIS.tiff', 'RDI_S3B_20200513_VIS.tiff', 'RDI_S3B_20200802_VIS.tiff', 'RDI_S3B_20200813_VIS.tiff', 'RDI_S3B_20200814_VIS.tiff', 'RDI_S3B_20200817_VIS.tiff', 'RDI_S3B_20200818_VIS.tiff', 'RDI_S3B_20200821_VIS.tiff'];
+  const rasters = ['RDI_S3A_20200220_VIS.tiff', '4DDATA1.tiff', 'RDI_S3A_20200429_VIS.tiff', 'RDI_S3A_20200803_VIS.tiff', 'RDI_S3A_20200812_VIS.tiff', 'RDI_S3A_20200815_VIS.tiff', 'RDI_S3A_20200816_VIS.tiff', 'RDI_S3A_20200819_VIS.tiff', 'RDI_S3A_20200820_VIS.tiff', 'RDI_S3A_20200823_VIS.tiff', 'RDI_S3A_20200831_VIS.tiff', 'RDI_S3A_20210220_VIS.tiff', 'RDI_S3A_20210221_VIS.tiff', 'RDI_S3A_20210323_VIS.tiff', 'RDI_S3A_20210419_VIS.tiff', 'RDI_S3A_20210430_VIS.tiff', 'RDI_S3A_20210505_VIS.tiff', 'RDI_S3A_20210601_VIS.tiff', 'RDI_S3A_20210720_VIS.tiff', 'RDI_S3A_20210721_VIS.tiff', 'RDI_S3A_20210828_VIS.tiff', 'RDI_S3A_20210829_VIS.tiff', 'RDI_S3A_20210901_VIS.tiff', 'RDI_S3A_20210917_VIS.tiff', 'RDI_S3A_20210921_VIS.tiff', 'RDI_S3A_20210924_VIS.tiff', 'RDI_S3B_20200218_VIS.tiff', 'RDI_S3B_20200320_VIS.tiff', 'RDI_S3B_20200416_VIS.tiff', 'RDI_S3B_20200428_VIS.tiff', 'RDI_S3B_20200513_VIS.tiff', 'RDI_S3B_20200802_VIS.tiff', 'RDI_S3B_20200813_VIS.tiff', 'RDI_S3B_20200814_VIS.tiff', 'RDI_S3B_20200817_VIS.tiff', 'RDI_S3B_20200818_VIS.tiff', 'RDI_S3B_20200821_VIS.tiff'];
 
   let viewerContent = null;
 

@@ -11113,6 +11113,11 @@ leaflet-panel-layers@^1.2.7:
   dependencies:
     leaflet "~1.3.0"
 
+leaflet-pather@^0.1.17:
+  version "0.1.17"
+  resolved "https://registry.npmmirror.com/leaflet-pather/-/leaflet-pather-0.1.17.tgz#4f7003d57f8ed13fa022b87849fa3c5f1acaeac2"
+  integrity sha512-YmQMXb3fzFaJF3e8KAz0CreSod8JeuZGym/ZFwqlIYvxxG3ovNsgAH563mRwnl0MgHFaOiWz33qTo9qbLlD9EA==
+
 leaflet-toolbar@^0.4.0-alpha.2:
   version "0.4.0-alpha.2"
   resolved "https://registry.npmmirror.com/leaflet-toolbar/-/leaflet-toolbar-0.4.0-alpha.2.tgz#ab58092d65b3dd158fb874c3f7e36b7ebdb994f8"

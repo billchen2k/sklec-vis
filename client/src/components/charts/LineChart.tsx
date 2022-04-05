@@ -31,15 +31,16 @@ import {
   PlaylistRemove,
   RotateLeft, SkipNext, SkipPrevious,
 } from '@mui/icons-material';
-import {muiIconToPlotlyIcon} from '@/utils';
-import {downsampleAxis, downsampleValue, genYLablesGrouping, Smoothing, SmoothingType} from '@/utils/chartData';
+import {muiIconToPlotlyIcon} from '@/lib/utils';
+import {downsampleAxis, downsampleValue, genYLablesGrouping} from '@/lib/chartData/chartData';
+import {Smoothing, SmoothingType} from '@/lib/chartData/Smoothing';
 import {IGroupingResult} from '@/types';
 import SKSlider, {SKThumbComponent} from '@/components/elements/SKSlider';
 import axios from 'axios';
 import {endpoints} from '@/config/endpoints';
 import {useAppDispatch} from '@/app/hooks';
 import {uiSlice} from '@/store/uiSlice';
-import {getDateTimeMarks, getDateTimeByPortion} from '@/utils/datetime';
+import {getDateTimeMarks, getDateTimeByPortion} from '@/lib/datetime';
 
 export interface ILineChartProps {
   xlabel?: string;
