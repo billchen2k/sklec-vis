@@ -8,6 +8,7 @@ import AppHeaders from '@/app/AppHeaders';
 import {Provider, ReactReduxContext} from 'react-redux';
 import {store} from '@/store';
 import GlobalSnackBar from '@/components/elements/GlobalSnackBar';
+import GlobalDialog from '@/components/elements/GlobalDialog';
 
 export interface IAppProps {
 }
@@ -18,6 +19,7 @@ const App = (props: IAppProps) => {
       <Provider store={store}>
         <AppHeaders />
         <GlobalSnackBar />
+        <GlobalDialog />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>

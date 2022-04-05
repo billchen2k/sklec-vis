@@ -4,11 +4,13 @@ import {DatasetType} from '@/types';
 export type GlobalState = 'data-listing' | 'data-inspecting';
 
 export type IRasterState = {
-    opacity?: number;
-    resolution?: number;
+    open: boolean;
     rasterLink: string;
-    colorScale?: 'Spectral' | 'Viridis' | string;
-    open?: boolean;
+    colorScale: 'Spectral' | 'Viridis' | string;
+    invertColorScale: boolean;
+    opacity: number;
+    resolution: number;
+    visualQueryLatLngs: L.LatLng[];
   };
 
 export interface ISiteState {
@@ -24,7 +26,15 @@ const initState: ISiteState = {
   globalState: 'data-listing',
   currentData: undefined,
   currentType: undefined,
-  rasterState: undefined,
+  rasterState: {
+    open: false,
+    opacity: 0.75,
+    resolution: 2 ** 7,
+    rasterLink: '',
+    invertColorScale: false,
+    colorScale: 'Spectral',
+    visualQueryLatLngs: [],
+  },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
 };
@@ -45,8 +55,14 @@ export const siteSlice = createSlice({
           break;
       }
     },
-    setRasterState: (state, action: PayloadAction<IRasterState>) => {
-      state.rasterState = action.payload;
+    setRasterState: (state, action: PayloadAction<Partial<IRasterState>>) => {
+      state.rasterState = {
+        ...state.rasterState,
+        ...action.payload,
+      };
+    },
+    setRasterVisualQuery(state, action: PayloadAction<L.LatLng[]>) {
+      state.rasterState.visualQueryLatLngs = action.payload;
     },
     enterDataInspecting: (state, action: PayloadAction<{
       dataId: string | number;

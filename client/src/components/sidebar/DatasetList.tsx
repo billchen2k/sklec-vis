@@ -9,10 +9,10 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  TextField,
+  TextField, Typography,
 } from '@mui/material';
 import {useNavigate} from 'react-router-dom';
-import {Attachment, Launch} from '@mui/icons-material';
+import {Attachment, Close, Launch} from '@mui/icons-material';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {useEffect} from 'react';
@@ -73,11 +73,18 @@ const DatasetList = (props: IDatasetListProps) => {
     <Box>
       <Box sx={{width: '90%', m: 2}}>
         <TextField label={'Search'} variant={'standard'} size={'small'} fullWidth={true}
+          InputProps={{
+            endAdornment: (
+              <IconButton size={'small'} onClick={() => setSearchText('')}>
+                <Close/>
+              </IconButton>
+            ),
+          }}
           value={searchText} onChange={(e) => setSearchText(e.target.value)}
         />
       </Box>
       <List dense={true}>
-        {demoList.map((item, index) => {
+        {datasetListRender.map((item, index) => {
           return (
             <ListItem key={index}
               disablePadding
@@ -96,6 +103,13 @@ const DatasetList = (props: IDatasetListProps) => {
           );
         })}
       </List>
+      {datasetListRender.length === 0 &&
+          <Box sx={{textAlign: 'center'}}>
+            <Typography variant={'body1'} sx={{m: 3}}><i>No dataset found.</i></Typography>
+            <img style={{opacity: 0.5, filter: 'saturate(0.5)'}} src={'/android-chrome-192x192.png'}
+                 width={'96'} alt={'No dataset found'}/>
+          </Box>
+      }
     </Box>
   );
 };

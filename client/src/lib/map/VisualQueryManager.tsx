@@ -4,6 +4,8 @@
 
 import {LayerManager} from '@/lib/map/LayerManager';
 import L from 'leaflet';
+import {useAppDispatch} from '@/app/hooks';
+import {uiSlice} from '@/store/uiSlice';
 
 require('leaflet-pather');
 // require('/public/js/leaflet.label.js');
@@ -32,6 +34,9 @@ export class VisualQueryManager extends LayerManager {
     for (let i = 0; i < len; i++) {
       this.layer.removePath(lines[i]);
     }
+    if (removeAll) {
+      window.dispatchEvent(new CustomEvent('visual-query-cleared', {}));
+    }
   }
 
   addEventHooks() {
@@ -50,7 +55,6 @@ export class VisualQueryManager extends LayerManager {
     this.layer.on('created', (e: any) => {
       // at this moment, Pather holds previous pathes and the newly created one,
       this._clearSelection(false);
-      console.log('Pather: created line ', e);
       // bind labels
       for (let i = 0; i < e.latLngs.length; i++) {
         const label = L.marker(e.latLngs[i], {
@@ -64,18 +68,22 @@ export class VisualQueryManager extends LayerManager {
         label.addTo(this.map);
         this.labels.push(label);
       }
-
+      console.log('Pather: created line ', e);
       const pts = e.latLngs.map((latLng: L.LatLng) => this.map.latLngToLayerPoint(latLng));
-      console.log(pts);
-      console.log(e.latLngs);
+      window.dispatchEvent(new CustomEvent('visual-query-created', {
+        detail: {
+          pts: pts,
+          latLngs: e.latLngs,
+        },
+      }));
     });
 
     super.addLayer();
   }
 
   removeLayer() {
-    super.removeLayer();
     this._clearSelection(true);
+    super.removeLayer();
   }
 
   defaultOptions(): {} {
@@ -96,12 +104,12 @@ export class VisualQueryManager extends LayerManager {
     //   mode: MODES.ALL
     return {
       smoothFactor: 5,
-      strokeColor: 'rgba(0,0,0,.5)',
-      strokeWidth: 4,
+      strokeColor: '#ff4f55',
+      strokeWidth: 2,
       pathOpacity: 0.8,
       pathWidth: 3,
       sampleGap: 2, // 路径关键点的采样间隔，和 areaSelGap 作用不一样，注意区分
-      pathColour: '#ff4f55',
+      pathColour: '#4fe9ff',
     };
   }
 

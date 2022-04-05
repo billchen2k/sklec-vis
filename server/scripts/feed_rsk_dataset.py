@@ -7,11 +7,8 @@ django.setup()
 
 from api.models import *
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
-
-
-
-files = os.listdir(os.path.join(BASE_DIR, 'local/dataset/ruskins'))
 user = SiteUser.objects.first()
+files = os.listdir(os.path.join(BASE_DIR, 'local/dataset/ruskins'))
 
 for f in files:
     full_path = os.path.join(BASE_DIR, 'local/dataset/ruskins', f)

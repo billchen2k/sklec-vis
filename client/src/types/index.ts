@@ -15,8 +15,29 @@ export interface IYLableGroupingItem {
 export interface IGroupingResult {
     grouped: IYLableGroupingItem[];
     ungrouped: string[];
-  };
+};
 
+
+export type IFileFormat = 'tiff' | 'ncf' | 'rsk' | 'csv' | 'other';
+export interface IVisFile {
+  data_channels: any[];
+  file: string;
+  uuid: string;
+  file_name: string;
+  file_size: number;
+  format: IFileFormat;
+  default_sample_count: number;
+  meta_data: any;
+  first_dimension_name: string;
+  is_georeferenced: boolean;
+  georeferenced_type: string;
+  longitude1: number;
+  latitude1: number;
+  longitude2: number;
+  latitude2: number;
+  datetime_start: string;
+  datetime_end: string;
+}
 
 export interface IDataset {
   created_at: string;
@@ -35,7 +56,7 @@ export interface IDataset {
   name: string;
   tags: any[];
   updated_at: string;
-  vis_files?: any[];
+  vis_files?: IVisFile[];
   raw_files?: any[];
   meta_data: any;
   uuid: string;
