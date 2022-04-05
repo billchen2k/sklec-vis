@@ -40,7 +40,7 @@ class VisFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = VisFile
-        exclude = ['id']
+        exclude = ['id', 'dataset']
 
 class RawFileOfDatasetSerializer(serializers.ModelSerializer):
 
@@ -60,7 +60,7 @@ class RawFileOfDatasetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RawFile
-        exclude = ['id']
+        exclude = ['id', 'dataset', 'visfile']
 
 class UserSerializer(serializers.ModelSerializer):
     """

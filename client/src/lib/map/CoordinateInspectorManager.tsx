@@ -58,7 +58,6 @@ export class CoordinateInspectorManager extends LayerManager {
             </CardContent>
           </Card>
         ));
-
         L.DomEvent.disableClickPropagation(container);
         return container;
       },
@@ -78,6 +77,6 @@ export class CoordinateInspectorManager extends LayerManager {
   }
 
   public removeLayer(): void {
-    this.layer.remove();
+    super.removeLayer();
   }
 }

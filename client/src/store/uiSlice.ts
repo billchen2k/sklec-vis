@@ -1,10 +1,21 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 export type SnackbarSeverity = 'success' | 'warning' | 'info' | 'error';
+export type DialogType = 'simple' | 'confirm';
 
 export interface OpenSnackbarPayload {
   message: string,
   severity?: SnackbarSeverity;
+};
+
+export interface OpenDialogPayload {
+  type: DialogType,
+  title: string,
+  content: JSX.Element | JSX.Element[] | string,
+  cancelText?: string,
+  confirmText?: string,
+  onConfirm?: () => void,
+  onCancel?: () => void,
 };
 
 export interface IUIState {
@@ -16,6 +27,14 @@ export interface IUIState {
     message: string,
     severity: SnackbarSeverity,
   },
+  dialog: {
+    open: boolean,
+    type: DialogType,
+    title: string,
+    content: JSX.Element | JSX.Element[] | string,
+    onConfirm?: () => void,
+    onCancel?: () => void,
+  }
 }
 
 const initialState: IUIState = {
@@ -26,6 +45,12 @@ const initialState: IUIState = {
     open: false,
     message: '',
     severity: 'info',
+  },
+  dialog: {
+    open: false,
+    type: 'simple',
+    title: '',
+    content: '',
   },
 };
 
@@ -53,6 +78,28 @@ export const uiSlice = createSlice({
     endLoading(state: IUIState) {
       state.isLoading = false;
       state.loadingText = '';
+    },
+    openDialog(state: IUIState, action: PayloadAction<OpenDialogPayload>) {
+      state.dialog = {
+        open: true,
+        type: action.payload.type,
+        title: action.payload.title,
+        content: action.payload.content,
+        onConfirm: action.payload.onConfirm,
+        onCancel: action.payload.onCancel,
+      };
+    },
+    dialogConfirm(state: IUIState) {
+      state.dialog.open = false;
+      if (state.dialog.onConfirm) {
+        state.dialog.onConfirm();
+      }
+    },
+    dialogCancel(state: IUIState) {
+      state.dialog.open = false;
+      if (state.dialog.onCancel) {
+        state.dialog.onCancel();
+      }
     },
   },
 });

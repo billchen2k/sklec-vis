@@ -16,18 +16,18 @@ require('leaflet-toolbar/dist/leaflet.toolbar.min.js');
 const MapToolbar = (props) => {
   const map = useMap();
   const dispatch = useAppDispatch();
-  const {rasterState} = useAppSelector((state) => state.site);
+  const {currentType} = useAppSelector((state) => state.site);
 
-  const toolbarStore = {};
+  // const toolbarStore = {};
 
   useEffect(() => {
-    if (toolbarStore.toolbar) {
-      console.log(toolbarStore.toolbar);
-      toolbarStore.toolbar.actions.forEach((action) => {
-        action.disable();
-      });
-      toolbarStore.toolbar.remove();
-    }
+    // if (toolbarStore.toolbar) {
+    //   console.log(toolbarStore.toolbar);
+    //   toolbarStore.toolbar.actions.forEach((action) => {
+    //     action.disable();
+    //   });
+    //   toolbarStore.toolbar.remove();
+    // }
 
     const cancelSubAction = L.Toolbar2.Action.extend({
       options: {
@@ -54,6 +54,7 @@ const MapToolbar = (props) => {
       },
 
       addHooks: function() {
+        this.name = 'locateCenterAction';
         map.locate({setView: true, maxZoom: 7});
         map.on('locationfound', (e) => {
           dispatch(uiSlice.actions.openSnackbar({
@@ -82,6 +83,7 @@ const MapToolbar = (props) => {
       },
 
       addHooks: function() {
+        this.name = 'coordinateInspectAction';
         this.manager = new CoordinateInspectorManager(map);
         this.manager.addEventHooks();
         this.manager.addLayer();
@@ -121,12 +123,15 @@ const MapToolbar = (props) => {
       actions: [
         locateCenterAction,
         coordinateInspectAction,
-        ...(rasterState ? [visualQueryAction] : []),
+        ...(currentType === 'RT' ? [visualQueryAction] : []),
       ],
     });
     toolbar.addTo(map);
-    toolbarStore.toolbar = toolbar;
-  }, [rasterState]);
+
+    return () => {
+      map.removeLayer(toolbar);
+    };
+  }, [currentType]);
 
   return (
     <div>

@@ -1,8 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+from sklecvis import settings
 from django.utils.translation import gettext_lazy as _
 # Create your models here.
+
+def uuid4_short():
+    return uuid.uuid4().hex[:settings.UUID_SHORT_LENGTH]
 
 class SiteUser(models.Model):
 
@@ -12,7 +16,7 @@ class SiteUser(models.Model):
         INTERNAL_USER = 4
         EXTERNAL_USER = 2
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     display_name = models.CharField(max_length=100, blank=True, null=True)
     affiliation = models.CharField(max_length=50, blank=True, null=True)
@@ -23,13 +27,22 @@ class SiteUser(models.Model):
     state = models.CharField(max_length=50, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
 
+    def __str__(self):
+        """
+        Will be used for Django admin display.
+        """
+        return f'{self.id}({self.uuid}): {self.user.username}'
+
 class DatasetTag(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     name = models.CharField(max_length=30, blank=True, null=True)
     long_name = models.CharField(max_length=100, blank=True, null=True)
     fa_icon = models.CharField(max_length=50, blank=True, null=True)
     color = models.CharField(max_length=20, blank=True, null=True)
     description = models.CharField(max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.id}({self.uuid}): {self.name}'
 
 class Dataset(models.Model):
 
@@ -40,7 +53,7 @@ class Dataset(models.Model):
         TABLE = 'TABLE' # 简单的表格数据
         GENERAL = 'GNR' # 普通数据，不需要在地图上显示
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -59,7 +72,7 @@ class Dataset(models.Model):
     tags = models.ManyToManyField(DatasetTag, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f'{self.id}({self.uuid}): {self.name}'
 
 
 class VisFile(models.Model):
@@ -71,11 +84,11 @@ class VisFile(models.Model):
         OTHER = 'other'
 
     class GeoreferencedType(models.TextChoices):
-        EMBEDDED = 'embedded'  # 嵌入进文件的地理坐标信息
+        GEOTIFF = 'geotiff'  # 嵌入进文件的地理坐标信息
         EXPLICIT = 'explicit'  # 显示声明的地理坐标信息 （通过 longitude1, latitude1, longitude2, latitude2）
         NONE = 'none'          # 无地理坐标信息
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='vis_files')
     file_name = models.CharField(max_length=200)
     file_size = models.IntegerField(default=0)
@@ -90,9 +103,14 @@ class VisFile(models.Model):
     latitude1 = models.FloatField(default=0.0)
     longitude2 = models.FloatField(default=0.0)
     latitude2 = models.FloatField(default=0.0)
+    datetime_start = models.DateTimeField(null=True, blank=True)
+    datetime_end = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.id}({self.uuid}): {self.file_name}'
 
 class DataChannel(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, related_name='data_channels')
     shape = models.CharField(max_length=50, blank=True, null=True, default='')
     name = models.CharField(max_length=50, blank=True, null=True)
@@ -103,8 +121,11 @@ class DataChannel(models.Model):
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
 
+    def __str__(self):
+        return f'{self.id}({self.uuid}): {self.file_label}'
+
 class RawFile(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='raw_files')
     file_name = models.CharField(max_length=200)
     file_size = models.IntegerField(default=0)
@@ -115,6 +136,9 @@ class RawFile(models.Model):
     # If the same as visualization file, then the raw file is not needed
     file_same_as_vis = models.BooleanField(default=False)
     visfile = models.ForeignKey(VisFile, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.id}({self.uuid}): {self.file_name}'
 
 class DownloadRecord(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, blank=True, related_name='download_records')

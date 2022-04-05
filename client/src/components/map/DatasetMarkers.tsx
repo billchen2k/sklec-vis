@@ -50,6 +50,7 @@ export const markerIcons = {
 
 const DatasetMarkers = (props: IDatasetMarkersProps) => {
   const [{data, loading, error}, refetch] = useAxios('/api/dataset/');
+  const [markers, setMarkers] = React.useState<any[]>([]);
   const dispatch = useAppDispatch();
   const center = new L.LatLng(31.167777777777778, 122.2182222);
   const ADCPMetaData = {
@@ -82,36 +83,36 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     }
     if (data) {
       dispatch(siteSlice.actions.setDatasetListCache(data.results));
+    } else {
+      return;
     }
+
+    setMarkers(data.results.map((one: IDataset) => {
+      const center = new L.LatLng(one.latitude, one.longitude);
+      let icon = markerIcons.redCircle;
+      switch (one.dataset_type) {
+        case 'RT':
+          icon = markerIcons.greenCircle;
+          break;
+        case 'RBR':
+          icon = markerIcons.redCircle;
+          break;
+        case 'TABLE':
+          icon = markerIcons.cyanCircle;
+          break;
+      }
+      console.log(one);
+      return (
+        <Marker position={center} key={one.uuid} icon={icon}>
+          <Popup>
+            <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
+          </Popup>
+        </Marker>
+      );
+    }));
   }, [loading, error, data]);
 
-  if (!data) {
-    return null;
-  }
 
-  const markers = data.results.map((one: IDataset) => {
-    const center = new L.LatLng(one.latitude, one.longitude);
-    let icon = markerIcons.redCircle;
-    switch (one.dataset_type) {
-      case 'RT':
-        icon = markerIcons.greenCircle;
-        break;
-      case 'RBR':
-        icon = markerIcons.redCircle;
-        break;
-      case 'TABLE':
-        icon = markerIcons.cyanCircle;
-        break;
-    }
-    console.log(one);
-    return (
-      <Marker position={center} key={one.uuid} icon={icon}>
-        <Popup>
-          <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
-        </Popup>
-      </Marker>
-    );
-  });
   return (
     <LayersControl.Overlay name={'Dataset List'} checked={true}>
       <LayerGroup>
