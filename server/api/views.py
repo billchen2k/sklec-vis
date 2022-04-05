@@ -6,9 +6,8 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, generics
 from rest_framework import views
 
-from api.models import *
 from api.serializers import *
-from api.request_serializers import *
+from api.api_serializers import *
 from api.sklec.RSKCore import RSKCore
 
 
@@ -30,7 +29,7 @@ class DatasetList(generics.ListAPIView):
 
     serializer_class = DatasetSerializer
     def get_queryset(self):
-        return Dataset.objects.all()
+        return Dataset.objects.all().order_by('name')
 
     @swagger_auto_schema(operation_description='获取系统中的所有数据集。',)
     def get(self, request, *args, **kwargs):
@@ -107,8 +106,6 @@ class GetVisContent(views.APIView):
                 return JsonResponseError(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return JsonResponseError(f'Visfile format {visfile.format} currently not supported.')
-
-
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({

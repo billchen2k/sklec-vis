@@ -8,6 +8,7 @@ import {useLeafletContext} from '@react-leaflet/core';
 import chroma from 'chroma-js';
 import {useAppSelector} from '@/app/hooks';
 import {Layer} from 'leaflet';
+import {useEffect} from 'react';
 export interface IGeoRasterLayerProps {
   georasterUrl?: string;
 }
@@ -18,12 +19,13 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
   const map = useMap();
 
   const {rasterState} = useAppSelector((state) => state.site);
-  if (!rasterState) {
-    return null;
-  }
+
   let layer: Layer = null;
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!rasterState) {
+      return;
+    }
     const container = context.layerContainer || context.map;
     const control = context.layersControl;
     fetch(rasterState.rasterLink)
