@@ -2,6 +2,8 @@
  * Raster controller.
  */
 import * as React from 'react';
+import {useEffect} from 'react';
+import d3 from 'd3';
 import {
   Box,
   Button,
@@ -9,19 +11,20 @@ import {
   Grid,
   LinearProgress,
   List,
-  ListItem,
-  ListItemButton, ListItemText, MenuItem, Select, Slider,
-  Stack,
+  ListItemButton,
+  ListItemText,
+  MenuItem,
+  Select,
+  Stack, TextField,
   Typography,
 } from '@mui/material';
 import chroma from 'chroma-js';
 import {siteSlice} from '@/store/siteSlice';
-import {SkipNext, SkipPrevious} from '@mui/icons-material';
+import {PlayArrow, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {IVisFile} from '@/types';
 import range from 'lodash/range';
 import debounce from 'lodash/debounce';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
-import {useEffect} from 'react';
 import {uiSlice} from '@/store/uiSlice';
 import DataMetaTable from '@/components/containers/DataMetaTable';
 import {readableFileSize} from '@/lib/utils';
@@ -35,29 +38,32 @@ const RasterControl = (props: IRasterControlProps) => {
   const dispatch = useAppDispatch();
   const {rasterState} = useAppSelector((state) => state.site);
   const [currentRaster, setCurrentRaster] = React.useState(0);
-  const [colorScale, setColorScale] = React.useState(rasterState.colorScale);
-  const [resolution, setResolution] = React.useState(rasterState.resolution);
-  const [opacity, setOpacity] = React.useState(rasterState.opacity);
-  const [invertColorScale, setInvertColorScale] = React.useState(false);
+  const [rasterConfig, setRasterConfig] = React.useState(rasterState.config);
 
   const colorScaleOptions = ['Spectral', 'Viridis', 'RdYlGn', 'BrBG', 'PiYG', 'PrGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu'];
 
   const rasters = props.rasterFiles.map((one) => one.file);
 
   const handleRasterChange = (i: number) => {
-    setCurrentRaster(i);
-    if (!rasterState || rasterState.rasterLink != props.rasterFiles[currentRaster].file) {
+    if (rasterState.rasterLink != rasters[i]) {
       dispatch(siteSlice.actions.setRasterState({
-        rasterLink: props.rasterFiles[currentRaster].file,
+        rasterLink: rasters[i],
         open: true,
       }));
     }
+    setCurrentRaster(i);
     if (props.onRasterChange) {
       props.onRasterChange(props.rasterFiles[i]);
     }
   };
 
-  const handleRasterConfigChange = (property: string, value: any, setter: React.Dispatch<any>) => {
+  const debouncedRasterConfigDispatch = React.useRef(debounce((property, value) => {
+    dispatch(siteSlice.actions.setRasterStateConfig({
+      [property]: value,
+    }));
+  }, 200)).current;
+
+  const handleRasterConfigChange = (property: string, value: any) => {
     if (value === 'true') {
       value = true;
     } else if (value === 'false') {
@@ -69,22 +75,19 @@ const RasterControl = (props: IRasterControlProps) => {
     if (property == 'resolution') {
       value = Number(value).toFixed(0);
     }
-    setter(value);
-    debounce(() => {
-      dispatch(siteSlice.actions.setRasterState({
-        [property]: value,
-      }));
-    }, 100)();
+    if (property == 'rasterMin' || property == 'rasterMax') {
+      value = Number(value);
+    }
+    const newConfig = {...rasterConfig, [property]: value};
+    debouncedRasterConfigDispatch(property, value);
+    setRasterConfig(newConfig);
+    ;
   };
 
   useEffect(() => {
     handleRasterChange(0);
     const handleVisualQueryCreated = (e: any) => {
       console.log(e.detail);
-      dispatch(uiSlice.actions.openSnackbar({
-        message: 'Visual query created.' + e.detail.latLngs,
-        severity: 'info',
-      }));
       dispatch(siteSlice.actions.setRasterVisualQuery(e.detail.latLngs));
     };
     const handleVisualQueryCleared = () => {
@@ -95,6 +98,7 @@ const RasterControl = (props: IRasterControlProps) => {
     return () => {
       window.removeEventListener('visual-query-created', handleVisualQueryCreated);
       window.removeEventListener('visual-query-cleared', handleVisualQueryCleared);
+      debouncedRasterConfigDispatch.cancel();
     };
   }, []);
 
@@ -104,9 +108,10 @@ const RasterControl = (props: IRasterControlProps) => {
   metaToShow['Date'] = (new Date(f.datetime_start)).toISOString().split('T')[0];
   metaToShow['File Size'] = readableFileSize(f.file_size);
 
-  const scaleColors = chroma.scale(colorScale).colors(9);
+  const scaleColors = chroma.scale(rasterConfig.colorScale).colors(9);
   const colorScaleColors = scaleColors.map((c) => chroma(c).css());
 
+  // @ts-ignore
   return (
     <Box>
       <Stack spacing={1} sx={{maxWidth: '40rem'}}>
@@ -121,6 +126,9 @@ const RasterControl = (props: IRasterControlProps) => {
           </Button>
           <Button sx={{flexGrow: 1}}>
             {props.rasterFiles[currentRaster].file_name}
+          </Button>
+          <Button>
+            <PlayArrow />
           </Button>
           <Button disabled={currentRaster === rasters.length - 1} onClick={() => {
             handleRasterChange(currentRaster + 1);
@@ -147,7 +155,7 @@ const RasterControl = (props: IRasterControlProps) => {
 
             <Grid container maxWidth={'20rem'}>
               <Grid item xs={5} sx={{p: 1}}>
-                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution'].map((one, i) => {
+                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Mapping'].map((one, i) => {
                   return (
                     <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>{one}</Typography>
                   );
@@ -155,32 +163,32 @@ const RasterControl = (props: IRasterControlProps) => {
 
               </Grid>
               <Grid item xs={7} sx={{p: 1}}>
-                <Select size={'small'} value={colorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
+                <Select size={'small'} value={rasterConfig.colorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('colorScale', e.target.value, setColorScale);
+                    handleRasterConfigChange('colorScale', e.target.value);
                   }}>
                   {colorScaleOptions.map((one) => (
                     <MenuItem key={one} value={one}>{one}</MenuItem>
                   ))}
                 </Select>
-                <Select size={'small'} value={opacity} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
+                <Select size={'small'} value={rasterConfig.opacity} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('opacity', e.target.value, setOpacity);
+                    handleRasterConfigChange('opacity', e.target.value);
                   }}>
                   {range(0.5, 1.05, 0.05).map((one) => (
                     <MenuItem key={one} value={one.toFixed(2)}>{one.toFixed(2)}</MenuItem>
                   ))}
                 </Select>
-                <Select size={'small'} value={invertColorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
+                <Select size={'small'} value={rasterConfig.invertColorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('invertColorScale', e.target.value, setInvertColorScale);
+                    handleRasterConfigChange('invertColorScale', e.target.value);
                   }}>
                   <MenuItem value={'true'}>Yes</MenuItem>
                   <MenuItem value={'false'}>No</MenuItem>
                 </Select>
-                <Select size={'small'} value={resolution} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
+                <Select size={'small'} value={rasterConfig.resolution} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('resolution', e.target.value, setResolution);
+                    handleRasterConfigChange('resolution', e.target.value);
                   }}>
                   <MenuItem value={16}>Thumbnail (16)</MenuItem>
                   <MenuItem value={32}>Ultra Low (32)</MenuItem>
@@ -189,6 +197,26 @@ const RasterControl = (props: IRasterControlProps) => {
                   <MenuItem value={256}>High (256)</MenuItem>
                   <MenuItem value={512}>Ultra High (512)</MenuItem>
                 </Select>
+                <Stack direction={'row'} sx={{height: '2rem'}} spacing={1}>
+                  <TextField size={'small'} value={rasterConfig.rasterMin} variant={'standard'} type={'number'} sx={{flexGrow: 1}}
+                    InputProps={{
+                      inputProps: {step: 0.02},
+                      sx: {height: '2rem'},
+                    }}
+                    onChange={(e) => {
+                      handleRasterConfigChange('rasterMin', e.target.value);
+                    }}/>
+                  <Typography variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'center'}}>to</Typography>
+                  <TextField size={'small'} value={rasterConfig.rasterMax} variant={'standard'} type={'number'} sx={{flexGrow: 1}}
+                    InputProps={{
+                      inputProps: {step: 0.02},
+                      sx: {height: '2rem'},
+                    }}
+                    onChange={(e) => {
+                      handleRasterConfigChange('rasterMax', e.target.value);
+                    }}/>
+                </Stack>
+
               </Grid>
             </Grid>
 
@@ -196,12 +224,20 @@ const RasterControl = (props: IRasterControlProps) => {
 
 
         </Grid>
+        <Stack direction={'row'} alignItems={'center'} sx={{userSelect: 'none'}}>
+          <Typography variant={'caption'} sx={{width: '8%', height: '0.3rem', lineHeight: '0.3rem'}}>
+            <code>{rasterConfig.rasterMin.toFixed(3)}</code>
+          </Typography>
+          <Box title={`Color Scale Legend (${rasterConfig.colorScale})`} id={'raster-legend'} sx={{
+            background: `linear-gradient(to left, ${(rasterConfig.invertColorScale ? colorScaleColors.reverse() : colorScaleColors).join(',')})`,
+            flexGrow: 1,
+            height: '0.3rem',
+          }} />
+          <Typography variant={'caption'} sx={{width: '8%', height: '0.3rem', lineHeight: '0.3rem', textAlign: 'right'}}>
+            <code>{rasterConfig.rasterMax.toFixed(3)}</code>
+          </Typography>
+        </Stack>
 
-        <Box sx={{
-          background: `linear-gradient(to left, ${(invertColorScale ? colorScaleColors.reverse() : colorScaleColors).join(',')})`,
-          width: '100%',
-          height: '0.3rem',
-        }} />
       </Stack>
     </Box>
   );

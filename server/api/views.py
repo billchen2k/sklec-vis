@@ -1,7 +1,12 @@
 import datetime
+import json
 import traceback
+from json import JSONDecodeError
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, generics
 from rest_framework import views
@@ -9,6 +14,7 @@ from rest_framework import views
 from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RSKCore import RSKCore
+from api.sklec.VisualQueryManager import VisualQueryManager
 
 
 def JsonResponseOK(data=None):
@@ -49,7 +55,7 @@ class DataContent(generics.RetrieveAPIView):
 
 class GetVisContent(views.APIView):
 
-    @swagger_auto_schema(operation_description='从指定数据集中获取指定 Channel 的数据',
+    @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据',
                          query_serializer=GetVisContentRequestSerializer,
                          responses={
                              200: GetVisContentResponseSerializer,
@@ -65,8 +71,8 @@ class GetVisContent(views.APIView):
         uuid = kwargs['uuid']
         try:
             visfile = VisFile.objects.get(uuid=uuid)
-        except Exception as e:
-            return JsonResponseError(e.message)
+        except VisFile.DoesNotExist as e:
+            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
 
         if params['all_channels'] == True:
             channels = visfile.data_channels.all()
@@ -83,7 +89,7 @@ class GetVisContent(views.APIView):
         if visfile.format == VisFile.FileFormat.RSK:
 
             try:
-                core = RSKCore(visfile.file.path)
+                core = RSKCore(visfile.file.paRth)
                 print(params)
                 if params.get('target_samples'):
                     core.TARGET_VIS_LENGTH = int(params['target_samples'])
@@ -106,6 +112,75 @@ class GetVisContent(views.APIView):
                 return JsonResponseError(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return JsonResponseError(f'Visfile format {visfile.format} currently not supported.')
+
+class PostVQDataStream(views.APIView):
+
+    @swagger_auto_schema(operation_description='从时空数据中根据不同空间查询点获取时域特征。Post Body 应该包括请求点和 Vis File 的 UUID。',
+                         operation_id='viscontent_vqdatastream',
+                         request_body=PostVQDataStreamRequestSerializer,
+                         responses={
+                             200: PostVQDataStreamResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    @method_decorator(csrf_exempt, name='dispatch')
+    def post(self, request: HttpRequest, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+        validation = PostVQDataStreamRequestSerializer(data=jdata, context={'request': request})
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
+        print(params)
+        lat_lngs = params.get('lat_lngs')
+        radius = params.get('radius', 1)
+        visfile_final = []
+        if params.get('visfile_uuid') and len(params.get('visfile_uuid')) > 0:
+            for uuid in params.get('visfile_uuid'):
+                try:
+                    f = VisFile.objects.get(uuid=uuid)
+                except VisFile.DoesNotExist:
+                    return JsonResponseError(f'Visfile with uuid {uuid} does not exist.')
+                if f.format == VisFile.FileFormat.TIFF:
+                    visfile_final.append(f)
+        elif params.get('dataset_uuid'):
+            dataset_uuid = params.get('dataset_uuid')
+            try:
+                datasetObj = Dataset.objects.get(uuid=dataset_uuid)
+            except Dataset.DoesNotExist:
+                return JsonResponseError(f'Dataset with uuid {dataset_uuid} does not exist.')
+            if datasetObj.dataset_type != Dataset.DatasetType.RASTER:
+                return JsonResponseError('Dataset must be of Raster (RT) type.')
+            visfile_final = datasetObj.vis_files.all()
+        else:
+            return JsonResponseError('Either visfile_uuid or dataset_uuid must be provided.')
+        if len(visfile_final) == 0:
+            return JsonResponseError('No visfile that meets the requirements for Visual Query.' +
+                                     'Note that the visfile must be TIFF format.')
+
+        visfile_final = sorted(visfile_final, key=lambda x: x.datetime_start.timestamp())
+        lat_lngs_tuples = []
+        for one in lat_lngs:
+            lat_lngs_tuples.append((one.get('lat'), one.get('lng')))
+
+        manager = VisualQueryManager(visfiles=visfile_final,
+                                     lat_lngs=lat_lngs_tuples,
+                                     radius=radius)
+        manager.gen_data_stream()
+        return JsonResponseOK({
+            'date_data': manager.date_series,
+            'stream_data': manager.data_stream,
+            'lat_lngs': lat_lngs,
+        })
+
+@swagger_auto_schema(operation_description='获取 CSRF Token.', operation_id='csrf_token')
+def token(request: HttpRequest) -> HttpResponse:
+    token = get_token(request)
+    response = JsonResponseOK({'token': token})
+    response['X-CSRFToken'] = token
+    return response
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({

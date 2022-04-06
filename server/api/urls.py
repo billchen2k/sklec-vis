@@ -1,4 +1,5 @@
 from django.urls import path, re_path
+from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
@@ -20,7 +21,10 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('dataset/', views.DatasetList.as_view()),
     path('dataset/<str:uuid>/', views.DataContent.as_view(), name='dataset-detail'),
-    path('viscontent/<str:uuid>/', views.GetVisContent.as_view(), name='data-content'),
+    path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
+    # path('viscontent/<str:uuid>/', views.GetVisContent.as_view(), name='data-content'),
+    path('viscontent/<str:uuid>/', csrf_exempt(views.GetVisContent.as_view()), name='data-content'),
+    path('user/token/', views.token, name='get-token'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
