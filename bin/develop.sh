@@ -1,7 +1,7 @@
 if [ "$1" = "--start" ]; then
   echo "Starting develop..."
   # Collect python requirements.
-  python -m pipreqs.pipreqs ./server --force
+#  python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.dev.yml build
   docker-compose -f docker-compose.dev.yml up
   docker exec -it sklecvis-server python manage.py makemigrations
