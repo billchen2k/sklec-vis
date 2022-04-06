@@ -106,6 +106,9 @@ class VisFile(models.Model):
     datetime_start = models.DateTimeField(null=True, blank=True)
     datetime_end = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        ordering = ['datetime_start', 'file_name']
+
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.file_name}'
 
@@ -122,7 +125,7 @@ class DataChannel(models.Model):
     datetime_end = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return f'{self.id}({self.uuid}): {self.file_label}'
+        return f'{self.id}({self.uuid}): {self.label}'
 
 class RawFile(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
