@@ -23,9 +23,10 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
   let layer: Layer = null;
 
   useEffect(() => {
-    if (!rasterState) {
+    if (!rasterState || !rasterState.open) {
       return;
     }
+    const {opacity, colorScale, resolution, invertColorScale, rasterMin, rasterMax} = rasterState.config;
     const container = context.layerContainer || context.map;
     const control = context.layersControl;
 
@@ -37,24 +38,24 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
           layerToRemove = layer;
         }
       });
-      const min = 0.0;
-      const max = 0.2;
+      const min = rasterMin || 0.06;
+      const max = rasterMax || 0.15;
       // const min = georaster.mins[0]
       // const max = georaster.maxs[0];
       console.log(georaster);
-      const scale = chroma.scale(rasterState.colorScale || 'RdYlGn').domain([min, max]);
+      const scale = chroma.scale(colorScale || 'RdYlGn').domain([min, max]);
       layer = new GeoRasterLayer({
         georaster: georaster,
-        opacity: rasterState.opacity || 0.75,
-        resolution: rasterState.resolution || 2 ** 8,
+        opacity: opacity || 0.75,
+        resolution: resolution || 2 ** 8,
         pixelValuesToColorFn: (pixelValues: any) => {
           if (isNaN(pixelValues[0]) || pixelValues[0] == georaster.noDataValue) {
             return null;
           }
           let color = undefined;
           const boundedVal = Math.min(Math.max(pixelValues[0], min), max);
-          if (rasterState.invertColorScale) {
-            color = scale(max - boundedVal);
+          if (invertColorScale) {
+            color = scale(max - boundedVal + min);
           } else {
             color = scale(boundedVal);
           }
@@ -85,7 +86,7 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
         control.removeLayer(layer);
       }, 300);
     };
-  }, [rasterState.rasterLink, rasterState.colorScale, rasterState.opacity, rasterState.resolution, rasterState.invertColorScale]);
+  }, [rasterState.rasterLink, rasterState.config]);
 
   return null;
 };

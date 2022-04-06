@@ -1,4 +1,5 @@
-FROM python:3.9-alpine
+#FROM python:3.9-alpine
+FROM gsnyderbds/python39-buster
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app

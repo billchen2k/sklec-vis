@@ -22,8 +22,7 @@ class SuccessResponseSerializer(ResponseSerializer):
     class DataSerializer(serializers.Serializer):
         pass
 
-    data = serializers.DictField(child=DataSerializer(), required=False)
-
+    data = DataSerializer()
 
 class GetVisContentRequestSerializer(serializers.Serializer):
 
@@ -53,6 +52,40 @@ class GetVisContentResponseSerializer(SuccessResponseSerializer):
         file_size = serializers.IntegerField(required=False)
         first_dimension_name = serializers.CharField(required=False)
 
+        class Meta:
+            ref_name = 'VisContentResponseData'
 
-    data = serializers.DictField(child=DataSerializer(), required=False)
+    data = DataSerializer()
 
+
+class PostVQDataStreamRequestSerializer(serializers.Serializer):
+
+    class LatLngItemSerializer(serializers.Serializer):
+        lat = serializers.FloatField(required=False)
+        lng = serializers.FloatField(required=False)
+
+    lat_lngs = serializers.ListField(child=LatLngItemSerializer(), required=True, help_text='采样点的经纬度列表。')
+    radius = serializers.FloatField(required=False, default=1, help_text='采样半径。应为大于等于 1，小于等于 100 的整数。默认为 1。')
+    visfile_uuid = serializers.ListField(child=serializers.CharField(), required=False,
+                                     help_text='要获取的 Vis Content。目前必须为 TiFF 格式且对应的数据集类型为 RT。')
+    dataset_uuid = serializers.CharField(required=False,
+                                         help_text='数据集 UUID。如果指定了 vis_uuid，则该字段将被忽略。' +
+                                                   '如果没有指定 vis_uuid，则必须指定该字段，且数据的获取范围为该数据集下的全部数据。')
+
+    def validate_radius(self, value):
+        if (int(value) < 1 or int(value) > 100):
+            raise serializers.ValidationError("Radius must be between 1 and 100")
+        return int(value)
+
+
+class PostVQDataStreamResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+        date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
+        stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
+        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+
+        class Meta:
+            ref_name = 'VQDataStreamResponseData'
+
+    data = DataSerializer()

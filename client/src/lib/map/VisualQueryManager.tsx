@@ -7,7 +7,7 @@ import L from 'leaflet';
 import {useAppDispatch} from '@/app/hooks';
 import {uiSlice} from '@/store/uiSlice';
 
-require('leaflet-pather');
+require('/public/js/leaflet.pather.js');
 // require('/public/js/leaflet.label.js');
 export class VisualQueryManager extends LayerManager {
   labels: any[];

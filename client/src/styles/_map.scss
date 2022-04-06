@@ -82,3 +82,42 @@ Source: https://github.com/Leaflet/Leaflet.label
 .leaflet-label-left:after {
 	content: "";
 }
+
+// Visual Query
+
+.hoverLine {
+    stroke: #ddd;
+    fill: none;
+    pointer-events: none;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+.tooltip {
+    position: absolute;
+    display: block;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 5px;
+    color: white;
+    pointer-events: none;
+    min-width: 140px;
+    padding: 5px;
+    z-index: 10000;
+    line-height: 22px;
+	font-family: 'Roboto', sans-serif;
+	font-size: 12px;
+}
+
+div .tooltipID {
+    display: inline-block;
+    display: -moz-inline-block;
+    clip-path: circle(40%);
+    background: grey;
+    margin-right: 5px;
+    width: 20px;
+	font-family: 'Roboto', sans-serif;
+	font-size: 12px;
+    text-align: center;
+}
+

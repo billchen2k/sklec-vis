@@ -6,11 +6,15 @@ export type GlobalState = 'data-listing' | 'data-inspecting';
 export type IRasterState = {
     open: boolean;
     rasterLink: string;
-    colorScale: 'Spectral' | 'Viridis' | string;
-    invertColorScale: boolean;
-    opacity: number;
-    resolution: number;
     visualQueryLatLngs: L.LatLng[];
+    config: {
+      colorScale?: string;
+      invertColorScale?: boolean;
+      opacity?: number;
+      resolution?: number;
+      rasterMin?: number;
+      rasterMax?: number;
+    }
   };
 
 export interface ISiteState {
@@ -28,12 +32,16 @@ const initState: ISiteState = {
   currentType: undefined,
   rasterState: {
     open: false,
-    opacity: 0.75,
-    resolution: 2 ** 7,
     rasterLink: '',
-    invertColorScale: false,
-    colorScale: 'Spectral',
     visualQueryLatLngs: [],
+    config: {
+      opacity: 0.75,
+      resolution: 2 ** 7,
+      invertColorScale: false,
+      colorScale: 'Spectral',
+      rasterMax: 0.15,
+      rasterMin: 0.08,
+    },
   },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
@@ -61,6 +69,12 @@ export const siteSlice = createSlice({
         ...action.payload,
       };
     },
+    setRasterStateConfig(state, action: PayloadAction<Partial<IRasterState['config']>>) {
+      state.rasterState.config = {
+        ...state.rasterState.config,
+        ...action.payload,
+      };
+    },
     setRasterVisualQuery(state, action: PayloadAction<L.LatLng[]>) {
       state.rasterState.visualQueryLatLngs = action.payload;
     },
@@ -76,9 +90,9 @@ export const siteSlice = createSlice({
     },
     leaveDataInspecting(state) {
       state.globalState = 'data-listing';
-      state.currentData = undefined;
-      state.currentType = undefined;
-      state.rasterState = undefined;
+      state.currentData = initState.currentData;
+      state.currentType = initState.currentType;
+      state.rasterState = initState.rasterState;
     },
     setDatasetListCache: (state, action: PayloadAction<any>) => {
       state.datasetListCache = action.payload;
