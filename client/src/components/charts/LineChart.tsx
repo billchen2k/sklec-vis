@@ -619,35 +619,33 @@ const LineChart = (props: ILineChartProps) => {
                     size={'small'}
                     onChange={(e) => handlePlotConfigChange({downSamplingEnabled: e.target.checked})}
                     name={'showMarker'}/>
-                } label={'DownSampling'}/>
+                } label={'Down Sampling'}/>
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={6} sx={{pt: 0.5}}>
                 {downsamplingSlider}
               </Grid>
             </Grid>
 
           </Grid>
 
-          <Grid item container xs={3} height={40} alignItems={'center'}>
+          <Grid item container xs={3} height={40} alignItems={'center'} sx={{pt: -1}}>
             <Grid item xs={4} sx={{pl: 1}}>
               <Typography variant={'subtitle1'}>Smoothing:</Typography>
             </Grid>
             <Grid item xs={8}>
-              <FormControl fullWidth>
-                <Select
-                  id="smoothing-select"
-                  size={'small'}
-                  value={changablePlotConfig.smoothing}
-                  variant={'standard'}
-                  onChange={(e) => handlePlotConfigChange({smoothing: e.target.value})}
-                >
-                  <MenuItem value={'none'}>None</MenuItem>
-                  <MenuItem value={'ma'}>Moving Average</MenuItem>
-                  <MenuItem value={'ema'}>Exponential Moving Average</MenuItem>
-                  <MenuItem value={'sg'}>Savitzky Golay Filter</MenuItem>
-                </Select>
-
-              </FormControl>
+              <Select
+                fullWidth={true}
+                id="smoothing-select"
+                size={'small'}
+                value={changablePlotConfig.smoothing}
+                variant={'standard'}
+                onChange={(e) => handlePlotConfigChange({smoothing: e.target.value})}
+              >
+                <MenuItem value={'none'}>None</MenuItem>
+                <MenuItem value={'ma'}>Moving Average</MenuItem>
+                <MenuItem value={'ema'}>Exponential Moving Average</MenuItem>
+                <MenuItem value={'sg'}>Savitzky Golay Filter</MenuItem>
+              </Select>
             </Grid>
           </Grid>
 

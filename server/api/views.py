@@ -89,7 +89,7 @@ class GetVisContent(views.APIView):
         if visfile.format == VisFile.FileFormat.RSK:
 
             try:
-                core = RSKCore(visfile.file.paRth)
+                core = RSKCore(visfile.file.path)
                 print(params)
                 if params.get('target_samples'):
                     core.TARGET_VIS_LENGTH = int(params['target_samples'])
