@@ -47,11 +47,11 @@ const DatasetList = (props: IDatasetListProps) => {
       'link': '/view/2',
       'type': 'TABLE',
     },
-    {
-      'name': 'RDI_S3A_20200220',
-      'link': '/view/3',
-      'type': 'RT',
-    },
+    // {
+    //   'name': 'RDI_S3A_20200220',
+    //   'link': '/view/3',
+    //   'type': 'RT',
+    // },
   ];
 
   if (datasetListCache) {
@@ -107,7 +107,7 @@ const DatasetList = (props: IDatasetListProps) => {
           <Box sx={{textAlign: 'center'}}>
             <Typography variant={'body1'} sx={{m: 3}}><i>No dataset found.</i></Typography>
             <img style={{opacity: 0.5, filter: 'saturate(0.5)'}} src={'/android-chrome-192x192.png'}
-                 width={'96'} alt={'No dataset found'}/>
+              width={'96'} alt={'No dataset found'}/>
           </Box>
       }
     </Box>
