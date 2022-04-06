@@ -9,6 +9,7 @@ RUN apk add python3-dev py3-numpy jpeg-dev zlib-dev g++ # For Pillow and numpy
 RUN apk add --no-cache --virtual .build-deps postgresql-dev gdal gdal-dev
 RUN pip install uwsgi
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip uninstall gdal -y && pip install gdal
 
 COPY . .
 RUN python manage.py collectstatic --noinput

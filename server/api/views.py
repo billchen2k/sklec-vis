@@ -11,6 +11,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, generics
 from rest_framework import views
 
+from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RSKCore import RSKCore
@@ -115,6 +116,8 @@ class GetVisContent(views.APIView):
 
 class PostVQDataStream(views.APIView):
 
+    authentication_classes = (CsrfExemptSessionAuthentication, )
+
     @swagger_auto_schema(operation_description='从时空数据中根据不同空间查询点获取时域特征。Post Body 应该包括请求点和 Vis File 的 UUID。',
                          operation_id='viscontent_vqdatastream',
                          request_body=PostVQDataStreamRequestSerializer,
@@ -123,7 +126,7 @@ class PostVQDataStream(views.APIView):
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    @method_decorator(csrf_exempt, name='dispatch')
+
     def post(self, request: HttpRequest, *args, **kwargs):
         try:
             jdata = json.loads(request.body.decode('utf-8'))

@@ -23,7 +23,7 @@ urlpatterns = [
     path('dataset/<str:uuid>/', views.DataContent.as_view(), name='dataset-detail'),
     path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
     # path('viscontent/<str:uuid>/', views.GetVisContent.as_view(), name='data-content'),
-    path('viscontent/<str:uuid>/', csrf_exempt(views.GetVisContent.as_view()), name='data-content'),
+    path('viscontent/<str:uuid>/', views.GetVisContent.as_view(), name='data-content'),
     path('user/token/', views.token, name='get-token'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger'),

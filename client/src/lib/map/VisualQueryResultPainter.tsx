@@ -234,7 +234,7 @@ export class VisualQueryResultPainter {
 
     const y = d3.scaleLinear()
         // .domain([255, 0])
-        .domain([this.options.domainBoundHigh || 10, this.options.domainBoundLow || 0])
+        .domain([this.options.domainBoundLow || 0, this.options.domainBoundHigh || 10])
         .range([graphHeight, 0]);
 
     const xDate = d3.scaleTime()

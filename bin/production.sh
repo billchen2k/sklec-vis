@@ -5,7 +5,7 @@
 
 if [ "$1" = "--start" ]; then
   echo "Starting production..."
-  python -m pipreqs.pipreqs ./server --force
+#  python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.prod.yml build --memory='2g'
   docker-compose -f docker-compose.prod.yml up -d
   docker exec -it sklecvis-server python manage.py makemigrations
