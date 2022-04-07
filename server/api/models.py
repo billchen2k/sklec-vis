@@ -113,6 +113,11 @@ class VisFile(models.Model):
         return f'{self.id}({self.uuid}): {self.file_name}'
 
 class DataChannel(models.Model):
+    meta_data = models.JSONField(blank=True, null=True)
+    # 1 - dimension是自变量，2 - variable是因变量。其实nc里dimension都是variable，但这里把它们分开来
+    channel_type = models.IntegerField(blank=True, null=True)
+
+    # rsk文件中的数据通道
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, related_name='data_channels')
     shape = models.CharField(max_length=50, blank=True, null=True, default='')
@@ -124,6 +129,10 @@ class DataChannel(models.Model):
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
 
+    # nc文件需求的属性补充
+    missing_value = models.FloatField(blank=True, null=True)
+    scale_factor = models.FloatField(blank=True, null=True)
+    add_offset = models.FloatField(blank=True, null=True)
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.label}'
 

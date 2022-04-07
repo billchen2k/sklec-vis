@@ -37,6 +37,9 @@ class NCCore(SKLECBaseCore):
         res = {}
         # res = {'Time': []}
         # channel_label_to_output_name = {'timestamp': 'Time'}
+
+        # TODO 按 channel 获取数据切片
+        # TODO * scale_factor + offset
         for channel in self.channels:
             # channel_label_to_output_name[channel] = f'{self.channel_name[channel]} ({channel})'
             # res[channel_label_to_output_name[channel]] = []

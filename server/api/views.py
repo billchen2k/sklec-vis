@@ -113,7 +113,7 @@ class GetVisContent(views.APIView):
                 print(traceback.format_exc())
                 return JsonResponseError(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        elif visfile.format == VisFile.FileFormat.NCF:
+        elif visfile.format == VisFile.FileFormat.NCF: # TODO 没改，因为这部分在我的数据库里还不存在
 
             try:
                 core = NCCore(visfile.file.path)
@@ -136,7 +136,7 @@ class GetVisContent(views.APIView):
                 print(traceback.format_exc())
                 return JsonResponseError(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-                
+
         return JsonResponseError(f'Visfile format {visfile.format} currently not supported.')
 
 class PostVQDataStream(views.APIView):
