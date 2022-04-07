@@ -24,7 +24,7 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
 
   const calcBounds = (rasterMin: number, rasterMax: number) => {
     const range = rasterMax - rasterMin;
-    const min = rasterMin - range;
+    const min = rasterMin - 0.5 * range;
     const max = rasterMax + range * 2.5;
     return [0, max];
   };
@@ -79,7 +79,7 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
         {loading && <LinearProgress variant={'indeterminate'}/>}
         {!loading &&
             <div>
-              <Typography variant={'body2'}><b>Visuql Query Results</b></Typography>
+              <Typography variant={'body2'}><b>Visual Query Results</b></Typography>
             </div>
         }
         <div id={'visual-query-container'}

@@ -43,7 +43,7 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
       // const min = georaster.mins[0]
       // const max = georaster.maxs[0];
       console.log(georaster);
-      const scale = chroma.scale(colorScale || 'RdYlGn').domain([min, max]);
+      const scale = chroma.scale(colorScale || 'RdYlGn').domain(invertColorScale? [max, min] : [min, max]);
       layer = new GeoRasterLayer({
         georaster: georaster,
         opacity: opacity || 0.75,
@@ -54,11 +54,7 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
           }
           let color = undefined;
           const boundedVal = Math.min(Math.max(pixelValues[0], min), max);
-          if (invertColorScale) {
-            color = scale(max - boundedVal + min);
-          } else {
-            color = scale(boundedVal);
-          }
+          color = scale(max - boundedVal + min);
           return color.hex();
         },
       });
