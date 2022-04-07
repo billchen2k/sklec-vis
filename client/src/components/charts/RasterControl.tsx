@@ -8,7 +8,7 @@ import {
   Box,
   Button,
   ButtonGroup,
-  Grid,
+  Grid, IconButton,
   LinearProgress,
   List,
   ListItemButton,
@@ -19,8 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 import chroma from 'chroma-js';
-import {siteSlice} from '@/store/siteSlice';
-import {PlayArrow, SkipNext, SkipPrevious} from '@mui/icons-material';
+import {IRasterState, siteSlice} from '@/store/siteSlice';
+import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {IVisFile} from '@/types';
 import range from 'lodash/range';
 import debounce from 'lodash/debounce';
@@ -57,29 +57,32 @@ const RasterControl = (props: IRasterControlProps) => {
     }
   };
 
-  const debouncedRasterConfigDispatch = React.useRef(debounce((property, value) => {
+  const debouncedRasterConfigDispatch = React.useRef(debounce((properties: Partial<IRasterState['config']>): any => {
     dispatch(siteSlice.actions.setRasterStateConfig({
-      [property]: value,
+      ...properties,
     }));
   }, 200)).current;
 
-  const handleRasterConfigChange = (property: string, value: any) => {
-    if (value === 'true') {
-      value = true;
-    } else if (value === 'false') {
-      value = false;
-    }
-    if (property == 'opacity') {
-      value = Number(value).toFixed(2);
-    }
-    if (property == 'resolution') {
-      value = Number(value).toFixed(0);
-    }
-    if (property == 'rasterMin' || property == 'rasterMax') {
-      value = Number(value);
-    }
-    const newConfig = {...rasterConfig, [property]: value};
-    debouncedRasterConfigDispatch(property, value);
+  const handleRasterConfigChange = (properties: any) => {
+    Object.keys(properties).forEach((property) => {
+      const value = properties[property];
+      if (value === 'true') {
+        properties[property] = true;
+      } else if (value === 'false') {
+        properties[property] = false;
+      }
+      if (property == 'opacity') {
+        properties[property] = Number(value).toFixed(2);
+      }
+      if (property == 'resolution') {
+        properties[property] = Number(value).toFixed(0);
+      }
+      if (property == 'rasterMin' || property == 'rasterMax') {
+        properties[property] = Number(value);
+      }
+    });
+    const newConfig = {...rasterConfig, ...properties};
+    debouncedRasterConfigDispatch(properties);
     setRasterConfig(newConfig);
     ;
   };
@@ -155,9 +158,20 @@ const RasterControl = (props: IRasterControlProps) => {
 
             <Grid container maxWidth={'20rem'}>
               <Grid item xs={5} sx={{p: 1}}>
-                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Mapping'].map((one, i) => {
+                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Range'].map((one, i) => {
                   return (
-                    <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>{one}</Typography>
+                    <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>
+                      {one === 'Value Range' && <IconButton onClick={() => {
+                        handleRasterConfigChange({
+                          rasterMin: 0.08,
+                          rasterMax: 0.15,
+                        });
+                        // handleRasterConfigChange('rasterMax', '0.15');
+                      }} size={'small'}>
+                        <RotateLeft/>
+                      </IconButton>}
+                      {one}
+                    </Typography>
                   );
                 })}
 
@@ -165,7 +179,7 @@ const RasterControl = (props: IRasterControlProps) => {
               <Grid item xs={7} sx={{p: 1}}>
                 <Select size={'small'} value={rasterConfig.colorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('colorScale', e.target.value);
+                    handleRasterConfigChange({colorScale: e.target.value});
                   }}>
                   {colorScaleOptions.map((one) => (
                     <MenuItem key={one} value={one}>{one}</MenuItem>
@@ -173,7 +187,7 @@ const RasterControl = (props: IRasterControlProps) => {
                 </Select>
                 <Select size={'small'} value={rasterConfig.opacity} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('opacity', e.target.value);
+                    handleRasterConfigChange({opacity: e.target.value});
                   }}>
                   {range(0.5, 1.05, 0.05).map((one) => (
                     <MenuItem key={one} value={one.toFixed(2)}>{one.toFixed(2)}</MenuItem>
@@ -181,14 +195,14 @@ const RasterControl = (props: IRasterControlProps) => {
                 </Select>
                 <Select size={'small'} value={rasterConfig.invertColorScale} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('invertColorScale', e.target.value);
+                    handleRasterConfigChange({invertColorScale: e.target.value});
                   }}>
                   <MenuItem value={'true'}>Yes</MenuItem>
                   <MenuItem value={'false'}>No</MenuItem>
                 </Select>
                 <Select size={'small'} value={rasterConfig.resolution} variant={'standard'} fullWidth={true} sx={{height: '2rem'}}
                   onChange={(e) => {
-                    handleRasterConfigChange('resolution', e.target.value);
+                    handleRasterConfigChange({resolution: e.target.value});
                   }}>
                   <MenuItem value={16}>Thumbnail (16)</MenuItem>
                   <MenuItem value={32}>Ultra Low (32)</MenuItem>
@@ -204,7 +218,7 @@ const RasterControl = (props: IRasterControlProps) => {
                       sx: {height: '2rem'},
                     }}
                     onChange={(e) => {
-                      handleRasterConfigChange('rasterMin', e.target.value);
+                      handleRasterConfigChange({rasterMin: e.target.value});
                     }}/>
                   <Typography variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'center'}}>to</Typography>
                   <TextField size={'small'} value={rasterConfig.rasterMax} variant={'standard'} type={'number'} sx={{flexGrow: 1}}
@@ -213,16 +227,12 @@ const RasterControl = (props: IRasterControlProps) => {
                       sx: {height: '2rem'},
                     }}
                     onChange={(e) => {
-                      handleRasterConfigChange('rasterMax', e.target.value);
+                      handleRasterConfigChange({rasterMax: e.target.value});
                     }}/>
                 </Stack>
-
               </Grid>
             </Grid>
-
           </Grid>
-
-
         </Grid>
         <Stack direction={'row'} alignItems={'center'} sx={{userSelect: 'none'}}>
           <Typography variant={'caption'} sx={{width: '8%', height: '0.3rem', lineHeight: '0.3rem'}}>
