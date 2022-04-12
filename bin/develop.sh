@@ -26,6 +26,7 @@ if [ "$1" = "--start" ]; then
     exit 1
   fi
   echo "Starting develop..."
+  # Collect python requirements.
 #  python -m pipreqs.pipreqs ./server --force
   docker-compose -f docker-compose.dev.yml build
   docker-compose -f docker-compose.dev.yml up
