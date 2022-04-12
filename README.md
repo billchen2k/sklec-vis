@@ -1,15 +1,11 @@
 # SKLEC-VIS
 
-20220325
-
-
 Visualization of SKLEC spatial-temporal data.
+
+**Before doing anything, Please refer to the [WIKI page](http://172.20.5.126:88/sklec/sklec-vis/-/wikis/home) first**.
+
+---
 
 East China Normal University, 2021.
 
-
-## Develop
-
-```
-./bin/develop.sh --start
-```
+Contact: jtchen@stu.ecnu.edu.cn
