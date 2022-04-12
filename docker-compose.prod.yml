@@ -40,7 +40,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - "8060:80"
+      - "80:80"
     volumes:
       - ./server/static/:/srv/server_static
       - ./server/media/:/srv/server_media
