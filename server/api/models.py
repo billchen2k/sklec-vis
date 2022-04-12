@@ -116,8 +116,8 @@ class DataChannel(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, related_name='data_channels')
     shape = models.CharField(max_length=50, blank=True, null=True, default='')
-    name = models.CharField(max_length=50, blank=True, null=True)
-    label = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=50, blank=True, null=True)  # 展示出来的真正的名字
+    label = models.CharField(max_length=50, blank=True, null=True) # 机器名
     description = models.CharField(max_length=200, blank=True, null=True)
     unit = models.CharField(max_length=50, blank=True, null=True)
     unit_symbol = models.CharField(max_length=50, blank=True, null=True)
