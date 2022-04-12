@@ -179,7 +179,7 @@ export class VisualQueryResultPainter {
       const fluc = fluctuation[i];
 
       let saliAmp; // salience of amplitude
-      let typeAmp; // 0: 低于均值,绿; 1: 高于均值,红
+      let typeAmp; // 0: 低于均值,绿; 1: 高于均值,红；2：蓝
       if (amp < meanAmp) {
         typeAmp = 0;
         saliAmp = (meanAmp - amp) / meanAmp; // (mean - 0)
