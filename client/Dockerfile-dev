@@ -2,7 +2,7 @@ FROM node:14
 WORKDIR /app
 COPY package.json /app/package.json
 EXPOSE 8080
-RUN yarn install
+RUN npm install -g pnpm webpack-dev-server
+RUN pnpm install
 COPY . .
-RUN yarn global add webpack webpack-dev-server
-CMD ["yarn", "serve"]
+CMD ["pnpm", "run", "serve"]

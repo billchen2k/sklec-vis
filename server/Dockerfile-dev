@@ -7,6 +7,7 @@ ADD ./requirements.txt /app/requirements.txt
 RUN apk add --no-cache gcc libc-dev linux-headers musl-dev
 RUN apk add python3-dev py3-numpy jpeg-dev zlib-dev g++ # For Pillow and numpy
 RUN apk add --no-cache --virtual .build-deps postgresql-dev gdal gdal-dev
+RUN pip config set global.index-url https://pypi.douban.com/simple/
 RUN pip install uwsgi
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 RUN pip uninstall gdal -y && pip install gdal
