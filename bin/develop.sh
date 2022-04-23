@@ -34,7 +34,7 @@ if [ "$1" = "--start" ]; then
   docker exec -it $(logname)-server python manage.py migrate
   docker exec -it $(logname)-server python manage.py collectstatic --noinput
 elif [ "$1" = "--stop" ]; then
-  if [ -$# -ne 3 ]; then
+  if [ $# -ne 2 ]; then
      usage && exit 1
   fi
   echo "Stopping develop...."

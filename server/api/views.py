@@ -15,6 +15,7 @@ from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RSKCore import RSKCore
+from api.sklec.NcfCore import NcfCoreClass
 from api.sklec.VisualQueryManager import VisualQueryManager
 
 
@@ -184,6 +185,77 @@ def token(request: HttpRequest) -> HttpResponse:
     response = JsonResponseOK({'token': token})
     response['X-CSRFToken'] = token
     return response
+
+
+class GetNcfContent(views.APIView):
+
+    @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据(仅限NCF)',
+                         query_serializer=GetNcfContentRequestSerializer,
+                         response={
+                             200: GetNcfContentResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        dimension_list = ['datetime', 'longitude', 'latitude', 'depth']
+        
+        # data_prev = dict(request.query_params) # .copy()
+        # for dimension in dimension_list:
+        #     if (dimension in data_prev.keys()):
+        #         data_prev[dimension] = data_prev[dimension][0].split(",")
+
+        #         for i in range(len(data_prev[dimension])):
+        #             data_prev[dimension][i] = int(data_prev[dimension][i])
+        validation = GetNcfContentRequestSerializer(data=request.query_params)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
+        uuid = kwargs['uuid']
+        params['uuid'] = uuid
+        try:
+            visfile = VisFile.objects.get(uuid=uuid)
+        except VisFile.DoesNotExist as e:
+            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
+        channel_label = params['channel_label']
+        channel_label_exists = 0
+        for dimension in visfile.meta_data['variables']:
+            if (channel_label == dimension['variable_name']):
+                channel_label_exists = 1
+        if (not channel_label_exists):
+            return JsonResponseError(f'Channel label with label {channel_label} does not exist.')
+
+        for dimension in visfile.meta_data['dimensions']:
+            name = dimension['dimension_name']
+            length = dimension['dimension_length']
+            typ = dimension['dimension_type']
+            for dim in dimension_list:
+                if (dim == typ):
+                    if (params[dim + '_start'] == -1):
+                        params[dim + '_start'] = 0
+                    if (params[dim + '_end'] == -1):
+                        params[dim + '_end'] = length - 1
+                    
+                    if params[dim + '_start'] > params[dim + '_end']:
+                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
+                    if params[dim + '_start'] < 0:
+                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is out of range.')
+                    if params[dim + '_end'] > length - 1:
+                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
+                    break
+                # # dim不存在ncf文件中 置为0 便于后续处理
+                # if (params[dim + '_start'] != -1 or params[dim + '_end'] != -1):
+
+                # if (params[dim + '_start'] == -1):
+                #     params[dim + '_start'] = 0
+                # if (params[dim + '_end'] == -1):
+                #     params[dim + '_end'] = 0
+
+        core = NcfCoreClass(visfile.file.path)
+        file_meta_list = core.get_channel_data_split(params)
+        return JsonResponseOK(data={
+            'file_meta_list':file_meta_list
+        })
+
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({
