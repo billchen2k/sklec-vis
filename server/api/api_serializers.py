@@ -89,3 +89,35 @@ class PostVQDataStreamResponseSerializer(SuccessResponseSerializer):
             ref_name = 'VQDataStreamResponseData'
 
     data = DataSerializer()
+
+class GetNcfContentRequestSerializer(serializers.Serializer):
+
+    # class IntegerListField(serializers.ListField):
+    #     child = serializers.CharField()
+    datetime_start = serializers.IntegerField(required=False, default=-1, help_text="时间起点下标，-1表示无限制")
+    datetime_end = serializers.IntegerField(required=False, default=-1, help_text="时间终点下标，-1表示无限制")
+    # datetime = IntegerListField(required=False, help_text="长度为2的列表，表示时间两端的下标，用-1表示某端无限制，可留空")
+    longitude_start = serializers.IntegerField(required=False, default=-1, help_text="经度起点下标，-1表示无限制")
+    longitude_end = serializers.IntegerField(required=False, default=-1, help_text="经度终点下标，-1表示无限制")
+
+    latitude_start = serializers.IntegerField(required=False, default=-1, help_text="纬度起点下标，-1表示无限制")
+    latitude_end = serializers.IntegerField(required=False, default=-1, help_text="纬度终点下标，-1表示无限制")
+
+    depth_start = serializers.IntegerField(required=False, default=-1, help_text="深度起点下标，-1表示无限制")
+    depth_end = serializers.IntegerField(required=False, default=-1, help_text="深度终点下标，-1表示无限制")
+
+    filesize_limit = serializers.IntegerField(required=False, help_text="生成的每个 tiff 文件大小限制。")
+    filenum_limit = serializers.IntegerField(required=False, help_text="生成 tiff 文件的数量限制。")
+    return_type = serializers.CharField(required=False, help_text="留空则默认为tiff。")
+    channel_label = serializers.CharField(help_text="表示所请求的channel，应与dataset.variables.variable_name一致")
+
+
+class GetNcfContentResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+        tiff_path = serializers.CharField(required=False)
+
+        class Meta:
+            ref_name = 'NcfContentResponseData'
+
+    data = DataSerializer()
