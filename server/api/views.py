@@ -2,12 +2,14 @@ import datetime
 import json
 import traceback
 from json import JSONDecodeError
+from typing import Dict, List
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg.utils import swagger_auto_schema
+from requests import delete
 from rest_framework import status, generics
 from rest_framework import views
 
@@ -55,9 +57,9 @@ class DataContent(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
-class GetVisContent(views.APIView):
+class GetRskContent(views.APIView):
 
-    @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据',
+    @swagger_auto_schema(operation_description='从指定 RSK VisFile 中获取指定 Channel 的数据',
                          query_serializer=GetVisContentRequestSerializer,
                          responses={
                              200: GetVisContentResponseSerializer,
@@ -198,7 +200,7 @@ class GetNcfContent(views.APIView):
                          })
     def get(self, request, *args, **kwargs):
         dimension_list = ['datetime', 'longitude', 'latitude', 'depth']
-        
+
         # data_prev = dict(request.query_params) # .copy()
         # for dimension in dimension_list:
         #     if (dimension in data_prev.keys()):
@@ -234,7 +236,7 @@ class GetNcfContent(views.APIView):
                         params[dim + '_start'] = 0
                     if (params[dim + '_end'] == -1):
                         params[dim + '_end'] = length - 1
-                    
+
                     if params[dim + '_start'] > params[dim + '_end']:
                         return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
                     if params[dim + '_start'] < 0:
@@ -251,9 +253,14 @@ class GetNcfContent(views.APIView):
                 #     params[dim + '_end'] = 0
 
         core = NcfCoreClass(visfile.file.path)
-        file_meta_list = core.get_channel_data_split(params)
+        file_meta_list: List[Dict] = core.get_channel_data_split(params)
+        files = []
+        for f in file_meta_list:
+            url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
+            f['file'] = request.build_absolute_uri(url)
+            del f['filepath']
         return JsonResponseOK(data={
-            'file_meta_list':file_meta_list
+            'files': file_meta_list
         })
 
 

@@ -1,9 +1,12 @@
 /**
  * Raster controller.
  */
-import * as React from 'react';
-import {useEffect} from 'react';
-import d3 from 'd3';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
+import DataMetaTable from '@/components/containers/DataMetaTable';
+import {readableFileSize} from '@/lib/utils';
+import {IRasterState, siteSlice} from '@/store/siteSlice';
+import {IRasterForRendering, IVisFile} from '@/types';
+import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -19,18 +22,13 @@ import {
   Typography,
 } from '@mui/material';
 import chroma from 'chroma-js';
-import {IRasterState, siteSlice} from '@/store/siteSlice';
-import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
-import {IVisFile} from '@/types';
-import range from 'lodash/range';
 import debounce from 'lodash/debounce';
-import {useAppDispatch, useAppSelector} from '@/app/hooks';
-import {uiSlice} from '@/store/uiSlice';
-import DataMetaTable from '@/components/containers/DataMetaTable';
-import {readableFileSize} from '@/lib/utils';
+import range from 'lodash/range';
+import * as React from 'react';
+import {useEffect} from 'react';
 
 export interface IRasterControlProps {
-  rasterFiles: IVisFile[];
+  rasterFiles: IVisFile[]; // only file field will be used
   onRasterChange?: (raster: IVisFile) => any;
 }
 
@@ -107,9 +105,14 @@ const RasterControl = (props: IRasterControlProps) => {
 
   const f = props.rasterFiles[currentRaster];
 
-  const metaToShow = {...f.meta_data};
-  metaToShow['Date'] = (new Date(f.datetime_start)).toISOString().split('T')[0];
-  metaToShow['File Size'] = readableFileSize(f.file_size);
+  const metaToShow = {...(f.meta_data || {})};
+  if (f.datetime_start) {
+    metaToShow['Date'] = (new Date(f.datetime_start)).toISOString().split('T')[0];
+  }
+  if (f.file_size) {
+    metaToShow['File Size'] = readableFileSize(f.file_size);
+  }
+
 
   const scaleColors = chroma.scale(rasterConfig.colorScale).colors(9);
   const colorScaleColors = scaleColors.map((c) => chroma(c).css());

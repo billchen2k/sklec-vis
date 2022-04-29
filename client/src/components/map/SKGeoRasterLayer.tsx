@@ -40,16 +40,17 @@ const SKGeoRasterLayer = (props: IGeoRasterLayerProps) : any => {
       });
       const min = rasterMin || 0.06;
       const max = rasterMax || 0.15;
-      // const min = georaster.mins[0]
+      // const min = georaster.mins[0];
       // const max = georaster.maxs[0];
       console.log(georaster);
       const scale = chroma.scale(colorScale || 'RdYlGn').domain(invertColorScale? [max, min] : [min, max]);
       layer = new GeoRasterLayer({
         georaster: georaster,
+        debugLevel: 1,
         opacity: opacity || 0.75,
         resolution: resolution || 2 ** 8,
         pixelValuesToColorFn: (pixelValues: any) => {
-          if (isNaN(pixelValues[0]) || pixelValues[0] == georaster.noDataValue) {
+          if (isNaN(pixelValues[0]) || pixelValues[0] == georaster.noDataValue || pixelValues[0] > 9e36) {
             return null;
           }
           let color = undefined;

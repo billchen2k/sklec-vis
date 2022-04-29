@@ -14,6 +14,7 @@ import {endpoints} from '@/config/endpoints';
 import {IDataset} from '@/types';
 import RasterControl from '@/components/charts/RasterControl';
 import VisualQueryResult from '@/components/charts/VisualQueryResult';
+import {NCFViewer} from '@/components/containers/NCFViewer';
 
 export interface IVisualizerProps {
 }
@@ -159,6 +160,11 @@ const DataViewer = (props: IVisualizerProps) => {
           <RasterControl rasterFiles={data.vis_files} />
         </LayerBox>,
         <VisualQueryResult key={'vqresult'} />,
+      ];
+    } else if (data && data.dataset_type == 'NCF') {
+      console.log(`NCF data ${data.uuid}.`);
+      viewerContent = [
+        <NCFViewer key={'ncf-viewer'} visfile={data['vis_files'][0]} />,
       ];
     }
   }

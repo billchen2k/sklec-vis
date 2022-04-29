@@ -11,6 +11,7 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "sourceMap": true,
+    "preserveSymlinks": true,
     "paths": {
       "@/*": ["./src/*"],
       "@dataset/*": ["./src/dataset/*"],
