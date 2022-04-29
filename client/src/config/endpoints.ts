@@ -47,4 +47,13 @@ export const endpoints = {
       },
     };
   },
+  getNcfContent(uuid: string, channel_label: string): AxiosRequestConfig<any> {
+    return {
+      url: `${API_ROOT}/ncfcontent/${uuid}/`,
+      method: 'GET',
+      params: {
+        uuid, channel_label,
+      },
+    };
+  },
 };

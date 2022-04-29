@@ -48,7 +48,7 @@ specifiers:
   georaster: ^1.5.6
   georaster-layer-for-leaflet: ^3.5.0
   html-webpack-plugin: ^5.5.0
-  leaflet: ^1.7.1
+  leaflet: ^1.8.0
   leaflet-panel-layers: ^1.2.7
   leaflet-pather: ^0.1.17
   leaflet-toolbar: ^0.4.0-alpha.2
@@ -87,7 +87,7 @@ dependencies:
   '@mui/icons-material': 5.6.1_25e636fb2ac22ab07a37211d40c6a5a4
   '@mui/material': 5.6.1_1a397cabda4e9f6398e9deafd8c60d27
   '@mui/styled-engine-sc': 5.6.1_styled-components@5.3.5
-  '@react-leaflet/core': 1.1.1_91fa1427a3331e02931dfea77720a290
+  '@react-leaflet/core': 1.1.1_f2bc606f83c617542d0a54cd51b317f0
   '@reduxjs/toolkit': 1.8.1_react-redux@7.2.8+react@17.0.2
   '@testing-library/jest-dom': 5.16.4
   '@testing-library/react': 11.2.7_react-dom@17.0.2+react@17.0.2
@@ -99,17 +99,17 @@ dependencies:
   d3: 7.4.4
   flat: 5.0.2
   georaster: 1.5.6_typescript@4.6.3+webpack@5.72.0
-  georaster-layer-for-leaflet: 3.7.1_georaster@1.5.6+leaflet@1.7.1
-  leaflet: 1.7.1
+  georaster-layer-for-leaflet: 3.7.1_georaster@1.5.6+leaflet@1.8.0
+  leaflet: 1.8.0
   leaflet-panel-layers: 1.2.7
   leaflet-pather: 0.1.17
-  leaflet-toolbar: 0.4.0-alpha.2_leaflet@1.7.1
+  leaflet-toolbar: 0.4.0-alpha.2_leaflet@1.8.0
   lodash: 4.17.21
   ml-savitzky-golay: 5.0.0
   plotly.js: 2.11.1
   react: 17.0.2
   react-dom: 17.0.2_react@17.0.2
-  react-leaflet: 3.2.5_91fa1427a3331e02931dfea77720a290
+  react-leaflet: 3.2.5_f2bc606f83c617542d0a54cd51b317f0
   react-plotly.js: 2.5.1_plotly.js@2.11.1+react@17.0.2
   react-redux: 7.2.8_react-dom@17.0.2+react@17.0.2
   react-router-dom: 6.3.0_react-dom@17.0.2+react@17.0.2
@@ -2392,14 +2392,14 @@ packages:
     resolution: {integrity: sha512-9X2obfABZuDVLCgPK9aX0a/x4jaOEweTTWE2+9sr0Qqqevj2Uv5XorvusThmc9XGYpS9yI+fhh8RTafBtGposw==}
     dev: false
 
-  /@react-leaflet/core/1.1.1_91fa1427a3331e02931dfea77720a290:
+  /@react-leaflet/core/1.1.1_f2bc606f83c617542d0a54cd51b317f0:
     resolution: {integrity: sha512-7PGLWa9MZ5x/cWy8EH2VzI4T8q5WpuHbixzCDXqixP/WyqwIrg5NDUPgYuFnB4IEIZF+6nA265mYzswFo/h1Pw==}
     peerDependencies:
       leaflet: ^1.7.1
       react: ^17.0.1
       react-dom: ^17.0.1
     dependencies:
-      leaflet: 1.7.1
+      leaflet: 1.8.0
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
     dev: false
@@ -8355,7 +8355,7 @@ packages:
     resolution: {integrity: sha512-EvGQQi/zPrDA6zr6BnJD/YhwAkBP8nnJ9emh3EnHQKVMfg/MRVtPbMYdgVy/IaEmn4UfagD2a6fafPDL5hbtwg==}
     dev: false
 
-  /georaster-layer-for-leaflet/3.7.1_georaster@1.5.6+leaflet@1.7.1:
+  /georaster-layer-for-leaflet/3.7.1_georaster@1.5.6+leaflet@1.8.0:
     resolution: {integrity: sha512-tutIgcvnSbITN7Cku139JbaFAW6DcHZ0o+KYeiWI1VonYUbHLvTLEWoZElpCQ7l9NXdwEhy86CdWXa7kPy2XGw==}
     peerDependencies:
       georaster: '*'
@@ -8364,7 +8364,7 @@ packages:
       chroma-js: 1.4.1
       geo-extent: 0.7.0
       georaster: 1.5.6_typescript@4.6.3+webpack@5.72.0
-      leaflet: 1.7.1
+      leaflet: 1.8.0
       proj4-fully-loaded: 0.0.4
       regenerator-runtime: 0.13.9
       snap-bbox: 0.2.0
@@ -10910,20 +10910,20 @@ packages:
     resolution: {integrity: sha1-T3AD1X+O0T+gIrh4Sfo8XxrK6sI=}
     dev: false
 
-  /leaflet-toolbar/0.4.0-alpha.2_leaflet@1.7.1:
+  /leaflet-toolbar/0.4.0-alpha.2_leaflet@1.8.0:
     resolution: {integrity: sha512-g1KeU3DYGUOwXTS0vKIgJ8KgY0h/2B0qENNQUSYMFtSY2yzwaHWMbDyhDbk+aO8LgJ1iOX4fUt2bh1sYZbpmmQ==}
     peerDependencies:
       leaflet: '*'
     dependencies:
-      leaflet: 1.7.1
+      leaflet: 1.8.0
     dev: false
 
   /leaflet/1.3.4:
     resolution: {integrity: sha512-FYL1LGFdj6v+2Ifpw+AcFIuIOqjNggfoLUwuwQv6+3sS21Za7Wvapq+LhbSE4NDXrEj6eYnW3y7LsaBICpyXtw==}
     dev: false
 
-  /leaflet/1.7.1:
-    resolution: {integrity: sha512-/xwPEBidtg69Q3HlqPdU3DnrXQOvQU/CCHA1tcDQVzOwm91YMYaILjNp7L4Eaw5Z4sOYdbBz6koWyibppd8Zqw==}
+  /leaflet/1.8.0:
+    resolution: {integrity: sha512-gwhMjFCQiYs3x/Sf+d49f10ERXaEFCPr+nVTryhAW8DWbMGqJqt9G4XuIaHmFW08zYvhgdzqXGr8AlW8v8dQkA==}
     dev: false
 
   /leven/3.1.0:
@@ -14036,15 +14036,15 @@ packages:
     resolution: {integrity: sha512-yUcBYdBBbo3QiPsgYDcfQcIkGZHfxOaoE6HLSnr1sPzMhdyxusbfKOSUbSd/ocGi32dxcj366PsTj+5oggeKKw==}
     dev: false
 
-  /react-leaflet/3.2.5_91fa1427a3331e02931dfea77720a290:
+  /react-leaflet/3.2.5_f2bc606f83c617542d0a54cd51b317f0:
     resolution: {integrity: sha512-Z3KZ+4SijsRbbrt2I1a3ZDY6+V6Pm91eYTdxTN18G6IOkFRsJo1BuSPLFnyFrlF3WDjQFPEcTPkEgD1VEeAoBg==}
     peerDependencies:
       leaflet: ^1.7.1
       react: ^17.0.1
       react-dom: ^17.0.1
     dependencies:
-      '@react-leaflet/core': 1.1.1_91fa1427a3331e02931dfea77720a290
-      leaflet: 1.7.1
+      '@react-leaflet/core': 1.1.1_f2bc606f83c617542d0a54cd51b317f0
+      leaflet: 1.8.0
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
     dev: false

@@ -5,8 +5,9 @@ from sklecvis import settings
 from django.utils.translation import gettext_lazy as _
 # Create your models here.
 
-def uuid4_short():
-    return uuid.uuid4().hex[:settings.UUID_SHORT_LENGTH]
+
+def uuid4_short(length=settings.UUID_SHORT_LENGTH):
+    return uuid.uuid4().hex[:length]
 
 class SiteUser(models.Model):
 

@@ -21,6 +21,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile-dev
+    command: ./start.sh
     environment:
       DJANGO_SETTINGS_MODULE: sklecvis.settings
       DB_HOST: 172.20.5.126 # For local debugging

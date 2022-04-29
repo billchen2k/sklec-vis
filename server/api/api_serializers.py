@@ -115,7 +115,7 @@ class GetNcfContentRequestSerializer(serializers.Serializer):
 class GetNcfContentResponseSerializer(SuccessResponseSerializer):
 
     class DataSerializer(serializers.Serializer):
-        tiff_path = serializers.CharField(required=False)
+        files = serializers.ListField(required=True)
 
         class Meta:
             ref_name = 'NcfContentResponseData'

@@ -40,6 +40,12 @@ export const markerIcons = {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   }),
+  yellowCircle: new Icon({
+    iconUrl: '/img/markers/marker-yellow.png',
+    iconRetinaUrl: '/img/markers/marker-yellow@2x.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  }),
   crossSymbol: new Icon({
     iconUrl: '/img/anchor.png',
     iconRetinaUrl: '/img/anchor@2x.png',
@@ -100,6 +106,8 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
         case 'TABLE':
           icon = markerIcons.cyanCircle;
           break;
+        case 'NCF':
+          icon = markerIcons.yellowCircle;
       }
       console.log(one);
       return (
