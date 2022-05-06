@@ -124,7 +124,7 @@ class DataChannel(models.Model):
     unit_symbol = models.CharField(max_length=50, blank=True, null=True)
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
-
+    meta_data = models.JSONField(default=dict, blank = True, null = True)
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.label}'
 
