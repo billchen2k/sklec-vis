@@ -97,7 +97,7 @@ class NcfCoreClass(SKLECBaseCore):
             del_files(CACHE_FOLDER_DIR)
         label = params['channel_label']
         channel_dimensions = self.file[label].dimensions
-        data = np.array(self.file.variables[label])
+        data = np.array(self.file.variables[label]).astype(np.float64)
         datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
         datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
         i = 0
@@ -134,13 +134,17 @@ class NcfCoreClass(SKLECBaseCore):
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
         # 反转一下 否则图是反的
-        # data = np.flip(data)
+        data = np.flip(data)
+        data = np.flip(data, axis = 3)
+
 
         # 计算偏置和系数
-        add_offset = self.file.variables[label].add_offset
-        scale_factor = self.file.variables[label].scale_factor
-        data = data * scale_factor + add_offset
-
+        # add_offset = self.file.variables[label].add_offset
+        # scale_factor = self.file.variables[label].scale_factor
+        # data = data * scale_factor + add_offset
+        fill_value = self.file.variables[label]._FillValue
+        
+        
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
@@ -164,6 +168,16 @@ class NcfCoreClass(SKLECBaseCore):
                                   params['latitude_start']: params['latitude_end'] + 1,
                                   params['longitude_start']: params['longitude_end'] + 1,
                                   ]
+                tmp_data = split_data.reshape(-1)
+                fill_pos = np.where(tmp_data == fill_value)
+                processed_data = np.delete(tmp_data, fill_pos)
+                if len(processed_data) > 0:
+                    min_value = processed_data.min()
+                    max_value = processed_data.max()
+                else:
+                    min_value = 0.0
+                    max_value = 0.0
+                split_data[np.where(split_data==fill_value)] = 9.9e36
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
                 # 创建 .tif 文件
@@ -176,9 +190,9 @@ class NcfCoreClass(SKLECBaseCore):
                     params['latitude_start'], params['latitude_end'],
                     label)
                 # out_tif_name='1.tiff'
-                out_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
+                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                 out_tif = driver.Create(
-                    out_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
+                    tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
                 # print(N_Lon, N_Lat)
                 # 设置影像的显示范围
                 # -Lat_Res一定要是-的
@@ -190,18 +204,24 @@ class NcfCoreClass(SKLECBaseCore):
                 # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
                 srs.ImportFromEPSG(4326)
                 out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
-
+                
                 # 数据写出
                 # print(split_data.shape)
                 out_tif.GetRasterBand(1).WriteArray(
                     split_data)  # 将数据写入内存，此时没有写入硬盘
+                
+                # out_tif.
                 out_tif.FlushCache()  # 将数据写入硬盘
                 out_tif = None  # 注意必须关闭tif文件
 
-                self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
-                self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
-                self._exec_gdal_inplace(
-                    f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
+                
+                # ds = gdal.Open(out_tif_path)
+                out_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff' 
+                gdal.Warp(out_tif_path, tmp_tif_path, format = 'Gtiff', dstSRS = srs)
+                # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
+                # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
+                # self._exec_gdal_inplace(
+                #     f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
 
                 tiff_meta = {
                     'filepath': out_tif_path,
@@ -214,7 +234,9 @@ class NcfCoreClass(SKLECBaseCore):
                     'longitude_end': params['longitude_end'],
                     'latitude_start': params['latitude_start'],
                     'latitude_end': params['latitude_end'],
-                    'label': label
+                    'label': label,
+                    'min_value': min_value,
+                    'max_value': max_value
                 }
                 tiff_meta_list.append(tiff_meta)
         return tiff_meta_list

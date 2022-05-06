@@ -82,6 +82,7 @@ for f in files:
         var_dict = {}
         var_dict['variable_name'] = variable
         var_dict['variable_units'] = nc[variable].units
+        var_dict['variable_longname'] = nc[variable].long_name
         var_dict['variable_dimensions'] = []
         for dim in nc[variable].dimensions:
             dimension_type = ''
@@ -120,6 +121,11 @@ for f in files:
     channels = []
     for c in nc.variables.keys():
         channel = nc[c]
+        # if c in nc.dimensions.keys():
+        #     channel_meta['type'] = 'dimension'
+        # elif c in nc.variables.keys():
+        #     channel_meta['type'] = 'variable'
+        channel_meta = {}
         datachannel = DataChannel(visfile=visfile,
                                   name=channel.long_name,
                                   label=c,
@@ -127,6 +133,7 @@ for f in files:
                                   # datetime_start=startdate[0],
                                   # datetime_end=enddate[0],
                                   shape=str(channel.shape),
+                                  meta_data = channel_meta
                                   )
         channels.append(datachannel)
         datachannel.save()
