@@ -46,7 +46,6 @@ const Base = (props: IBaseProps) => {
            width: config.appearance.sideBarWidth,
            height: '100vh',
            overflowY: 'scroll',
-           paddingBottom: '3rem',
          }} />
         }
         <Box component={'main'}

@@ -5,7 +5,7 @@ import demoData from '@/lib/demoData';
 import {siteSlice} from '@/store/siteSlice';
 import {INCFVariable} from '@/types/ncf.type';
 import {ArrowBack} from '@mui/icons-material';
-import {Box, Card, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, Stack, SxProps, Typography} from '@mui/material';
+import {Box, Card, FormControl, IconButton, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, SxProps, Typography} from '@mui/material';
 import * as React from 'react';
 import {useNavigate} from 'react-router-dom';
 
@@ -23,7 +23,7 @@ const Sidebar = (props: ISidebarProps) => {
     navigate('/');
   };
 
-  const handleChangeSelectedVisFile = (e: React.ChangeEvent<number>) => {
+  const handleChangeSelectedVisFile = (e: SelectChangeEvent<number>) => {
     dispatch(siteSlice.actions.setInspectingState({
       selectedVisFile: e.target.value,
     }));
@@ -42,7 +42,7 @@ const Sidebar = (props: ISidebarProps) => {
   if (datasetDetailCache && datasetDetailCache.dataset_type == 'NCF') {
     const channels: INCFVariable[] = datasetDetailCache.vis_files[selectedVisFile].meta_data.variables || [];
     channelSelectContent = (<Box sx={{mt: 1}}>
-      <Typography variant={'body2'}>Select Data Channel:</Typography>
+      <Typography variant={'body2'} sx={{pb: 1}}>Data Channels:</Typography>
       <Card variant={'outlined'}>
         <List sx={{width: '100%'}} dense>
           {channels.map((one, index) => {
@@ -122,6 +122,7 @@ const Sidebar = (props: ISidebarProps) => {
   return (
     <Box sx={props.sx} id={'container-sidebar'}>
       {sidebarContent}
+      <Box sx={{height: '4rem'}}></Box>
     </Box>
   );
 };

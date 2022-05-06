@@ -18,7 +18,6 @@ export interface IGroupingResult {
     ungrouped: string[];
 };
 
-
 export type IFileFormat = 'tiff' | 'ncf' | 'rsk' | 'csv' | 'other';
 export interface IVisFile {
   data_channels: any[];
@@ -61,4 +60,9 @@ export interface IDataset {
   raw_files?: any[];
   meta_data: any;
   uuid: string;
+}
+
+export interface Mark {
+  value: number;
+  label?: React.ReactNode;
 }

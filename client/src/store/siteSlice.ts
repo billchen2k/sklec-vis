@@ -49,7 +49,10 @@ const initState: ISiteState = {
       rasterMin: 0.08,
     },
   },
-  inspectState: {},
+  inspectState: {
+    selectedVisFile: 0,
+    selectedChannel: -1,
+  },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
 };
