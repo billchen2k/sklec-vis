@@ -100,6 +100,7 @@ export const siteSlice = createSlice({
       state.currentData = initState.currentData;
       state.currentType = initState.currentType;
       state.rasterState = initState.rasterState;
+      state.inspectState = initState.inspectState;
     },
     setInspectingState: (state, action: PayloadAction<Partial<IInspectState>>) => {
       state.inspectState = {

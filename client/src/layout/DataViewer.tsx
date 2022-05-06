@@ -168,7 +168,7 @@ const DataViewer = (props: IVisualizerProps) => {
     } else if (data && data.dataset_type == 'NCF') {
       console.log(`NCF data ${data.uuid}.`);
       viewerContent = [
-        <NCFViewer key={'ncf-viewer'} visfile={data['vis_files'][0]} />,
+        <NCFViewer key={'ncf-viewer'} data={data}/>,
       ];
     }
   }

@@ -23,7 +23,7 @@ const Sidebar = (props: ISidebarProps) => {
     navigate('/');
   };
 
-  const handleChangeSelectedVisFile = (e: React.ChangeEvent) => {
+  const handleChangeSelectedVisFile = (e: React.ChangeEvent<number>) => {
     dispatch(siteSlice.actions.setInspectingState({
       selectedVisFile: e.target.value,
     }));
@@ -53,7 +53,7 @@ const Sidebar = (props: ISidebarProps) => {
               >
                 <ListItemText
                   primary={index == selectedChannel ? <b>{one.variable_name}</b> : one.variable_name}
-                  secondary={`Unit: ${one.variable_units}`}
+                  secondary={`Unit: ${one.variable_units}; Full name: ${one.variable_longname}`}
                 />
               </ListItemButton>
             );

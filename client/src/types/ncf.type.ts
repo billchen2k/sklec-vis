@@ -11,4 +11,5 @@ export interface INCFVariable {
     variable_dimensions: string[];
     variable_name: string;
     variable_units: string;
+    variable_longname: string;
 }
