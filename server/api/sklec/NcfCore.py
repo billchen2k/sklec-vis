@@ -143,8 +143,8 @@ class NcfCoreClass(SKLECBaseCore):
         # scale_factor = self.file.variables[label].scale_factor
         # data = data * scale_factor + add_offset
         fill_value = self.file.variables[label]._FillValue
-        
-        
+
+
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
@@ -199,14 +199,14 @@ class NcfCoreClass(SKLECBaseCore):
                 out_tif.SetGeoTransform(geotransform)
 
                 # 获取地理坐标系统信息，用于选取需要的地理坐标系统
-                
+
                 # out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
-                
+
                 # 数据写出
                 # print(split_data.shape)
                 out_tif.GetRasterBand(1).WriteArray(
                     split_data)  # 将数据写入内存，此时没有写入硬盘
-                
+
                 # out_tif.
                 out_tif.FlushCache()  # 将数据写入硬盘
                 out_tif = None  # 注意必须关闭tif文件
@@ -215,7 +215,7 @@ class NcfCoreClass(SKLECBaseCore):
                 # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
                 srs.ImportFromEPSG(4326)
                 # ds = gdal.Open(out_tif_path)
-                out_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff' 
+                out_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
                 gdal.Warp(out_tif_path, tmp_tif_path, format = 'Gtiff')
                 # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
                 # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * RT = Raster files
  * NCF = NetCDF files

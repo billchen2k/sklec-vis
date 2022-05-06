@@ -1,20 +1,21 @@
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {endpoints} from '@/config/endpoints';
 import LayerBox from '@/layout/LayerBox';
 import {uiSlice} from '@/store/uiSlice';
-import {IRasterForRendering, IVisFile} from '@/types';
+import {IDataset, IVisFile} from '@/types';
 import {Box} from '@mui/material';
 import useAxios from 'axios-hooks';
 import * as React from 'react';
 import RasterControl from '../charts/RasterControl';
 
 export interface INCFViewerProps {
-    visfile: IVisFile;
+    data: IDataset
 }
 
 export function NCFViewer(props: INCFViewerProps) {
   const dispatch = useAppDispatch();
-  const [{data, loading, error}] = useAxios(endpoints.getNcfContent(props.visfile.uuid, 'pspr0'));
+  const {selectedVisFile, selectedChannel} = useAppSelector((state) => state.site.inspectState);
+  const [{data, loading, error}] = useAxios(endpoints.getNcfContent(props.data.vis_files[selectedVisFile].uuid, 'salinity'));
 
   if (loading) {
     return <Box>Loading...</Box>;

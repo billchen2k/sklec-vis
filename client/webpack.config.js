@@ -18,7 +18,7 @@ const config = {
   },
   devServer: {
     historyApiFallback: true,
-    compress: true,
+    compress: false,
     open: false,
     port: 8080,
     allowedHosts: 'all',

@@ -5,7 +5,7 @@ import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
 import {readableFileSize} from '@/lib/utils';
 import {IRasterState, siteSlice} from '@/store/siteSlice';
-import {IRasterForRendering, IVisFile} from '@/types';
+import {IVisFile} from '@/types';
 import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
@@ -94,7 +94,7 @@ const RasterControl = (props: IRasterControlProps) => {
     const handleVisualQueryCleared = () => {
       dispatch(siteSlice.actions.setRasterVisualQuery([]));
     };
-    window.addEventListener('visual-query-cleared', handleVisualQueryCleared);
+    // window.addEventListener('visual-query-cleared', handleVisualQueryCleared);
     window.addEventListener('visual-query-created', handleVisualQueryCreated);
     return () => {
       window.removeEventListener('visual-query-created', handleVisualQueryCreated);
@@ -159,7 +159,7 @@ const RasterControl = (props: IRasterControlProps) => {
           <Grid item xs={7}>
             <DataMetaTable meta={metaToShow}/>
 
-            <Grid container maxWidth={'20rem'}>
+            <Grid container maxWidth={'24rem'}>
               <Grid item xs={5} sx={{p: 1}}>
                 {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Range'].map((one, i) => {
                   return (

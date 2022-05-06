@@ -45,6 +45,8 @@ elif [ "$1" = "--migrate" ]; then
   docker exec -it $(logname)-server python manage.py makemigrations
   docker exec -it $(logname)-server python manage.py migrate
   docker exec -it $(logname)-server python manage.py collectstatic --noinput
+elif [ "$1" = "--logs" ]; then
+  docker-compose -f docker-compose.dev.yml logs -f --tail=100
 else
   usage && exit 1
 fi
