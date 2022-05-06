@@ -134,8 +134,8 @@ class NcfCoreClass(SKLECBaseCore):
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
         # 反转一下 否则图是反的
-        data = np.flip(data)
-        data = np.flip(data, axis = 3)
+        data = np.flip(data, axis = 2)
+        # data = np.flip(data, axis = 3)
 
 
         # 计算偏置和系数
@@ -148,8 +148,8 @@ class NcfCoreClass(SKLECBaseCore):
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
-        # print(Lon)
-        # print(Lat)
+        print(Lon)
+        print(Lat)
         # 影像的左上角和右下角坐标
         LonMin, LatMax, LonMax, LatMin = [
             Lon.min(), Lat.max(), Lon.max(), Lat.min()]
@@ -182,28 +182,25 @@ class NcfCoreClass(SKLECBaseCore):
                 # print(split_data.shape)
                 # 创建 .tif 文件
                 driver = gdal.GetDriverByName('GTiff')
-                out_tif_name = "uuid={}_datetime={}_depth={}_longitude={}_{}_latitude={}_{}_label={}.tiff".format(
+                out_tif_name = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}.tiff".format(
                     params['uuid'],
                     datetime,
                     depth,
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
-                # out_tif_name='1.tiff'
                 tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                 out_tif = driver.Create(
                     tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
                 # print(N_Lon, N_Lat)
                 # 设置影像的显示范围
                 # -Lat_Res一定要是-的
-                geotransform = (LonMax, -Lon_Res, 0, LatMin, 0, Lat_Res)
+                geotransform = (LonMax, Lon_Res, 0, LatMin, 0, -Lat_Res)
                 out_tif.SetGeoTransform(geotransform)
 
                 # 获取地理坐标系统信息，用于选取需要的地理坐标系统
-                srs = osr.SpatialReference()
-                # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
-                srs.ImportFromEPSG(4326)
-                out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
+                
+                # out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
                 
                 # 数据写出
                 # print(split_data.shape)
@@ -214,10 +211,12 @@ class NcfCoreClass(SKLECBaseCore):
                 out_tif.FlushCache()  # 将数据写入硬盘
                 out_tif = None  # 注意必须关闭tif文件
 
-                
+                srs = osr.SpatialReference()
+                # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
+                srs.ImportFromEPSG(4326)
                 # ds = gdal.Open(out_tif_path)
                 out_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff' 
-                gdal.Warp(out_tif_path, tmp_tif_path, format = 'Gtiff', dstSRS = srs)
+                gdal.Warp(out_tif_path, tmp_tif_path, format = 'Gtiff')
                 # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
                 # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
                 # self._exec_gdal_inplace(
