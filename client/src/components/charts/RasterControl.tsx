@@ -5,7 +5,7 @@ import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
 import {readableFileSize} from '@/lib/utils';
 import {IRasterState, siteSlice} from '@/store/siteSlice';
-import {IVisFile} from '@/types';
+import {INCFContentFile, IVisFile} from '@/types';
 import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
@@ -28,8 +28,8 @@ import * as React from 'react';
 import {useEffect} from 'react';
 
 export interface IRasterControlProps {
-  rasterFiles: IVisFile[]; // only file field will be used
-  onRasterChange?: (raster: IVisFile) => any;
+  rasterFiles: (INCFContentFile)[]; // only file field will be used
+  onRasterChange?: (raster: INCFContentFile) => any;
 }
 
 const RasterControl = (props: IRasterControlProps) => {
@@ -37,6 +37,7 @@ const RasterControl = (props: IRasterControlProps) => {
   const {rasterState} = useAppSelector((state) => state.site);
   const [currentRaster, setCurrentRaster] = React.useState(0);
   const [rasterConfig, setRasterConfig] = React.useState(rasterState.config);
+  const [defaultRasterRange, setDefaultRasterRange] = React.useState([0.08, 0.15]);
 
   const colorScaleOptions = ['Spectral', 'Viridis', 'RdYlGn', 'BrBG', 'PiYG', 'PrGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu'];
 
@@ -48,6 +49,15 @@ const RasterControl = (props: IRasterControlProps) => {
         rasterLink: rasters[i],
         open: true,
       }));
+      if (props.rasterFiles[i].max_value) {
+        const minVal = props.rasterFiles[i].min_value;
+        const maxVal = props.rasterFiles[i].max_value;
+        handleRasterConfigChange({
+          rasterMin: minVal,
+          rasterMax: maxVal,
+        });
+        setDefaultRasterRange(minVal, maxVal);
+      }
     }
     setCurrentRaster(i);
     if (props.onRasterChange) {
@@ -82,7 +92,6 @@ const RasterControl = (props: IRasterControlProps) => {
     const newConfig = {...rasterConfig, ...properties};
     debouncedRasterConfigDispatch(properties);
     setRasterConfig(newConfig);
-    ;
   };
 
   useEffect(() => {
@@ -166,8 +175,8 @@ const RasterControl = (props: IRasterControlProps) => {
                     <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>
                       {one === 'Value Range' && <IconButton onClick={() => {
                         handleRasterConfigChange({
-                          rasterMin: 0.08,
-                          rasterMax: 0.15,
+                          rasterMin: defaultRasterRange[0],
+                          rasterMax: defaultRasterRange[1],
                         });
                         // handleRasterConfigChange('rasterMax', '0.15');
                       }} size={'small'}>

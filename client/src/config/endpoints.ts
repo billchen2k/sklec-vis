@@ -3,6 +3,12 @@ import {IResponse, IVQDataStreamResData} from '@/types/api';
 
 const API_ROOT = '/api';
 
+type NCFContentRangeParams = 'datetime_start' | 'datetime_end' |
+  'longitude_start' | 'longitude_end' |
+  'latitude_start' | 'latitude_end' |
+  'depth_start' | 'depth_end' |
+  'filesize_limit' | 'filenum_limit' | 'return_type';
+
 export const endpoints = {
   getDatasetList: (): AxiosRequestConfig<any> => {
     return {
@@ -47,12 +53,14 @@ export const endpoints = {
       },
     };
   },
-  getNcfContent(uuid: string, channel_label: string): AxiosRequestConfig<any> {
+  getNcfContent(uuid: string, channel_label: string,
+      xparams?: Partial<Record<NCFContentRangeParams, string | number>>): AxiosRequestConfig<any> {
     return {
       url: `${API_ROOT}/ncfcontent/${uuid}/`,
       method: 'GET',
       params: {
         uuid, channel_label,
+        ...xparams,
       },
     };
   },

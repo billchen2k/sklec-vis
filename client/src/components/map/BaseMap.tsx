@@ -10,6 +10,7 @@ import config from '@/config';
 import {FilePresent} from '@mui/icons-material';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {LayerGroup, LayersControl, MapContainer, TileLayer} from 'react-leaflet';
+import {MapEvents} from './MapEvents';
 
 export interface IMapProps {
   children?: any;
@@ -68,13 +69,20 @@ const BaseMap = (props: IMapProps) => {
 
         <DatasetMarkers />
         <MapToolbar />
+        <MapEvents />
+
         <LayerGroup>
           {rasterState &&
           <SKGeoRasterLayer/>
           }
         </LayerGroup>
-      </LayersControl>
 
+        {/* <LayersControl.Overlay name={'Detail Content'} checked={true}>
+          <LayerGroup>
+            {props.children}
+          </LayerGroup>
+        </LayersControl.Overlay> */}
+      </LayersControl>
     </MapContainer>
   );
 };

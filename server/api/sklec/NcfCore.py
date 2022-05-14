@@ -6,6 +6,7 @@ from osgeo import gdal, osr
 from sklecvis import settings
 import subprocess
 
+
 def get_doc_real_size(p_doc):
     size = 0.0
     for root, dirs, files in os.walk(p_doc):
@@ -89,7 +90,6 @@ class NcfCoreClass(SKLECBaseCore):
         os.remove(file)
         os.rename(f'{file}.tmp.tiff', file)
 
-
     def get_channel_data_split(self, params):
         doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
         # 文件夹超过100MB 清空
@@ -134,16 +134,14 @@ class NcfCoreClass(SKLECBaseCore):
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
         # 反转一下 否则图是反的
-        data = np.flip(data, axis = 2)
+        data = np.flip(data, axis=2)
         # data = np.flip(data, axis = 3)
-
 
         # 计算偏置和系数
         # add_offset = self.file.variables[label].add_offset
         # scale_factor = self.file.variables[label].scale_factor
         # data = data * scale_factor + add_offset
         fill_value = self.file.variables[label]._FillValue
-
 
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
@@ -177,7 +175,7 @@ class NcfCoreClass(SKLECBaseCore):
                 else:
                     min_value = 0.0
                     max_value = 0.0
-                split_data[np.where(split_data==fill_value)] = 9.9e36
+                split_data[np.where(split_data == fill_value)] = 9.9e36
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
                 # 创建 .tif 文件
@@ -195,12 +193,15 @@ class NcfCoreClass(SKLECBaseCore):
                 # print(N_Lon, N_Lat)
                 # 设置影像的显示范围
                 # -Lat_Res一定要是-的
-                geotransform = (LonMax, Lon_Res, 0, LatMin, 0, -Lat_Res)
+                # geotransform = (LonMax, Lon_Res, 0, LatMin, 0, -Lat_Res)
+                geotransform = (LonMin, Lon_Res, 0, LatMax, 0, -Lat_Res)
                 out_tif.SetGeoTransform(geotransform)
 
                 # 获取地理坐标系统信息，用于选取需要的地理坐标系统
-
-                # out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
+                srs = osr.SpatialReference()
+                # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
+                srs.ImportFromEPSG(4326)
+                out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
 
                 # 数据写出
                 # print(split_data.shape)
@@ -211,20 +212,28 @@ class NcfCoreClass(SKLECBaseCore):
                 out_tif.FlushCache()  # 将数据写入硬盘
                 out_tif = None  # 注意必须关闭tif文件
 
-                srs = osr.SpatialReference()
-                # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
-                srs.ImportFromEPSG(4326)
+
                 # ds = gdal.Open(out_tif_path)
-                out_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
-                gdal.Warp(out_tif_path, tmp_tif_path, format = 'Gtiff')
+                warp_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
+                warp_options = gdal.WarpOptions(format='Gtiff',
+                                                srcSRS=srs.ExportToWkt(),
+                                                )
+                gdal.Warp(warp_tif_path, tmp_tif_path, format='Gtiff', options=warp_options)
+                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+                translate_options = gdal.TranslateOptions(format='GTiff',
+                                                          creationOptions=[
+                                                              'TILED=YES', 'COMPRESS=LZW']
+                                                          )
+                gdal.Translate(translate_tif_path, warp_tif_path,
+                               options=translate_options)
                 # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
                 # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
                 # self._exec_gdal_inplace(
                 #     f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
 
                 tiff_meta = {
-                    'filepath': out_tif_path,
-                    'file_size': os.path.getsize(out_tif_path),
+                    'filepath': translate_tif_path,
+                    'file_size': os.path.getsize(translate_tif_path),
                     'file_name': out_tif_name,
                     'datetime': datetime,
                     'datetime_start': datetime,

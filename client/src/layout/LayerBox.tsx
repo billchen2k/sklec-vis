@@ -2,6 +2,7 @@ import * as React from 'react';
 import {Box, IconButton} from '@mui/material';
 import {Fullscreen, FullscreenExit} from '@mui/icons-material';
 import {useState} from 'react';
+import {DomEvent, DomUtil} from 'leaflet';
 
 export interface IBoyLayerProps {
   mode: 'inset' | 'full' | 'rb' | 'lb' | 'rt';
@@ -21,7 +22,7 @@ const LayerBox = (props: IBoyLayerProps) => {
   const childClassName = minimize ? 'layer-content-minimize': `layer-content-${props.mode}`;
 
   return (
-    <Box className={className} sx={{opacity: props.opacity || 1}}>
+    <Box className={className} sx={{opacity: props.opacity || 1}} id={'layer-box-wrapper'}>
       <Box className={childClassName}>
         {(props.allowHidden || true) &&
           <Box sx={{position: 'absolute', m: '2rem', top: '0.75rem', left: '0.75rem'}}>

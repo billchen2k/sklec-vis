@@ -39,6 +39,11 @@ export interface IVisFile {
   datetime_end: string;
 }
 
+export interface INCFContentFile extends IVisFile {
+  min_value:| number;
+  max_value:| number;
+}
+
 export interface IDataset {
   created_at: string;
   created_by: string;

@@ -36,7 +36,6 @@ const DataDetails = (props: IDataMetaInfoProps) => {
         />
       </Box>
 
-
       <Card variant={'outlined'}>
         <CardContent>
           <DataMetaTable meta={props.meta} />
