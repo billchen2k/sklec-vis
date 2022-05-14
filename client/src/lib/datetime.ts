@@ -1,7 +1,5 @@
-export interface Mark {
-    value: number;
-    label?: React.ReactNode;
-}
+import {Mark} from '@mui/base';
+
 
 /**
  * Get date between given dates, by portion.

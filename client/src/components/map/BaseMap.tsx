@@ -1,20 +1,16 @@
-import React from 'react';
-import L, {DivIcon, Icon} from 'leaflet';
 import '@mui/material';
+import L, {DivIcon} from 'leaflet';
+import React from 'react';
 
-import {MapContainer, Marker, Popup, TileLayer, LayersControl, LayerGroup} from 'react-leaflet';
-import {AttachFile, FilePresent, Folder} from '@mui/icons-material';
-import {renderToStaticMarkup} from 'react-dom/server';
-import {common} from '@mui/material/colors';
-import DataDetails from '@/components/sidebar/DataDetails';
-import config from '@/config';
-import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
 import {useAppSelector} from '@/app/hooks';
-import DataMarkerPopupContent from '@/components/map/DataMarkerPopupContent';
-import useAxios from 'axios-hooks';
 import DatasetMarkers from '@/components/map/DatasetMarkers';
-import CoordinateDisplay from '@/components/map/CoordinateDisplay';
 import MapToolbar from '@/components/map/MapToolbar';
+import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
+import config from '@/config';
+import {FilePresent} from '@mui/icons-material';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {LayerGroup, LayersControl, MapContainer, TileLayer} from 'react-leaflet';
+import {MapEvents} from './MapEvents';
 
 export interface IMapProps {
   children?: any;
@@ -46,6 +42,9 @@ const BaseMap = (props: IMapProps) => {
     ),
   });
 
+  React.useEffect(() => {
+    document.getElementsByClassName('leaflet-control-attribution')[0].style.display = 'none';
+  }, []);
 
   return (
     <MapContainer id={'map-layer'} center={defaultCenter} zoom={6}
@@ -70,13 +69,20 @@ const BaseMap = (props: IMapProps) => {
 
         <DatasetMarkers />
         <MapToolbar />
+        <MapEvents />
+
         <LayerGroup>
           {rasterState &&
           <SKGeoRasterLayer/>
           }
         </LayerGroup>
-      </LayersControl>
 
+        {/* <LayersControl.Overlay name={'Detail Content'} checked={true}>
+          <LayerGroup>
+            {props.children}
+          </LayerGroup>
+        </LayersControl.Overlay> */}
+      </LayersControl>
     </MapContainer>
   );
 };

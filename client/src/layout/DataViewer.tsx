@@ -3,7 +3,7 @@ import {Box, Button, ButtonGroup, Grid, LinearProgress, Stack, Typography} from 
 import LineChart from '@/components/charts/LineChart';
 import LayerBox from '@/layout/LayerBox';
 import {useParams} from 'react-router-dom';
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {SkipNext, SkipPrevious} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
@@ -23,11 +23,8 @@ const DataViewer = (props: IVisualizerProps) => {
   const dispatch = useAppDispatch();
   const {datasetId} = useParams();
   const [{data, loading, error}] = useAxios<IDataset>(endpoints.getDatasetDetail(datasetId));
-  const [rasterLinks, setRasterLinks] = React.useState<string[]>([]);
-  const [currentRaster, setCurrentRaster] = React.useState(0);
+  const {selectedVisFile, selectedChannel} = useAppSelector((state) => state.site.inspectState);
 
-  // Demo Rasters.
-  // const rasters = [''];
 
   let viewerContent: JSX.Element | JSX.Element[] = null;
 
@@ -51,7 +48,7 @@ const DataViewer = (props: IVisualizerProps) => {
     //     open: true,
     //   }));
     // }
-  }, [datasetId]);
+  }, [datasetId, dispatch]);
   // /// Demo Data Hooks End
 
   useEffect(() => {
@@ -69,17 +66,23 @@ const DataViewer = (props: IVisualizerProps) => {
     }
 
     if (data) {
+      console.log('Data detail:', data);
       dispatch(siteSlice.actions.setDatasetDetailCache(data));
       dispatch(siteSlice.actions.enterDataInspecting({
         dataId: data.uuid,
         datasetType: data.dataset_type,
       }));
+      if (data.vis_files.length > 0) {
+        dispatch(siteSlice.actions.setInspectingState({
+          selectedVisFile: 0,
+          selectedChannel: -1,
+        }));
+      }
     }
-  }, [loading, error]);
+  }, [data, datasetId, dispatch, loading, error]);
 
   if (Object.keys(demoData).includes(datasetId)) {
     // Demo DATA
-
     switch (parseInt(datasetId)) {
       case 1:
         viewerContent = (
@@ -134,7 +137,8 @@ const DataViewer = (props: IVisualizerProps) => {
   } else {
     // Real Data
 
-    if (data && data['uuid'] == 'e0966e96-82d1-450b-91f1-a2680ccb4d05') {
+    if (data && data['uuid'] == 'b45848e97') {
+      // Local csv now demo. [todo]
       viewerContent = (
         <LayerBox mode={'inset'}>
           <LineChart type={'csv-local'} xlabel={'DateTime'} localLink={'/dataset/ADCP_04.csv'}></LineChart>
@@ -162,9 +166,8 @@ const DataViewer = (props: IVisualizerProps) => {
         <VisualQueryResult key={'vqresult'} />,
       ];
     } else if (data && data.dataset_type == 'NCF') {
-      console.log(`NCF data ${data.uuid}.`);
       viewerContent = [
-        <NCFViewer key={'ncf-viewer'} visfile={data['vis_files'][0]} />,
+        <NCFViewer key={'ncf-viewer'} data={data}/>,
       ];
     }
   }

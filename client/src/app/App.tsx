@@ -24,7 +24,6 @@ const App = (props: IAppProps) => {
           <AppRoutes />
         </BrowserRouter>
       </Provider>
-
     </ThemeProvider>
   );
 };

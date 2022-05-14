@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * RT = Raster files
  * NCF = NetCDF files
@@ -16,7 +17,6 @@ export interface IGroupingResult {
     grouped: IYLableGroupingItem[];
     ungrouped: string[];
 };
-
 
 export type IFileFormat = 'tiff' | 'ncf' | 'rsk' | 'csv' | 'other';
 export interface IVisFile {
@@ -37,6 +37,11 @@ export interface IVisFile {
   latitude2: number;
   datetime_start: string;
   datetime_end: string;
+}
+
+export interface INCFContentFile extends IVisFile {
+  min_value:| number;
+  max_value:| number;
 }
 
 export interface IDataset {
@@ -60,4 +65,9 @@ export interface IDataset {
   raw_files?: any[];
   meta_data: any;
   uuid: string;
+}
+
+export interface Mark {
+  value: number;
+  label?: React.ReactNode;
 }

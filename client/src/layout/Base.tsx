@@ -45,6 +45,7 @@ const Base = (props: IBaseProps) => {
            minWidth: config.appearance.sideBarWidth,
            width: config.appearance.sideBarWidth,
            height: '100vh',
+           overflowY: 'scroll',
          }} />
         }
         <Box component={'main'}
@@ -53,8 +54,11 @@ const Base = (props: IBaseProps) => {
             height: '100vh',
             position: 'relative',
           }}>
-          <BaseMap />
+          <BaseMap>
+          </BaseMap>
+
           <Outlet />
+
         </Box>
       </Box>
     </Box>

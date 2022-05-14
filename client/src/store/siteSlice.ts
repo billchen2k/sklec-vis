@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {DatasetType} from '@/types';
+import {DatasetType, IDataset} from '@/types';
 
 export type GlobalState = 'data-listing' | 'data-inspecting';
 
@@ -17,13 +17,19 @@ export type IRasterState = {
     }
   };
 
+export type IInspectState = {
+  selectedVisFile: number; // The index of datasetDetail cache
+  selectedChannel: number; // The index of datasetDetail cache. If this value is -1, means no channel is selected.
+}
+
 export interface ISiteState {
   globalState: GlobalState;
   currentData?: string | number;
   currentType?: DatasetType;
   rasterState?: IRasterState;
-  datasetListCache?: any;
-  datasetDetailCache?: any;
+  inspectState?: Partial<IInspectState>;
+  datasetListCache?: IDataset[] | any;
+  datasetDetailCache?: IDataset;
 }
 
 const initState: ISiteState = {
@@ -42,6 +48,10 @@ const initState: ISiteState = {
       rasterMax: 0.15,
       rasterMin: 0.08,
     },
+  },
+  inspectState: {
+    selectedVisFile: 0,
+    selectedChannel: -1,
   },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
@@ -93,6 +103,13 @@ export const siteSlice = createSlice({
       state.currentData = initState.currentData;
       state.currentType = initState.currentType;
       state.rasterState = initState.rasterState;
+      state.inspectState = initState.inspectState;
+    },
+    setInspectingState: (state, action: PayloadAction<Partial<IInspectState>>) => {
+      state.inspectState = {
+        ...state.inspectState,
+        ...action.payload,
+      };
     },
     setDatasetListCache: (state, action: PayloadAction<any>) => {
       state.datasetListCache = action.payload;
@@ -103,4 +120,4 @@ export const siteSlice = createSlice({
   },
 });
 
-export default siteSlice.reducer;
+// export default siteSlice.reducer;
