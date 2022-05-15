@@ -133,8 +133,8 @@ class NcfCoreClass(SKLECBaseCore):
         # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
-        # 反转一下 否则图是反的
-        data = np.flip(data, axis=2)
+        # 反转一下 否则图是反的 
+        # data = np.flip(data, axis=2)
         # data = np.flip(data, axis = 3)
 
         # 计算偏置和系数
@@ -179,6 +179,9 @@ class NcfCoreClass(SKLECBaseCore):
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
                 # 创建 .tif 文件
+                # 要在切片之后再翻转
+                split_data = np.flip(split_data, axis=2)
+
                 driver = gdal.GetDriverByName('GTiff')
                 out_tif_name = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}.tiff".format(
                     params['uuid'],
