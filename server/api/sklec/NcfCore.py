@@ -113,10 +113,10 @@ class NcfCoreClass(SKLECBaseCore):
         # if doc_size / 1024 / 1024 > 100:
         #     del_files(CACHE_FOLDER_DIR)
 
-        # 缓存文件夹超过100MB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于100MB
+        # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
         doc_size, status = get_doc_real_size(CACHE_FOLDER_DIR)
         doc_counter = 0
-        while (doc_size / 1024 / 1024 > 100 and doc_counter < len(status)):
+        while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
             oldest_status = status[doc_counter]
             try:
                 os.remove(os.path.join(CACHE_FOLDER_DIR, oldest_status['file_name']))
