@@ -1,20 +1,24 @@
-FROM python:3.9-alpine
+FROM python:3.9
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# This line is for py3-numpy
+# ENV PYTHONPATH=/usr/lib/python3.8/site-packages
+
+
 WORKDIR /app
 EXPOSE 3000
 ADD ./requirements.txt /app/requirements.txt
-RUN apk add gcc libc-dev linux-headers musl-dev
-RUN apk add python3-dev py3-numpy jpeg-dev zlib-dev g++ # For Pillow and numpy
-# RUN apk add hdf5 netcdf
-RUN apk add hdf5-dev netcdf-dev gdal-tools gdal-dev postgresql-dev
+RUN apt update
+RUN apt install -y gcc musl-dev
+RUN apt install -y libjpeg-dev g++ # For Pillow and numpy python3-dev zlib-dev
+RUN apt install -y libhdf5-dev libnetcdf-dev gdal-bin libgdal-dev libpq-dev
 # RUN apk add --no-cache --virtual .build-deps postgresql-dev
 
 # No longer needed if proxy is set correctly. Remember to use sudo -E ./bin/develop.sh --start port
-RUN pip config set global.index-url https://pypi.douban.com/simple/
-RUN pip install numpy uwsgi
+# RUN pip config set global.index-url https://pypi.douban.com/simple/
+RUN pip install uwsgi numpy==1.22.2
 # Gdal must be installed after numpy
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 
 

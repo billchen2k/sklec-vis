@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import netCDF4
-from sqlalchemy import true
 from api.sklec.SKLECBaseCore import SKLECBaseCore
 from osgeo import gdal, osr
 from sklecvis import settings
@@ -20,8 +19,8 @@ def get_doc_real_size(p_doc):
             file_size = os.path.getsize(os.path.join(root, file))
             file_time = os.path.getatime(os.path.join(root, file))
             size += file_size
-            status.append({'file_atime': file_time, 
-                           'file_size': file_size, 
+            status.append({'file_atime': file_time,
+                           'file_size': file_size,
                            'file_name': file})
     # 按照访问时间从小到大排序
     status.sort(key=lambda x:x['file_atime'])
@@ -159,7 +158,7 @@ class NcfCoreClass(SKLECBaseCore):
         # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
-        # 反转一下 否则图是反的 
+        # 反转一下 否则图是反的
         # data = np.flip(data, axis=2)
         # data = np.flip(data, axis = 3)
 
@@ -197,8 +196,8 @@ class NcfCoreClass(SKLECBaseCore):
                 tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                 warp_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
                 translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
-                
-                    
+
+
                 split_data = data[datetime,
                                   depth,
                                   params['latitude_start']: params['latitude_end'] + 1,
@@ -238,8 +237,8 @@ class NcfCoreClass(SKLECBaseCore):
                     split_data = np.flip(split_data, axis=2)
 
                     driver = gdal.GetDriverByName('GTiff')
-                    
 
+                    tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                     out_tif = driver.Create(
                         tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
                     # print(N_Lon, N_Lat)
@@ -266,12 +265,12 @@ class NcfCoreClass(SKLECBaseCore):
 
 
                     # ds = gdal.Open(out_tif_path)
-                    
+
                     warp_options = gdal.WarpOptions(format='Gtiff',
                                                     srcSRS=srs.ExportToWkt(),
                                                     )
                     gdal.Warp(warp_tif_path, tmp_tif_path, format='Gtiff', options=warp_options)
-                    
+
                     translate_options = gdal.TranslateOptions(format='GTiff',
                                                             creationOptions=[
                                                                 'TILED=YES', 'COMPRESS=LZW']

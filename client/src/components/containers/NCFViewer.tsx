@@ -184,7 +184,7 @@ export function NCFViewer(props: INCFViewerProps) {
 
         {selectedChannel >= 0 &&
           <Box sx={{width: '30rem', position: 'relative'}}>
-            <Box sx={{position: 'absolute', top: '-1rem', right: '0'}}>
+            <Box sx={{position: 'absolute', top: '-2rem', right: '0rem'}}>
 
               <FormControlLabel
                 control={
