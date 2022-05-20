@@ -54,11 +54,9 @@ const Base = (props: IBaseProps) => {
             height: '100vh',
             position: 'relative',
           }}>
+          <Outlet />
           <BaseMap>
           </BaseMap>
-
-          <Outlet />
-
         </Box>
       </Box>
     </Box>

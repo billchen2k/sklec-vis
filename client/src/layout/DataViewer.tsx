@@ -1,20 +1,19 @@
-import * as React from 'react';
-import {Box, Button, ButtonGroup, Grid, LinearProgress, Stack, Typography} from '@mui/material';
-import LineChart from '@/components/charts/LineChart';
-import LayerBox from '@/layout/LayerBox';
-import {useParams} from 'react-router-dom';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
-import {siteSlice} from '@/store/siteSlice';
-import {SkipNext, SkipPrevious} from '@mui/icons-material';
-import useAxios from 'axios-hooks';
-import demoData from '@/lib/demoData';
-import {uiSlice} from '@/store/uiSlice';
-import {useEffect} from 'react';
-import {endpoints} from '@/config/endpoints';
-import {IDataset} from '@/types';
+import LineChart from '@/components/charts/LineChart';
 import RasterControl from '@/components/charts/RasterControl';
 import VisualQueryResult from '@/components/charts/VisualQueryResult';
 import {NCFViewer} from '@/components/containers/NCFViewer';
+import {endpoints} from '@/config/endpoints';
+import LayerBox from '@/layout/LayerBox';
+import demoData from '@/lib/demoData';
+import {siteSlice} from '@/store/siteSlice';
+import {uiSlice} from '@/store/uiSlice';
+import {IDataset} from '@/types';
+import {Box} from '@mui/material';
+import useAxios from 'axios-hooks';
+import * as React from 'react';
+import {useEffect} from 'react';
+import {useParams} from 'react-router-dom';
 
 export interface IVisualizerProps {
 }
@@ -29,7 +28,7 @@ const DataViewer = (props: IVisualizerProps) => {
   let viewerContent: JSX.Element | JSX.Element[] = null;
 
 
-  // /// Demo Data Hooks Begin
+  // Demo Data Hooks Begin
   useEffect(() => {
     if (parseInt(datasetId) < 3) {
       dispatch(siteSlice.actions.enterDataInspecting({
@@ -49,6 +48,7 @@ const DataViewer = (props: IVisualizerProps) => {
     //   }));
     // }
   }, [datasetId, dispatch]);
+
   // /// Demo Data Hooks End
 
   useEffect(() => {
