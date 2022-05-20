@@ -4,22 +4,35 @@ import django
 from django.core.files import File
 import netCDF4
 import numpy as np
+import argparse
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sklecvis.settings')
 django.setup()
 
 from api.models import *
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 
+def init_argparse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--filename', '-f', default = '',)
 
+    args = parser.parse_args()
+    return args
+
+args = init_argparse()
+filename = args.filename
 
 files = os.listdir(os.path.join(BASE_DIR, 'media/datasets/ncf'))
 user = SiteUser.objects.first()
 
 for f in files:
     # if (f == '4dim.nc'): continue
+    if (filename != ' ' and filename != f): 
+        continue
     full_path = os.path.join(BASE_DIR, 'media/datasets/ncf', f)
-    print(full_path)
+    # print(full_path)
     nc = netCDF4.Dataset(full_path)
+    print(nc.dimensions)
+    print(nc.variables)
     description = '''A dataset from netCDF database.'''
     # meta = nc.__dict__
     meta = {}
@@ -42,7 +55,7 @@ for f in files:
                       # datetime_end=enddate[0],
                       dataset_type=Dataset.DatasetType.NCF,
                       )
-    print(dataset)
+    # print(dataset)
     dataset.save()
 
     fobj = open(full_path, 'rb')
@@ -59,7 +72,7 @@ for f in files:
         # 'level' 字段需要特殊处理
         if not (dim in nc.variables.keys()): 
             continue
-        print(dim)
+        # print(dim)
         dim_dict = {}
         dim_dict['dimension_name'] = dim
         dim_dict['dimension_length'] = nc.dimensions[dim].size
@@ -78,11 +91,17 @@ for f in files:
         dimensions.append(dim_dict)
     for variable in nc.variables.keys():
         if (variable in nc.dimensions.keys()): continue
-        print(nc[variable])
+        # print(nc[variable])
         var_dict = {}
         var_dict['variable_name'] = variable
-        var_dict['variable_units'] = nc[variable].units
-        var_dict['variable_longname'] = nc[variable].long_name
+        if hasattr(nc[variable], 'units'):
+            var_dict['variable_units'] = nc[variable].units
+        else:
+            var_dict['variable_units'] = ''
+        if hasattr(nc[variable], 'long_name'):
+            var_dict['variable_longname'] = nc[variable].long_name
+        else:
+            var_dict['variable_longname'] = ''
         var_dict['variable_dimensions'] = []
         for dim in nc[variable].dimensions:
             dimension_type = ''
@@ -96,14 +115,14 @@ for f in files:
                 dimension_type = 'depth'
             var_dict['variable_dimensions'].append(dimension_type)
         variables.append(var_dict)
-    print(variables)
+    # print(variables)
     meta['dimensions'] = dimensions
     meta['variables'] = variables
     visfile = VisFile(dataset=dataset,
                       format=VisFile.FileFormat.NCF,
                       file=File(fobj, name=f),
                       file_name=os.path.basename(full_path),
-                      file_size=os.path.getsize(full_path),
+                      file_size=os.path.getsize(full_path) / 1024,
                       meta_data=meta,
                       # default_sample_count=min(rsk.npsamples().shape[0], 100000),
                       )
@@ -111,7 +130,7 @@ for f in files:
 
     rawfile = RawFile(dataset=dataset,
                       file_name=os.path.basename(full_path),
-                      file_size=os.path.getsize(full_path),
+                      file_size=os.path.getsize(full_path) / 1024,
                       file=None,
                       file_same_as_vis=True,
                       visfile=visfile,)
@@ -127,9 +146,9 @@ for f in files:
         #     channel_meta['type'] = 'variable'
         channel_meta = {}
         datachannel = DataChannel(visfile=visfile,
-                                  name=channel.long_name,
+                                  name=channel.long_name if hasattr(channel, 'long_name') else '',
                                   label=c,
-                                  unit=channel.units,
+                                  unit=channel.units if hasattr(channel, 'units') else '',
                                   # datetime_start=startdate[0],
                                   # datetime_end=enddate[0],
                                   shape=str(channel.shape),
