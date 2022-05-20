@@ -1,52 +1,19 @@
 import os
 import numpy as np
 import netCDF4
-from sqlalchemy import true
 from api.sklec.SKLECBaseCore import SKLECBaseCore
 from osgeo import gdal, osr
 from sklecvis import settings
 import subprocess
-
+import re
 
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
 
-def get_doc_real_size(p_doc):
-    size = 0.0
-    status = []
-    for root, dirs, files in os.walk(p_doc):
-        for file in files:
-            file_size = os.path.getsize(os.path.join(root, file))
-            file_time = os.path.getatime(os.path.join(root, file))
-            size += file_size
-            status.append({'file_atime': file_time, 
-                           'file_size': file_size, 
-                           'file_name': file})
-    # 按照访问时间从小到大排序
-    status.sort(key=lambda x:x['file_atime'])
-    return size, status
 
 
-def del_files(dir_path):
-    # os.walk会得到dir_path下各个后代文件夹和其中的文件的三元组列表，顺序自内而外排列，
-    for root, dirs, files in os.walk(dir_path, topdown=False):
-        # 第一步：删除文件
-        for name in files:
-            os.remove(os.path.join(root, name))  # 删除文件
-        # 第二步：删除空文件夹
-        for name in dirs:
-            os.rmdir(os.path.join(root, name))  # 删除一个空目录
 
-def find_in_cache_folder(file_name):
-    for root, dirs, files in os.walk(CACHE_FOLDER_DIR):
-        for file in files:
-            if file == file_name:
-                # 重新设置访问时间
-                os.utime(file, times=None)
-                return True
-
-    return False
 
 
 class NcfCoreException:
@@ -107,6 +74,52 @@ class NcfCoreClass(SKLECBaseCore):
         os.remove(file)
         os.rename(f'{file}.tmp.tiff', file)
 
+    def _get_min_max_value_from_full_name(self, full_name):
+        idx_mn = int(full_name.find('_mn'))
+        idx_mx = full_name.find('_mx')
+        idx_trans = full_name.find('_trans')
+        partial_str = full_name[idx_mn: idx_trans]
+
+        x = re.findall('(-?\d+\.\d+)', partial_str)
+        return float(x[0]) , float(x[1])
+    
+    def _find_in_cache_folder(self, file_name):
+        for root, dirs, files in os.walk(CACHE_FOLDER_DIR):
+            for file in files:
+                if (not file.endswith('trans.tiff')):
+                    continue
+                if file.startswith(file_name):
+                    # 重新设置访问时间
+                    os.utime(os.path.join(root, file), times=None)
+                    return file
+
+        return None
+    
+    def _get_doc_real_size(self, p_doc):
+        size = 0.0
+        status = []
+        for root, dirs, files in os.walk(p_doc):
+            for file in files:
+                file_size = os.path.getsize(os.path.join(root, file))
+                file_time = os.path.getatime(os.path.join(root, file))
+                size += file_size
+                status.append({'file_atime': file_time,
+                            'file_size': file_size,
+                            'file_name': file})
+        # 按照访问时间从小到大排序
+        status.sort(key=lambda x:x['file_atime'])
+        return size, status
+
+    def _del_files(self, dir_path):
+        # os.walk会得到dir_path下各个后代文件夹和其中的文件的三元组列表，顺序自内而外排列，
+        for root, dirs, files in os.walk(dir_path, topdown=False):
+            # 第一步：删除文件
+            for name in files:
+                os.remove(os.path.join(root, name))  # 删除文件
+            # 第二步：删除空文件夹
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))  # 删除一个空目录
+
     def get_channel_data_split(self, params):
         # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
         # # 文件夹超过100MB 清空
@@ -114,7 +127,7 @@ class NcfCoreClass(SKLECBaseCore):
         #     del_files(CACHE_FOLDER_DIR)
 
         # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
-        doc_size, status = get_doc_real_size(CACHE_FOLDER_DIR)
+        doc_size, status = self._get_doc_real_size(CACHE_FOLDER_DIR)
         doc_counter = 0
         while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
             oldest_status = status[doc_counter]
@@ -159,7 +172,7 @@ class NcfCoreClass(SKLECBaseCore):
         # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
-        # 反转一下 否则图是反的 
+        # 反转一下 否则图是反的
         # data = np.flip(data, axis=2)
         # data = np.flip(data, axis = 3)
 
@@ -172,8 +185,8 @@ class NcfCoreClass(SKLECBaseCore):
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
-        print(Lon)
-        print(Lat)
+        # print(Lon)
+        # print(Lat)
         # 影像的左上角和右下角坐标
         LonMin, LatMax, LonMax, LatMin = [
             Lon.min(), Lat.max(), Lon.max(), Lat.min()]
@@ -187,37 +200,21 @@ class NcfCoreClass(SKLECBaseCore):
         tiff_meta_list = []
         for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
             for depth in range(params['depth_start'], params['depth_end'] + 1):
-                out_tif_name = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}.tiff".format(
+                params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
                     params['uuid'],
                     datetime,
                     depth,
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
-                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-                warp_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
-                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
-                
-                    
-                split_data = data[datetime,
-                                  depth,
-                                  params['latitude_start']: params['latitude_end'] + 1,
-                                  params['longitude_start']: params['longitude_end'] + 1,
-                                  ]
-                tmp_data = split_data.reshape(-1)
-                fill_pos = np.where(tmp_data == fill_value)
-                processed_data = np.delete(tmp_data, fill_pos)
-                if len(processed_data) > 0:
-                    min_value = processed_data.min()
-                    max_value = processed_data.max()
-                else:
-                    min_value = 0.0
-                    max_value = 0.0
-                if find_in_cache_folder(translate_tif_path) is not None:
+                full_name = self._find_in_cache_folder(params_str)
+                if full_name is not None:
+                    full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
+                    min_value, max_value = self._get_min_max_value_from_full_name(full_name)
                     tiff_meta = {
-                        'filepath': translate_tif_path,
-                        'file_size': os.path.getsize(translate_tif_path),
-                        'file_name': out_tif_name,
+                        'filepath': full_path,
+                        'file_size': os.path.getsize(full_path),
+                        'file_name': full_name,
                         'datetime': datetime,
                         'datetime_start': datetime,
                         'depth': depth,
@@ -230,16 +227,36 @@ class NcfCoreClass(SKLECBaseCore):
                         'max_value': max_value
                     }
                 else:
+                    split_data = data[datetime,
+                                  depth,
+                                  params['latitude_start']: params['latitude_end'] + 1,
+                                  params['longitude_start']: params['longitude_end'] + 1,
+                                  ]
+                    tmp_data = split_data.reshape(-1)
+                    fill_pos = np.where(tmp_data == fill_value)
+                    processed_data = np.delete(tmp_data, fill_pos)
+                    if len(processed_data) > 0:
+                        min_value = processed_data.min()
+                        max_value = processed_data.max()
+                    else:
+                        min_value = 0.0
+                        max_value = 0.0
+
+                    out_tif_name = params_str + "_mn={:.6f}_mx={:.6f}.tiff".format(min_value, max_value)
+                    tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
+                    warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
+                    translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+
                     split_data[np.where(split_data == fill_value)] = 9.9e36
                     # split_data = split_data.squeeze()
                     # print(split_data.shape)
                     # 创建 .tif 文件
                     # 要在切片之后再翻转
-                    split_data = np.flip(split_data, axis=2)
+                    split_data = np.flip(split_data, axis=0)
 
                     driver = gdal.GetDriverByName('GTiff')
-                    
 
+                    tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                     out_tif = driver.Create(
                         tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
                     # print(N_Lon, N_Lat)
@@ -266,12 +283,12 @@ class NcfCoreClass(SKLECBaseCore):
 
 
                     # ds = gdal.Open(out_tif_path)
-                    
+
                     warp_options = gdal.WarpOptions(format='Gtiff',
                                                     srcSRS=srs.ExportToWkt(),
                                                     )
                     gdal.Warp(warp_tif_path, tmp_tif_path, format='Gtiff', options=warp_options)
-                    
+
                     translate_options = gdal.TranslateOptions(format='GTiff',
                                                             creationOptions=[
                                                                 'TILED=YES', 'COMPRESS=LZW']
