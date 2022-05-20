@@ -246,6 +246,7 @@ class NcfCoreClass(SKLECBaseCore):
                     tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                     warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
                     translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+                    translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
                     split_data[np.where(split_data == fill_value)] = 9.9e36
                     # split_data = split_data.squeeze()
@@ -303,7 +304,7 @@ class NcfCoreClass(SKLECBaseCore):
                     tiff_meta = {
                         'filepath': translate_tif_path,
                         'file_size': os.path.getsize(translate_tif_path),
-                        'file_name': out_tif_name,
+                        'file_name': translate_tif_name,
                         'datetime': datetime,
                         'datetime_start': datetime,
                         'depth': depth,
