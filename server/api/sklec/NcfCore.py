@@ -194,6 +194,7 @@ class NcfCoreClass(SKLECBaseCore):
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
+                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                 warp_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
                 translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
                 
@@ -238,7 +239,7 @@ class NcfCoreClass(SKLECBaseCore):
 
                     driver = gdal.GetDriverByName('GTiff')
                     
-                    tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
+
                     out_tif = driver.Create(
                         tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
                     # print(N_Lon, N_Lat)
