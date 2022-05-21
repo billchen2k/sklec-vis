@@ -16,6 +16,7 @@ import {Attachment, Close, Launch} from '@mui/icons-material';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {useEffect} from 'react';
+import {DatasetTypeBadge} from '../elements/DatasetTypeBadge';
 
 export interface IDatasetListProps {
 }
@@ -96,7 +97,9 @@ const DatasetList = (props: IDatasetListProps) => {
               <ListItemButton>
                 <ListItemText
                   primary={item.name}
-                  secondary={item.type}
+                  secondary={
+                    <DatasetTypeBadge type={item.type} />
+                  }
                 />
               </ListItemButton>
             </ListItem>

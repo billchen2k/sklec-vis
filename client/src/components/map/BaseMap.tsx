@@ -1,5 +1,5 @@
 import '@mui/material';
-import L, {DivIcon} from 'leaflet';
+import L from 'leaflet';
 import React from 'react';
 
 import {useAppSelector} from '@/app/hooks';
@@ -7,10 +7,9 @@ import DatasetMarkers from '@/components/map/DatasetMarkers';
 import MapToolbar from '@/components/map/MapToolbar';
 import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
 import config from '@/config';
-import {FilePresent} from '@mui/icons-material';
-import {renderToStaticMarkup} from 'react-dom/server';
 import {LayerGroup, LayersControl, MapContainer, TileLayer} from 'react-leaflet';
 import {MapEvents} from './MapEvents';
+import {NCFControlLayer} from './NCFControlLayer';
 
 export interface IMapProps {
   children?: any;
@@ -34,15 +33,16 @@ const MapBoxThemes = [
 
 const BaseMap = (props: IMapProps) => {
   const defaultCenter = new L.LatLng(31.067777777777778, 122.2182222);
-  const {rasterState} = useAppSelector(((state) => state.site));
+  const {rasterState, datasetDetailCache} = useAppSelector(((state) => state.site));
 
-  const icon = new DivIcon({
-    html: renderToStaticMarkup(
-        <FilePresent sx={{color: '#71d0b8'}} />,
-    ),
-  });
+  // const icon = new DivIcon({
+  //   html: renderToStaticMarkup(
+  //       <FilePresent sx={{color: '#71d0b8'}} />,
+  //   ),
+  // });
 
   React.useEffect(() => {
+    // @ts-ignore
     document.getElementsByClassName('leaflet-control-attribution')[0].style.display = 'none';
   }, []);
 
@@ -65,23 +65,14 @@ const BaseMap = (props: IMapProps) => {
             </LayersControl.BaseLayer>
           );
         })}
-        {/* <SKGeoRasterLayer georasterUrl={'dataset/sentinel3/RDI_S3A_20200429.tiff'} />*/}
-
         <DatasetMarkers />
         <MapToolbar />
         <MapEvents />
-
-        <LayerGroup>
-          {rasterState &&
+        <NCFControlLayer />
+        {rasterState &&
           <SKGeoRasterLayer/>
-          }
-        </LayerGroup>
+        }
 
-        {/* <LayersControl.Overlay name={'Detail Content'} checked={true}>
-          <LayerGroup>
-            {props.children}
-          </LayerGroup>
-        </LayersControl.Overlay> */}
       </LayersControl>
     </MapContainer>
   );
