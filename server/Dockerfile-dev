@@ -1,9 +1,6 @@
 FROM python:3.9
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# This line is for py3-numpy
-# ENV PYTHONPATH=/usr/lib/python3.8/site-packages
-
 
 WORKDIR /app
 EXPOSE 3000
