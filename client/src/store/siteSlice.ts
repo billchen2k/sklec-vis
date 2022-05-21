@@ -1,5 +1,6 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {DatasetType, IDataset} from '@/types';
+import {IDimensionType} from '@/types/ncf.type';
 
 export type GlobalState = 'data-listing' | 'data-inspecting';
 
@@ -17,9 +18,11 @@ export type IRasterState = {
     }
   };
 
+
 export type IInspectState = {
   selectedVisFile: number; // The index of datasetDetail cache
   selectedChannel: number; // The index of datasetDetail cache. If this value is -1, means no channel is selected.
+  selectedRange: Partial<Record<IDimensionType, number[]>>;
 }
 
 export interface ISiteState {
@@ -52,6 +55,7 @@ const initState: ISiteState = {
   inspectState: {
     selectedVisFile: 0,
     selectedChannel: -1,
+    selectedRange: {},
   },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
@@ -105,16 +109,16 @@ export const siteSlice = createSlice({
       state.rasterState = initState.rasterState;
       state.inspectState = initState.inspectState;
     },
-    setInspectingState: (state, action: PayloadAction<Partial<IInspectState>>) => {
+    setInspectingState: (state: ISiteState, action: PayloadAction<Partial<IInspectState>>) => {
       state.inspectState = {
         ...state.inspectState,
         ...action.payload,
       };
     },
-    setDatasetListCache: (state, action: PayloadAction<any>) => {
+    setDatasetListCache: (state: ISiteState, action: PayloadAction<any>) => {
       state.datasetListCache = action.payload;
     },
-    setDatasetDetailCache: (state, action: PayloadAction<any>) => {
+    setDatasetDetailCache: (state: ISiteState, action: PayloadAction<any>) => {
       state.datasetDetailCache = action.payload;
     },
   },

@@ -118,7 +118,7 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
         </Marker>
       );
     }));
-  }, [loading, error, data]);
+  }, [loading, error, data, dispatch]);
 
 
   return (

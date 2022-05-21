@@ -1,7 +1,7 @@
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {endpoints} from '@/config/endpoints';
 import LayerBox from '@/layout/LayerBox';
-import {capitalizeFirstLetter} from '@/lib/utils';
+import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {IDataset, IVisFile} from '@/types';
 import {IDimensionType, INCFDimension} from '@/types/ncf.type';
@@ -13,7 +13,6 @@ import {LatLng} from 'leaflet';
 import {capitalize} from 'lodash';
 import * as React from 'react';
 import {useEffect} from 'react';
-import {useMap} from 'react-leaflet';
 import RasterControl from '../charts/RasterControl';
 import SKSlider from '../elements/SKSlider';
 export interface INCFViewerProps {
@@ -35,8 +34,6 @@ export function NCFViewer(props: INCFViewerProps) {
   const {selectedVisFile, selectedChannel} = useAppSelector((state) => state.site.inspectState);
   const [ranges, setRanges] = React.useState<RangeState>({});
   const [ifFlyTo, setIfFlyTo] = React.useState<boolean>(true);
-
-  console.log(props.data);
 
   const [{data, loading, error}, execute] = useAxios(
       endpoints.getNcfContent('', ''),
@@ -61,6 +58,7 @@ export function NCFViewer(props: INCFViewerProps) {
 
 
   useEffect(() => {
+    console.log(props.data);
     if (selectedChannel != -1 && selectedVisFile >= 0) {
       try {
         const defaultRange: RangeState = {};
@@ -74,6 +72,9 @@ export function NCFViewer(props: INCFViewerProps) {
           }
         });
         setRanges(defaultRange);
+        dispatch(siteSlice.actions.setInspectingState({
+          selectedRange: getValueRange(defaultRange),
+        }));
         handleExecute(defaultRange);
       } catch (e) {
         console.error(e);
@@ -106,6 +107,13 @@ export function NCFViewer(props: INCFViewerProps) {
     return 0;
   };
 
+  const getValueRange = (range: RangeState) : RangeState => {
+    const valueRange = {};
+    Object.keys(range).forEach((key) => {
+      valueRange[key] = range[key].map((i) => getDimensionValue(key, i));
+    });
+    return valueRange;
+  };
 
   const handleExecute = (manualRange?: RangeState) => {
     const requestRange = manualRange || ranges;
@@ -179,6 +187,9 @@ export function NCFViewer(props: INCFViewerProps) {
     const newRanges: RangeState = {...ranges};
     newRanges[label] = newRange;
     setRanges(newRanges);
+    dispatch(siteSlice.actions.setInspectingState({
+      selectedRange: getValueRange(newRanges),
+    }));
   };
 
 
