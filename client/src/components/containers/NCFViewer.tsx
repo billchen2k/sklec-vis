@@ -142,9 +142,17 @@ export function NCFViewer(props: INCFViewerProps) {
 
   const getDimensionForSlider = (label: string): IDimensionSliderRes => {
     const res: IDimensionSliderRes={min: 0, max: 1, marks: [], values: [0]};
-    const dimension: INCFDimension = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
+    const dimensions: INCFDimension[] = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
       return one.dimension_type == label;
-    })[0];
+    });
+    if (dimensions.length == 0) {
+      dispatch(uiSlice.actions.openSnackbar({
+        severity: 'error',
+        message: `Failed to get information for dimension ${label}.`,
+      }));
+      return res;
+    }
+    const dimension = dimensions[0];
     res.min = 0;
     res.max = dimension.dimension_values.length - 1;
     const tickCount = 4;
