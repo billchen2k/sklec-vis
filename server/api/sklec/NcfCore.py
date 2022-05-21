@@ -11,9 +11,41 @@ ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
 
+def get_doc_real_size(p_doc):
+    size = 0.0
+    status = []
+    for root, dirs, files in os.walk(p_doc):
+        for file in files:
+            file_size = os.path.getsize(os.path.join(root, file))
+            file_time = os.path.getatime(os.path.join(root, file))
+            size += file_size
+            status.append({'file_atime': file_time,
+                           'file_size': file_size,
+                           'file_name': file})
+    # 按照访问时间从小到大排序
+    status.sort(key=lambda x:x['file_atime'])
+    return size, status
 
 
+def del_files(dir_path):
+    # os.walk会得到dir_path下各个后代文件夹和其中的文件的三元组列表，顺序自内而外排列，
+    for root, dirs, files in os.walk(dir_path, topdown=False):
+        # 第一步：删除文件
+        for name in files:
+            os.remove(os.path.join(root, name))  # 删除文件
+        # 第二步：删除空文件夹
+        for name in dirs:
+            os.rmdir(os.path.join(root, name))  # 删除一个空目录
 
+def find_in_cache_folder(file_name):
+    for root, dirs, files in os.walk(CACHE_FOLDER_DIR):
+        for file in files:
+            if file == file_name:
+                # 重新设置访问时间
+                os.utime(file, times=None)
+                return True
+
+    return False
 
 
 class NcfCoreException:
@@ -207,10 +239,26 @@ class NcfCoreClass(SKLECBaseCore):
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
-                full_name = self._find_in_cache_folder(params_str)
-                if full_name is not None:
-                    full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
-                    min_value, max_value = self._get_min_max_value_from_full_name(full_name)
+                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
+                warp_tif_path = tmp_tif_path[:-5]+'_wrapped.tiff'
+                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+
+
+                split_data = data[datetime,
+                                  depth,
+                                  params['latitude_start']: params['latitude_end'] + 1,
+                                  params['longitude_start']: params['longitude_end'] + 1,
+                                  ]
+                tmp_data = split_data.reshape(-1)
+                fill_pos = np.where(tmp_data == fill_value)
+                processed_data = np.delete(tmp_data, fill_pos)
+                if len(processed_data) > 0:
+                    min_value = processed_data.min()
+                    max_value = processed_data.max()
+                else:
+                    min_value = 0.0
+                    max_value = 0.0
+                if find_in_cache_folder(translate_tif_path) is not None:
                     tiff_meta = {
                         'filepath': full_path,
                         'file_size': os.path.getsize(full_path),

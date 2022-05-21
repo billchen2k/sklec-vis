@@ -16,7 +16,7 @@ require('leaflet-toolbar/dist/leaflet.toolbar.min.js');
 const MapToolbar = (props) => {
   const map = useMap();
   const dispatch = useAppDispatch();
-  const {currentType} = useAppSelector((state) => state.site);
+  const {currentType, inspectState, datasetDetailCache} = useAppSelector((state) => state.site);
 
   // const toolbarStore = {};
 

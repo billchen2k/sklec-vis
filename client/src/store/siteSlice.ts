@@ -29,7 +29,7 @@ export interface ISiteState {
   rasterState?: IRasterState;
   inspectState?: Partial<IInspectState>;
   datasetListCache?: IDataset[] | any;
-  datasetDetailCache?: IDataset;
+  datasetDetailCache?: IDataset; // The current viewing data. Will be set in any viewing panel.
 }
 
 const initState: ISiteState = {
@@ -61,7 +61,7 @@ export const siteSlice = createSlice({
   name: 'site',
   initialState: initState,
   reducers: {
-    setGlobalState: (state, action: PayloadAction<GlobalState>) => {
+    setGlobalState: (state: ISiteState, action: PayloadAction<GlobalState>) => {
       state.globalState = action.payload;
       switch (action.payload) {
         case 'data-inspecting':
@@ -73,22 +73,22 @@ export const siteSlice = createSlice({
           break;
       }
     },
-    setRasterState: (state, action: PayloadAction<Partial<IRasterState>>) => {
+    setRasterState: (state: ISiteState, action: PayloadAction<Partial<IRasterState>>) => {
       state.rasterState = {
         ...state.rasterState,
         ...action.payload,
       };
     },
-    setRasterStateConfig(state, action: PayloadAction<Partial<IRasterState['config']>>) {
+    setRasterStateConfig(state: ISiteState, action: PayloadAction<Partial<IRasterState['config']>>) {
       state.rasterState.config = {
         ...state.rasterState.config,
         ...action.payload,
       };
     },
-    setRasterVisualQuery(state, action: PayloadAction<L.LatLng[]>) {
+    setRasterVisualQuery(state: ISiteState, action: PayloadAction<L.LatLng[]>) {
       state.rasterState.visualQueryLatLngs = action.payload;
     },
-    enterDataInspecting: (state, action: PayloadAction<{
+    enterDataInspecting: (state: ISiteState, action: PayloadAction<{
       dataId: string | number;
       datasetType: DatasetType;
     }>) => {
@@ -98,7 +98,7 @@ export const siteSlice = createSlice({
         state.globalState = 'data-inspecting';
       }
     },
-    leaveDataInspecting(state) {
+    leaveDataInspecting(state: ISiteState) {
       state.globalState = 'data-listing';
       state.currentData = initState.currentData;
       state.currentType = initState.currentType;
