@@ -5,7 +5,7 @@ from api.sklec.SKLECBaseCore import SKLECBaseCore
 from osgeo import gdal, osr
 from sklecvis import settings
 import subprocess
-import re
+
 
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
@@ -116,7 +116,7 @@ class NcfCoreClass(SKLECBaseCore):
         #     del_files(CACHE_FOLDER_DIR)
 
         # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
-        doc_size, status = self._get_doc_real_size(CACHE_FOLDER_DIR)
+        doc_size, status = get_doc_real_size(CACHE_FOLDER_DIR)
         doc_counter = 0
         while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
             oldest_status = status[doc_counter]
@@ -175,8 +175,8 @@ class NcfCoreClass(SKLECBaseCore):
         Lon = self.file.variables[longitude_field][params['longitude_start']                                                   : params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']                                                  : params['latitude_end'] + 1]
 
-        # print(Lon)
-        # print(Lat)
+        print(Lon)
+        print(Lat)
         # 影像的左上角和右下角坐标
         LonMin, LatMax, LonMax, LatMin = [
             Lon.min(), Lat.max(), Lon.max(), Lat.min()]
@@ -190,7 +190,7 @@ class NcfCoreClass(SKLECBaseCore):
         tiff_meta_list = []
         for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
             for depth in range(params['depth_start'], params['depth_end'] + 1):
-                params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
+                out_tif_name = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}.tiff".format(
                     params['uuid'],
                     datetime,
                     depth,
@@ -203,9 +203,9 @@ class NcfCoreClass(SKLECBaseCore):
                     min_value, max_value = self._get_min_max_value_from_full_name(
                         full_name)
                     tiff_meta = {
-                        'filepath': full_path,
-                        'file_size': os.path.getsize(full_path),
-                        'file_name': full_name,
+                        'filepath': translate_tif_path,
+                        'file_size': os.path.getsize(translate_tif_path),
+                        'file_name': out_tif_name,
                         'datetime': datetime,
                         'datetime_start': datetime,
                         'depth': depth,
@@ -246,7 +246,7 @@ class NcfCoreClass(SKLECBaseCore):
                     # print(split_data.shape)
                     # 创建 .tif 文件
                     # 要在切片之后再翻转
-                    split_data = np.flip(split_data, axis=0)
+                    split_data = np.flip(split_data, axis=2)
 
                     driver = gdal.GetDriverByName('GTiff')
 
@@ -296,7 +296,7 @@ class NcfCoreClass(SKLECBaseCore):
                     tiff_meta = {
                         'filepath': translate_tif_path,
                         'file_size': os.path.getsize(translate_tif_path),
-                        'file_name': translate_tif_name,
+                        'file_name': out_tif_name,
                         'datetime': datetime,
                         'datetime_start': datetime,
                         'depth': depth,
