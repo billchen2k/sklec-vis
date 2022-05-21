@@ -11,10 +11,8 @@ ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
 
-
 class NcfCoreException:
     pass
-
 
 class NcfCoreClass(SKLECBaseCore):
 
@@ -22,7 +20,7 @@ class NcfCoreClass(SKLECBaseCore):
 
     def __init__(self, file_path):
         self.file_path = file_path
-        self.file = netCDF4.Dataset(file_path)
+        self.file = netCDF4.Dataset(file_path) #type: ignore
         self.name = os.path.basename(file_path)
         self.channels = list(self.file.variables.keys())
         self.string_for_datetime = ['datetime', 'time']
@@ -38,11 +36,6 @@ class NcfCoreClass(SKLECBaseCore):
 
         self.sample_cache = {}
         # print(self)
-
-    def __str__(self):
-        return f'RSKCore: {self.name}' + \
-            f'\n\tChannels: {self.channels}' + \
-            f'\n\tChannel_name: {self.channel_name}'
 
     def get_channels(self):
         return self.channels
@@ -76,7 +69,7 @@ class NcfCoreClass(SKLECBaseCore):
         idx_trans = full_name.find('_trans')
         partial_str = full_name[idx_mn: idx_trans]
 
-        x = re.findall('(-?\d+\.\d+)', partial_str)
+        x = re.findall(r'(-?\d+\.\d+)', partial_str)
         return float(x[0]), float(x[1])
 
     def _find_in_cache_folder(self, file_name):
@@ -303,7 +296,6 @@ class NcfCoreClass(SKLECBaseCore):
                     tiff_meta = {
                         'filepath': translate_tif_path,
                         'file_size': os.path.getsize(translate_tif_path),
-                        'file_name': out_tif_name,
                         'file_name': translate_tif_name,
                         'datetime': datetime,
                         'datetime_start': datetime,
