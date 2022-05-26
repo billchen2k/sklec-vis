@@ -1,11 +1,11 @@
 FROM node:14 as build
+FROM node:14
 WORKDIR /app
-ADD ./package.json /app/package.json
-RUN npm install -g pnpm
-RUN pnpm install
 COPY . .
+EXPOSE 8080
 ENV NODE_OPTIONS=--max_old_space_size=2048
-RUN pnpm build
+RUN npm install
+RUN npm build
 
 FROM nginx:stable-alpine
 COPY --from=build /app/dist /srv/client/dist
