@@ -40,7 +40,7 @@ const Sidebar = (props: ISidebarProps) => {
   let channelSelectContent = null;
 
   if (datasetDetailCache && datasetDetailCache.dataset_type == 'NCF') {
-    const channels: INCFVariable[] = datasetDetailCache.vis_files[selectedVisFile].meta_data.variables || [];
+    const channels: INCFVariable[] = datasetDetailCache.vis_files[selectedVisFile]?.meta_data?.variables || [];
     channelSelectContent = (<Box sx={{mt: 1}}>
       <Typography variant={'body2'} sx={{pb: 1}}>Data Channels:</Typography>
       <Card variant={'outlined'}>
@@ -90,32 +90,32 @@ const Sidebar = (props: ISidebarProps) => {
             downloadLink={datasetDetailCache['raw_files'].length > 0 ? datasetDetailCache['raw_files'][0]['file'] : null}
           />
         );
-      }
-      sidebarContent = (
-        <Box sx={{p: 2}}>
-          <Stack sx={{mb: 1}} spacing={'1'} direction={'row'} alignItems={'center'}>
-            <IconButton onClick={handleNavigateBack}>
-              <ArrowBack />
-            </IconButton>
-            <Typography variant={'h5'}>{datasetDetailCache['name'].substring(0, 20)}</Typography>
-          </Stack>
-          <FormControl variant={'standard'} size={'small'} fullWidth>
-            <InputLabel>File to preview:</InputLabel>
-            <Select value={selectedVisFile || 0}
-              onChange={handleChangeSelectedVisFile}
-            >
-              {datasetDetailCache.vis_files.map((one, index) => {
-                return (<MenuItem key={index} value={index}>
-                  {one.file_name}
-                </MenuItem>);
-              })}
-            </Select>
-          </FormControl>
-          {channelSelectContent}
-          {detailContent}
+        sidebarContent = (
+          <Box sx={{p: 2}}>
+            <Stack sx={{mb: 1}} spacing={'1'} direction={'row'} alignItems={'center'}>
+              <IconButton onClick={handleNavigateBack}>
+                <ArrowBack />
+              </IconButton>
+              <Typography variant={'h5'}>{datasetDetailCache?.name.substring(0, 20) || 'Loading...'}</Typography>
+            </Stack>
+            <FormControl variant={'standard'} size={'small'} fullWidth>
+              <InputLabel>File to preview:</InputLabel>
+              <Select value={selectedVisFile || 0}
+                onChange={handleChangeSelectedVisFile}
+              >
+                {datasetDetailCache.vis_files.map((one, index) => {
+                  return (<MenuItem key={index} value={index}>
+                    {one.file_name}
+                  </MenuItem>);
+                })}
+              </Select>
+            </FormControl>
+            {channelSelectContent}
+            {detailContent}
 
-        </Box>
-      );
+          </Box>
+        );
+      }
       break;
   }
 

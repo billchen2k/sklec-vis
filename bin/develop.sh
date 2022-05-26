@@ -28,9 +28,6 @@ function start() {
     # --build-arg http_proxy=http://172.20.5.126:7890 \
     # --build-arg https_proxy=http://172.20.5.126:7890
   docker-compose -f docker-compose.dev.yml up -d
-  docker exec -it $(logname)-server python manage.py makemigrations
-  docker exec -it $(logname)-server python manage.py migrate
-  docker exec -it $(logname)-server python manage.py collectstatic --noinput
 }
 
 function stop() {
@@ -61,7 +58,7 @@ fi
 
 
 if [ "$1" = "--start" ]; then
-  unset EXTRA_BUILD_FLAG
+  export EXTRA_BUILD_FLAG=''
   start
   logs
 elif [ "$1" = "--start-no-cache" ]; then

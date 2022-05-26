@@ -12,7 +12,7 @@ const config = {
     },
     typography: {
       fontFamily: 'Roboto, Helvetica, -apple-system, Segoe UI, Helvetica Neue, Arial',
-      fontSize: 12,
+      fontSize: 13,
     },
   }),
   appearance: {

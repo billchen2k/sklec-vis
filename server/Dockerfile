@@ -1,20 +1,21 @@
-FROM python:3.9-alpine
+FROM python:3.9
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+
+# These lines will be cached. Do not modify the content or orderings unless necessary.
 WORKDIR /app
 EXPOSE 3000
-ADD ./requirements.txt /app/requirements.txt
-RUN apk add --no-cache gcc libc-dev linux-headers musl-dev
-RUN apk add python3-dev py3-numpy jpeg-dev zlib-dev g++ # For Pillow and numpy
-RUN apk add --no-cache --virtual .build-deps postgresql-dev gdal gdal-dev
-RUN pip config set global.index-url https://pypi.douban.com/simple/
-RUN pip install uwsgi
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
-RUN pip uninstall gdal -y && pip install gdal
+RUN apt update
+RUN apt install -y gcc musl-dev
+RUN apt install -y libjpeg-dev g++ # For Pillow and numpy python3-dev zlib-dev
+RUN apt install -y libhdf5-dev libnetcdf-dev gdal-bin libgdal-dev libpq-dev
+# Cached line end.
 
+COPY requirements.txt requirements.txt
+# No longer needed if proxy is set correctly. Remember to use sudo -E ./bin/develop.sh --start port
+# RUN pip config set global.index-url https://pypi.douban.com/simple/
+RUN pip install uwsgi numpy==1.22.2
+# Gdal must be installed after numpy
+RUN pip install -r /app/requirements.txt
+# Copy codes in the end is to improve caching
 COPY . .
-RUN python manage.py collectstatic --noinput
-
-CMD ["uwsgi", "--ini", "uwsgi.ini", \
-    "--socket", ":3000", \
-    "--plugins", "python3"]

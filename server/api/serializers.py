@@ -3,9 +3,47 @@ from rest_framework.reverse import reverse
 from rest_framework import validators
 from api.models import *
 
+class SimpleDatasetTagSerializer(serializers.ModelSerializer):
+
+    parent = serializers.SerializerMethodField()
+    dataset_count = serializers.SerializerMethodField()
+
+    def get_parent(self, obj):
+        if obj.parent:
+            return obj.parent.uuid
+        else:
+            return None
+
+    def get_dataset_count(self, obj):
+        return obj.dataset_set.count()
+
+    class Meta:
+        model = DatasetTag
+        exclude = ['id']
+        depth = 0
+
+class NestedDatasetTagSerializer(serializers.ModelSerializer):
+
+    parent = serializers.SerializerMethodField()
+
+    def get_parent(self, obj):
+        if obj.parent:
+            return NestedDatasetTagSerializer(obj.parent).data
+        else:
+            return None
+    class Meta:
+        model = DatasetTag
+        exclude = ['id', 'description']
+        depth = 10
+
+
 class DatasetSerializer(serializers.ModelSerializer):
+    """
+    Serializer used in dataset list.
+    """
 
     detail = serializers.SerializerMethodField()
+    tags = serializers.ListSerializer(child=NestedDatasetTagSerializer())
 
     def get_detail(self, dataset):
         request = self.context['request']
@@ -16,7 +54,6 @@ class DatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dataset
         exclude = ['id']
-
 
 class DataChannelOfVisFileSerializer(serializers.ModelSerializer):
 
@@ -117,6 +154,7 @@ class DatasetDetailSerializer(serializers.ModelSerializer):
     vis_files = VisFileSerializer(many=True, read_only=True)
     raw_files = RawFileOfDatasetSerializer(many=True, read_only=True)
     created_by = SiteUserSerializer(read_only=True)
+    tags = serializers.ListSerializer(child=SimpleDatasetTagSerializer())
 
     class Meta:
         model = Dataset
