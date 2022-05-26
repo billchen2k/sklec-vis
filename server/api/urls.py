@@ -24,6 +24,7 @@ urlpatterns = [
     path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
     path('viscontent/<str:uuid>/', views.GetRskContent.as_view(), name='rsk-content'),
     path('ncfcontent/<str:uuid>/', views.GetNcfContent.as_view(), name='ncf-content'),
+    path('tags/', views.TagList.as_view()),
     path('user/token/', views.token, name='get-token'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger'),

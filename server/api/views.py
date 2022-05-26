@@ -57,6 +57,16 @@ class DataContent(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
+class TagList(generics.ListAPIView):
+
+    serializer_class = SimpleDatasetTagSerializer
+    def get_queryset(self):
+        return DatasetTag.objects.all()
+
+    @swagger_auto_schema(operation_description='获取系统中的所有标签。如果标签含有 parent 属性，则表明该标签为某个父标签的子标签。' +
+        '使用这种方式来表达标签的层级关系，从而来实现标签的嵌套关系。',)
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 class GetRskContent(views.APIView):
 
     @swagger_auto_schema(operation_description='从指定 RSK VisFile 中获取指定 Channel 的数据',

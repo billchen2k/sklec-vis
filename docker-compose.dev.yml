@@ -20,8 +20,8 @@ services:
     container_name: ${CONTAINER_SERVER}
     build:
       context: ./server
-      dockerfile: Dockerfile-dev
-    command: ./start.sh
+      dockerfile: Dockerfile
+    command: docker/django-start-dev.sh
     environment:
       DJANGO_SETTINGS_MODULE: sklecvis.settings
       DB_HOST: 172.20.5.126 # For local debugging

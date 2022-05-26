@@ -59,7 +59,7 @@ export interface IDataset {
   latitude: number;
   longitude: number;
   name: string;
-  tags: any[];
+  tags: IDatasetTag[];
   updated_at: string;
   vis_files?: IVisFile[];
   raw_files?: any[];
@@ -70,4 +70,14 @@ export interface IDataset {
 export interface Mark {
   value: number;
   label?: React.ReactNode;
+}
+
+export interface IDatasetTag {
+  uuid: string;
+  name: string;
+  full_name: string;
+  description: string;
+  parent: | string | IDatasetTag;
+  fa_icon: string;
+  color: string;
 }

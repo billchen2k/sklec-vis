@@ -1,5 +1,4 @@
 FROM node:14 as build
-FROM node:14
 WORKDIR /app
 COPY . .
 EXPOSE 8080

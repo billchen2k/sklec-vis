@@ -1,21 +1,18 @@
-import * as React from 'react';
-import {DatasetType} from '@/types';
-import {
-  Box,
-  Button,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  TextField, Typography,
-} from '@mui/material';
-import {useNavigate} from 'react-router-dom';
-import {Attachment, Close, Launch} from '@mui/icons-material';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
+import {DatasetType, IDataset, IDatasetTag} from '@/types';
+import {Close, Launch} from '@mui/icons-material';
+import {
+  Box, IconButton,
+  List,
+  ListItem, ListItemText,
+  Stack,
+  TextField, Typography,
+} from '@mui/material';
+import * as React from 'react';
 import {useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {DatasetTagBadge} from '../elements/DatasetTagBatch';
 import {DatasetTypeBadge} from '../elements/DatasetTypeBadge';
 
 export interface IDatasetListProps {
@@ -25,7 +22,9 @@ interface IDataListItem {
   name: string;
   link: string;
   type: DatasetType;
+  tags?: IDatasetTag[];
 }
+
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -34,19 +33,19 @@ const DatasetList = (props: IDatasetListProps) => {
 
   useEffect(() => {
     dispatch(siteSlice.actions.setGlobalState('data-listing'));
-  }, []);
+  });
 
 
-  const demoList: IDataListItem[]= [
+  const demoDatasets: IDataListItem[]= [
     {
       'name': 'ADCP_202009-10',
-      'link': '/view/1',
-      'type': 'TABLE',
+      'uuid': '1',
+      'dataset_type': 'TABLE',
     },
     {
       'name': 'CTD_201283_20201111_1520',
-      'link': '/view/2',
-      'type': 'TABLE',
+      'uuid': '2',
+      'dataset_type': 'TABLE',
     },
     // {
     //   'name': 'RDI_S3A_20200220',
@@ -55,19 +54,24 @@ const DatasetList = (props: IDatasetListProps) => {
     // },
   ];
 
-  if (datasetListCache) {
-    console.log('datasetListCache', datasetListCache);
-    for (const item of datasetListCache) {
-      demoList.push({
-        'name': item.name,
-        'link': '/view/' + item.uuid,
-        'type': item.dataset_type,
+
+  const datasetListRender: IDataset[] = (datasetListCache || []).concat(demoDatasets).filter((one: IDataset) => {
+    let searchStr = one.name;
+    searchStr += one.dataset_type || '';
+    searchStr += one.description;
+    if (one.tags) {
+      one.tags.forEach((tag: IDatasetTag) => {
+        let parent = tag as IDatasetTag;
+        while (parent && parent.full_name) {
+          console.log(parent);
+          searchStr += parent.name;
+          searchStr + parent.full_name;
+          parent = parent.parent as IDatasetTag;
+        }
       });
     }
-  }
-
-  const datasetListRender = demoList.filter((one) => {
-    return one.name.match(searchText);
+    searchStr = searchStr.toLowerCase();
+    return searchStr.match(searchText.toLowerCase());
   });
 
   return (
@@ -88,20 +92,28 @@ const DatasetList = (props: IDatasetListProps) => {
         {datasetListRender.map((item, index) => {
           return (
             <ListItem key={index}
-              disablePadding
               secondaryAction={<IconButton
-                onClick={() => navigate(item.link)} >
+                onClick={() => navigate(`view/${item.uuid}`)} >
                 <Launch />
               </IconButton>}
             >
-              <ListItemButton>
-                <ListItemText
-                  primary={item.name}
-                  secondary={
-                    <DatasetTypeBadge type={item.type} />
-                  }
-                />
-              </ListItemButton>
+              {/* <ListItemButton> */}
+              <ListItemText
+                primary={item.name}
+                secondary={
+                  <Stack direction={'row'} spacing={1}>
+                    <DatasetTypeBadge type={item.dataset_type} />
+                    {item.tags && item.tags.map((tag, index) => {
+                      return <DatasetTagBadge key={index} tag={tag} />;
+                    })}
+                    {/* <Box sx={{flexGrow: 1}} /> */}
+                    {/* <Typography color={'text.secondary'} variant={'caption'}>
+                      {item.created_at?.substring(0, 19)}
+                    </Typography> */}
+                  </Stack>
+                }
+              />
+              {/* </ListItemButton> */}
             </ListItem>
           );
         })}

@@ -37,13 +37,26 @@ class SiteUser(models.Model):
 class DatasetTag(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     name = models.CharField(max_length=30, blank=True, null=True)
-    long_name = models.CharField(max_length=100, blank=True, null=True)
+    full_name = models.CharField(max_length=100, blank=True, null=True)
+    parent = models.ForeignKey(to='self', blank=True, null=True, on_delete=models.SET_NULL)
+    description = models.CharField(max_length=200, blank=True, null=True)
     fa_icon = models.CharField(max_length=50, blank=True, null=True)
     color = models.CharField(max_length=20, blank=True, null=True)
-    description = models.CharField(max_length=200, blank=True, null=True)
+
+    def get_tag_chain(self):
+        """
+        Return a list of tags from the root to the current tag.
+        """
+        chain = [self]
+        parent = self.parent
+        while parent:
+            chain.append(parent)
+            parent = parent.parent
+        return reversed(chain)
 
     def __str__(self):
-        return f'{self.id}({self.uuid}): {self.name}'
+        chain = self.get_tag_chain()
+        return ' -> '.join([f'{self.id}({self.uuid}): {tag.name}({tag.full_name})' for tag in chain])
 
 class Dataset(models.Model):
 
