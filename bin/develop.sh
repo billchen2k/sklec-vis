@@ -24,7 +24,7 @@ function start() {
   echo "Starting develop..."
   # Collect python requirements.
   # python -m pipreqs.pipreqs ./server --force
-  docker-compose -f docker-compose.dev.yml build
+  docker-compose -f docker-compose.dev.yml build $EXTRA_BUILD_FLAG
     # --build-arg http_proxy=http://172.20.5.126:7890 \
     # --build-arg https_proxy=http://172.20.5.126:7890
   docker-compose -f docker-compose.dev.yml up -d
@@ -61,6 +61,12 @@ fi
 
 
 if [ "$1" = "--start" ]; then
+  unset EXTRA_BUILD_FLAG
+  start
+  logs
+elif [ "$1" = "--start-no-cache" ]; then
+  echo '\033[0;31mStarting without build cache. --no-cache flag will be used during docker-compose build\033[0m.'
+  export EXTRA_BUILD_FLAG=--no-cache
   start
   logs
 elif [ "$1" = "--stop" ]; then

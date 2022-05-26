@@ -45,7 +45,8 @@ services:
       context: ./client
       dockerfile: Dockerfile-dev
     volumes:
-      - ./client:/app
+      - ./client/src:/app/src
+      - ./client/public:/app/public
 
   nginx:
     container_name: ${CONTAINER_NGINX}
