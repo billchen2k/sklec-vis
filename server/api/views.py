@@ -263,15 +263,19 @@ class GetNcfContent(views.APIView):
                 #     params[dim + '_end'] = 0
 
         core = NcfCoreClass(visfile.file.path)
-        file_meta_list: List[Dict] = core.get_channel_data_split(params)
-        files = []
-        for f in file_meta_list:
-            url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
-            f['file'] = request.build_absolute_uri(url)
-            del f['filepath']
-        return JsonResponseOK(data={
-            'files': file_meta_list
-        })
+        data = {}
+        if params.__contains__('return_type') and params['return_type'] == 'array':
+            channel_data_array_list = core.get_channel_data_split(params)
+            data['arrays'] = channel_data_array_list
+        else:  # ncf
+            file_meta_list: List[Dict] = core.get_channel_data_split(params)
+            files = []
+            for f in file_meta_list:
+                url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
+                f['file'] = request.build_absolute_uri(url)
+                del f['filepath']
+            data['files'] = file_meta_list
+        return JsonResponseOK(data=data)
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
