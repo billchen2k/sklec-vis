@@ -1,8 +1,6 @@
 FROM node:14
 WORKDIR /app
-COPY package.json /app/package.json
-EXPOSE 8080
-RUN npm install -g webpack-dev-server webpack-cli
-RUN npm install
 COPY . .
+EXPOSE 8080
+RUN npm install
 CMD ["npm", "run", "serve"]
