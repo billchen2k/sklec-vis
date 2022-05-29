@@ -262,12 +262,16 @@ class GetNcfContent(views.APIView):
                 # if (params[dim + '_end'] == -1):
                 #     params[dim + '_end'] = 0
 
+        return_type = 'tiff' # default is tiff
+        if params.__contains__('return_type'):
+            return_type = params['return_type']
+
         core = NcfCoreClass(visfile.file.path)
         data = {}
-        if params.__contains__('return_type') and params['return_type'] == 'array':
+        if return_type == 'array':
             channel_data_array_list = core.get_channel_data_split(params)
             data['arrays'] = channel_data_array_list
-        else:  # ncf
+        elif return_type == 'tiff':
             file_meta_list: List[Dict] = core.get_channel_data_split(params)
             files = []
             for f in file_meta_list:
@@ -275,6 +279,8 @@ class GetNcfContent(views.APIView):
                 f['file'] = request.build_absolute_uri(url)
                 del f['filepath']
             data['files'] = file_meta_list
+        else:
+            return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
         return JsonResponseOK(data=data)
 
 

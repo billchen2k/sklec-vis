@@ -109,7 +109,8 @@ class NcfCoreClass(SKLECBaseCore):
             for name in dirs:
                 os.rmdir(os.path.join(root, name))  # 删除一个空目录
 
-    def get_channel_data_split(self, params):
+
+    def get_channel_data_array(self, params):
         # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
         # # 文件夹超过100MB 清空
         # if doc_size / 1024 / 1024 > 100:
@@ -199,8 +200,6 @@ class NcfCoreClass(SKLECBaseCore):
                     params['latitude_start'], params['latitude_end'],
                     label)
                 full_name = self._find_in_cache_folder(params_str)
-                print('123')
-                print(full_name)
                 print(~(params.__contains__('return_type') and params['return_type'] == 'tiff'))
                 if full_name is not None and params.__contains__('return_type') and params['return_type'] == 'tiff' :
                     print('111')
