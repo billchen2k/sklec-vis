@@ -1,6 +1,7 @@
 import datetime
 import json
 import traceback
+import urllib.parse
 from json import JSONDecodeError
 from typing import Dict, List
 
@@ -266,6 +267,15 @@ class GetNcfContent(views.APIView):
         if params.__contains__('return_type'):
             return_type = params['return_type']
 
+        input_text = urllib.parse.urlencode(params['return_scalar_format']).encode('utf8')
+        print('input:')
+        print(input_text)
+
+        return_scalar_format = '.2d' # ??
+        if params.__contains__('return_scalar_format'):
+            return_scalar_format = urllib.parse.urlencode(params['return_scalar_format']).decode('utf8')
+        # URLDecoder.decode(params['return_scalar_format'], "utf-8")
+        print('return_scalar_format' + return_scalar_format)
         core = NcfCoreClass(visfile.file.path)
         data = {}
         if return_type == 'array':

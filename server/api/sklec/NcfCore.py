@@ -416,14 +416,6 @@ class NcfCoreClass(SKLECBaseCore):
                     min_value = 0.0
                     max_value = 0.0
 
-                out_tif_name = params_str + \
-                    "_mn={:.6f}_mx={:.6f}.tiff".format(
-                        min_value, max_value)
-                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-                warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
-                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
-                translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
-
                 split_data[np.where(split_data == fill_value)] = np.NaN
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
