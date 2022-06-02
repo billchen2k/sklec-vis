@@ -400,137 +400,48 @@ class NcfCoreClass(SKLECBaseCore):
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
-                full_name = self._find_in_cache_folder(params_str)
-                print(~(params.__contains__('return_type') and params['return_type'] == 'tiff'))
-                if full_name is not None and params.__contains__('return_type') and params['return_type'] == 'tiff' :
-                    print('111')
-                    full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
-                    min_value, max_value = self._get_min_max_value_from_full_name(
-                        full_name)
-                    tiff_meta = {
-                        'filepath': full_path,
-                        'file_size': os.path.getsize(full_path),
-                        'file_name': full_name,
-                        'datetime': datetime,
-                        'datetime_start': datetime,
-                        'depth': depth,
-                        'longitude_start': params['longitude_start'],
-                        'longitude_end': params['longitude_end'],
-                        'latitude_start': params['latitude_start'],
-                        'latitude_end': params['latitude_end'],
-                        'label': label,
-                        'min_value': min_value,
-                        'max_value': max_value
-                    }
-                    data_list.append(tiff_meta)
+                print('222')
+                split_data = data[datetime,
+                                  depth,
+                                  params['latitude_start']: params['latitude_end'] + 1,
+                                  params['longitude_start']: params['longitude_end'] + 1,
+                                  ]
+                tmp_data = split_data.reshape(-1)
+                fill_pos = np.where(tmp_data == fill_value)
+                processed_data = np.delete(tmp_data, fill_pos)
+                if len(processed_data) > 0:
+                    min_value = processed_data.min()
+                    max_value = processed_data.max()
                 else:
-                    print('222')
-                    split_data = data[datetime,
-                                      depth,
-                                      params['latitude_start']: params['latitude_end'] + 1,
-                                      params['longitude_start']: params['longitude_end'] + 1,
-                                      ]
-                    tmp_data = split_data.reshape(-1)
-                    fill_pos = np.where(tmp_data == fill_value)
-                    processed_data = np.delete(tmp_data, fill_pos)
-                    if len(processed_data) > 0:
-                        min_value = processed_data.min()
-                        max_value = processed_data.max()
-                    else:
-                        min_value = 0.0
-                        max_value = 0.0
+                    min_value = 0.0
+                    max_value = 0.0
 
-                    out_tif_name = params_str + \
-                        "_mn={:.6f}_mx={:.6f}.tiff".format(
-                            min_value, max_value)
-                    tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-                    warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
-                    translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
-                    translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
+                out_tif_name = params_str + \
+                    "_mn={:.6f}_mx={:.6f}.tiff".format(
+                        min_value, max_value)
+                tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
+                warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
+                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+                translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
-                    split_data[np.where(split_data == fill_value)] = 9.9e36
-                    # split_data = split_data.squeeze()
-                    # print(split_data.shape)
-                    # 创建 .tif 文件
-                    # 要在切片之后再翻转
-                    split_data = np.flip(split_data, axis=0)
-                    if params.__contains__('return_type') and params['return_type'] == 'array':
-                        print('333')
-                        array_meta = {
-                            'file_data': split_data.tolist(),
-                            'datetime': datetime,
-                            'depth': depth,
-                            'longitude_start': params['longitude_start'],
-                            'longitude_end': params['longitude_end'],
-                            'latitude_start': params['latitude_start'],
-                            'latitude_end': params['latitude_end'],
-                            'label': label
-                        }
-                        data_list.append(array_meta)
-                    # elif params['return_type'] == 'tiff':
-                    else:  # Generate TIFF file
-                        print('444')
-                        driver = gdal.GetDriverByName('GTiff')
-
-                        tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-                        out_tif = driver.Create(
-                            tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
-                        # print(N_Lon, N_Lat)
-                        # 设置影像的显示范围
-                        # -Lat_Res一定要是-的
-                        # geotransform = (LonMax, Lon_Res, 0, LatMin, 0, -Lat_Res)
-                        geotransform = (LonMin, Lon_Res, 0, LatMax, 0, -Lat_Res)
-                        out_tif.SetGeoTransform(geotransform)
-
-                        # 获取地理坐标系统信息，用于选取需要的地理坐标系统
-                        srs = osr.SpatialReference()
-                        # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
-                        srs.ImportFromEPSG(4326)
-                        out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
-
-                        # 数据写出
-                        # print(split_data.shape)
-                        out_tif.GetRasterBand(1).WriteArray(
-                            split_data)  # 将数据写入内存，此时没有写入硬盘
-
-                        # out_tif.
-                        out_tif.FlushCache()  # 将数据写入硬盘
-                        out_tif = None  # 注意必须关闭tif文件
-
-                        # ds = gdal.Open(out_tif_path)
-
-                        warp_options = gdal.WarpOptions(format='Gtiff',
-                                                        srcSRS=srs.ExportToWkt(),
-                                                        )
-                        gdal.Warp(warp_tif_path, tmp_tif_path,
-                                  format='Gtiff', options=warp_options)
-
-                        translate_options = gdal.TranslateOptions(format='GTiff',
-                                                                  creationOptions=[
-                                                                      'TILED=YES', 'COMPRESS=LZW']
-                                                                  )
-                        gdal.Translate(translate_tif_path, warp_tif_path,
-                                       options=translate_options)
-                        # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
-                        # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
-                        # self._exec_gdal_inplace(
-                        #     f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
-                        tiff_meta = {
-                            'filepath': translate_tif_path,
-                            'file_size': os.path.getsize(translate_tif_path),
-                            'file_name': translate_tif_name,
-                            'datetime': datetime,
-                            'datetime_start': datetime,
-                            'depth': depth,
-                            'longitude_start': params['longitude_start'],
-                            'longitude_end': params['longitude_end'],
-                            'latitude_start': params['latitude_start'],
-                            'latitude_end': params['latitude_end'],
-                            'label': label,
-                            'min_value': min_value,
-                            'max_value': max_value
-                        }
-                        data_list.append(tiff_meta)
+                split_data[np.where(split_data == fill_value)] = 9.9e36
+                # split_data = split_data.squeeze()
+                # print(split_data.shape)
+                # 创建 .tif 文件
+                # 要在切片之后再翻转
+                split_data = np.flip(split_data, axis=0)
+                print('333')
+                array_meta = {
+                    'file_data': split_data.tolist(),
+                    'datetime': datetime,
+                    'depth': depth,
+                    'longitude_start': params['longitude_start'],
+                    'longitude_end': params['longitude_end'],
+                    'latitude_start': params['latitude_start'],
+                    'latitude_end': params['latitude_end'],
+                    'label': label
+                }
+                data_list.append(array_meta)
         return data_list
 
     def close(self):

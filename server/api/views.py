@@ -269,7 +269,7 @@ class GetNcfContent(views.APIView):
         core = NcfCoreClass(visfile.file.path)
         data = {}
         if return_type == 'array':
-            channel_data_array_list = core.get_channel_data_split(params)
+            channel_data_array_list = core.get_channel_data_array(params)
             data['arrays'] = channel_data_array_list
         elif return_type == 'tiff':
             file_meta_list: List[Dict] = core.get_channel_data_split(params)
