@@ -268,11 +268,11 @@ class GetNcfContent(views.APIView):
         if params.__contains__('return_type'):
             return_type = params['return_type']
 
-        return_scalar_format = '.2d' # ??
-        if params.__contains__('return_scalar_format'):
-            return_scalar_format = urllib.parse.unquote(params['return_scalar_format'])
+        scalar_format = '.2d' # ??
+        if params.__contains__('scalar_format'):
+            scalar_format = urllib.parse.unquote(params['scalar_format'])
         # URLDecoder.decode(params['return_scalar_format'], "utf-8")
-        print('return_scalar_format' + return_scalar_format)
+        print('scalar_format' + scalar_format)
         core = NcfCoreClass(visfile.file.path)
         data = {}
         if return_type == 'array':
