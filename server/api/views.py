@@ -268,7 +268,7 @@ class GetNcfContent(views.APIView):
         if params.__contains__('return_type'):
             return_type = params['return_type']
 
-        scalar_format = '.2d' # ??
+        scalar_format = 6
         if params.__contains__('scalar_format'):
             scalar_format = urllib.parse.unquote(params['scalar_format'])
         # URLDecoder.decode(params['return_scalar_format'], "utf-8")
