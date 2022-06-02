@@ -424,7 +424,7 @@ class NcfCoreClass(SKLECBaseCore):
                 translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
                 translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
-                split_data[np.where(split_data == fill_value)] = None
+                split_data[np.where(split_data == fill_value)] = "null"
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
                 # 创建 .tif 文件
