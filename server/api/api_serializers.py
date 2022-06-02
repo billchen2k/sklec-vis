@@ -110,6 +110,7 @@ class GetNcfContentRequestSerializer(serializers.Serializer):
     filenum_limit = serializers.IntegerField(required=False, help_text="生成 tiff 文件的数量限制。")
     return_type = serializers.CharField(required=False, help_text="留空则默认为tiff。")
     channel_label = serializers.CharField(help_text="表示所请求的channel，应与dataset.variables.variable_name一致")
+    scalar_format = serializers.CharField(required=False, help_text="array标量数据的format规则")
 
 
 class GetNcfContentResponseSerializer(SuccessResponseSerializer):
