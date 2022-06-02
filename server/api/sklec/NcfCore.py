@@ -416,7 +416,7 @@ class NcfCoreClass(SKLECBaseCore):
                     min_value = 0.0
                     max_value = 0.0
 
-                split_data[np.where(split_data == fill_value)] = 'null'
+                split_data[np.where(split_data == fill_value)] = np.NaN
                 # split_data = split_data.squeeze()
                 # print(split_data.shape)
                 # 创建 .tif 文件
