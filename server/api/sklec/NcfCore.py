@@ -377,9 +377,6 @@ class NcfCoreClass(SKLECBaseCore):
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
-        print('****')
-        print(Lon)
-        print(Lat)
         # 影像的左上角和右下角坐标
         LonMin, LatMax, LonMax, LatMin = [
             Lon.min(), Lat.max(), Lon.max(), Lat.min()]
@@ -422,7 +419,8 @@ class NcfCoreClass(SKLECBaseCore):
                 # 创建 .tif 文件
                 # 要在切片之后再翻转
                 split_data = np.flip(split_data, axis=0)
-                print('333')
+                split_data = np.around(split_data, params['scalar_format'])
+                print(split_data)
                 array_meta = {
                     'file_data': split_data.tolist(),
                     'datetime': datetime,
