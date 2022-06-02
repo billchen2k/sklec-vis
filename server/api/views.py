@@ -273,7 +273,6 @@ class GetNcfContent(views.APIView):
             scalar_format = params['scalar_format']
             # scalar_format = urllib.parse.unquote(params['scalar_format'])
         # URLDecoder.decode(params['return_scalar_format'], "utf-8")
-        print('scalar_format' + scalar_format)
         core = NcfCoreClass(visfile.file.path)
         data = {}
         if return_type == 'array':
