@@ -281,8 +281,6 @@ class GetNcfContent(views.APIView):
             data['files'] = file_meta_list
         else:
             return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
-        print(json.loads(data))
-
         return JsonResponseOK(data=data)
 
 
