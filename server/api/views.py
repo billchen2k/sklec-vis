@@ -268,10 +268,6 @@ class GetNcfContent(views.APIView):
         if params.__contains__('return_type'):
             return_type = params['return_type']
 
-        input_text = urllib.parse.unquote(params['return_scalar_format'])
-        print('input:')
-        print(input_text)
-
         return_scalar_format = '.2d' # ??
         if params.__contains__('return_scalar_format'):
             return_scalar_format = urllib.parse.unquote(params['return_scalar_format'])
