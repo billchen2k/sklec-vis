@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 import netCDF4
 from api.sklec.SKLECBaseCore import SKLECBaseCore
@@ -162,10 +163,6 @@ class NcfCoreClass(SKLECBaseCore):
         # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
-        # 反转一下 否则图是反的
-        # data = np.flip(data, axis=2)
-        # data = np.flip(data, axis = 3)
-
         # 计算偏置和系数
         # add_offset = self.file.variables[label].add_offset
         # scale_factor = self.file.variables[label].scale_factor
@@ -175,8 +172,6 @@ class NcfCoreClass(SKLECBaseCore):
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
-        # print(Lon)
-        # print(Lat)
         # 影像的左上角和右下角坐标
         LonMin, LatMax, LonMax, LatMin = [
             Lon.min(), Lat.max(), Lon.max(), Lat.min()]
@@ -188,8 +183,28 @@ class NcfCoreClass(SKLECBaseCore):
         Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
 
         tiff_meta_list = []
-        for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
-            for depth in range(params['depth_start'], params['depth_end'] + 1):
+        total_datetime = params['datetime_end'] - params['datetime_start'] + 1
+        total_depth = params['depth_end'] - params['depth_start'] + 1
+        total_filenum = total_datetime * total_depth
+        # 计算降采样后datetime和depth分别多少维
+        # params['filenum_limit'] = 10
+        if params['filenum_limit'] > total_filenum:
+            datetime_num = total_datetime
+            depth_num = total_depth
+            datetime_step = depth_step = 1
+        else:
+            ratio = math.sqrt(total_filenum / params['filenum_limit'])
+            datetime_num = max(1, int(total_datetime / ratio))
+            depth_num = max(1, params['filenum_limit'] // datetime_num)
+            datetime_step = total_datetime / datetime_num
+            depth_step = total_depth / depth_num
+
+        for datetime_idx in range(datetime_num):
+            datetime = params['datetime_start'] + int(datetime_idx * datetime_step)
+            # in range(params['datetime_start'], params['datetime_end'] + 1, step_date):
+            for depth_idx in range(depth_num):
+                # in range(params['depth_start'], params['depth_end'] + 1, step_depth):
+                depth = params['depth_start'] + int(depth_idx * depth_step)
                 params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
                     params['uuid'],
                     datetime,
@@ -198,7 +213,7 @@ class NcfCoreClass(SKLECBaseCore):
                     params['latitude_start'], params['latitude_end'],
                     label)
                 full_name = self._find_in_cache_folder(params_str)
-                if full_name is not None:
+                if 0 and (full_name is not None):
                     full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
                     min_value, max_value = self._get_min_max_value_from_full_name(
                         full_name)
@@ -225,6 +240,7 @@ class NcfCoreClass(SKLECBaseCore):
                                       ]
                     tmp_data = split_data.reshape(-1)
                     fill_pos = np.where(tmp_data == fill_value)
+                    # fill_pos = np.where(tmp_data= fill_value)
                     processed_data = np.delete(tmp_data, fill_pos)
                     if len(processed_data) > 0:
                         min_value = processed_data.min()
@@ -242,51 +258,52 @@ class NcfCoreClass(SKLECBaseCore):
                     translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
                     split_data[np.where(split_data == fill_value)] = 9.9e36
-                    # split_data = split_data.squeeze()
-                    # print(split_data.shape)
                     # 创建 .tif 文件
                     # 要在切片之后再翻转
-                    split_data = np.flip(split_data, axis=0)
+                    # split_data = np.flip(split_data, axis=0)
 
                     driver = gdal.GetDriverByName('GTiff')
 
                     tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
                     out_tif = driver.Create(
                         tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
-                    # print(N_Lon, N_Lat)
-                    # 设置影像的显示范围
-                    # -Lat_Res一定要是-的
-                    # geotransform = (LonMax, Lon_Res, 0, LatMin, 0, -Lat_Res)
-                    geotransform = (LonMin, Lon_Res, 0, LatMax, 0, -Lat_Res)
+                    # 设置影像的显示范围 这样写不用翻转即可
+                    geotransform = (LonMin, Lon_Res, 0, LatMin, 0, Lat_Res)
                     out_tif.SetGeoTransform(geotransform)
+                    out_tif.GetRasterBand(1).WriteArray(
+                        split_data)
+                    out_tif.FlushCache()  # 将数据写入硬盘
+                    out_tif = None  # 注意必须关闭tif文件
 
                     # 获取地理坐标系统信息，用于选取需要的地理坐标系统
                     srs = osr.SpatialReference()
                     # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
                     srs.ImportFromEPSG(4326)
-                    out_tif.SetProjection(srs.ExportToWkt())  # 给新建图层赋予投影信息
-
-                    # 数据写出
-                    # print(split_data.shape)
-                    out_tif.GetRasterBand(1).WriteArray(
-                        split_data)  # 将数据写入内存，此时没有写入硬盘
-
-                    # out_tif.
-                    out_tif.FlushCache()  # 将数据写入硬盘
-                    out_tif = None  # 注意必须关闭tif文件
-
-                    # ds = gdal.Open(out_tif_path)
 
                     warp_options = gdal.WarpOptions(format='Gtiff',
                                                     srcSRS=srs.ExportToWkt(),
+                                                    # srcSRS='EPSG:4326'
                                                     )
                     gdal.Warp(warp_tif_path, tmp_tif_path,
                               format='Gtiff', options=warp_options)
+                    total_width = params['longitude_end'] - params['longitude_start'] + 1
+                    total_height = params['latitude_end'] - params['latitude_start'] + 1
+                    total_res = total_width * total_height
 
+                    # params['res_limit'] = 200
+                    if params['res_limit'] > total_res:
+                        out_width = total_width
+                        out_height = total_height
+                    else:
+                        ratio = math.sqrt(total_res / params['res_limit'])
+                        out_width = max(1, int(total_width / ratio))
+                        out_height = max(1, params['res_limit'] // out_width)
                     translate_options = gdal.TranslateOptions(format='GTiff',
                                                               creationOptions=[
-                                                                  'TILED=YES', 'COMPRESS=LZW']
-                                                              )
+                                                                  'TILED=YES', 'COMPRESS=LZW'],
+                                                              width=out_width,
+                                                              height=out_height,
+                    )
                     gdal.Translate(translate_tif_path, warp_tif_path,
                                    options=translate_options)
                     # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)

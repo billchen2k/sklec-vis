@@ -106,8 +106,8 @@ class GetNcfContentRequestSerializer(serializers.Serializer):
     depth_start = serializers.IntegerField(required=False, default=-1, help_text="深度起点下标，-1表示无限制")
     depth_end = serializers.IntegerField(required=False, default=-1, help_text="深度终点下标，-1表示无限制")
 
-    filesize_limit = serializers.IntegerField(required=False, help_text="生成的每个 tiff 文件大小限制。")
-    filenum_limit = serializers.IntegerField(required=False, help_text="生成 tiff 文件的数量限制。")
+    res_limit = serializers.IntegerField(required=False, default=-1, help_text="生成的每个 tiff 像素大小上界。留空或-1表示无限制")
+    filenum_limit = serializers.IntegerField(required=False, default=-1, help_text="生成 tiff 文件的数量上界。留空或-1表示无限制")
     return_type = serializers.CharField(required=False, help_text="留空则默认为tiff。")
     channel_label = serializers.CharField(help_text="表示所请求的channel，应与dataset.variables.variable_name一致")
 

@@ -254,13 +254,15 @@ class GetNcfContent(views.APIView):
                     if params[dim + '_end'] > length - 1:
                         return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
                     break
-                # # dim不存在ncf文件中 置为0 便于后续处理
-                # if (params[dim + '_start'] != -1 or params[dim + '_end'] != -1):
 
-                # if (params[dim + '_start'] == -1):
-                #     params[dim + '_start'] = 0
-                # if (params[dim + '_end'] == -1):
-                #     params[dim + '_end'] = 0
+        if params['res_limit'] == -1:
+            params['res_limit'] = 100000000
+        if params['filenum_limit'] == -1:
+            params['filenum_limit'] = 100000000
+        if params['res_limit'] < 1:
+            return JsonResponseError(f'Resolution limit is invalid. Should greater than 0.')
+        if params['filenum_limit'] < 1:
+            return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
 
         core = NcfCoreClass(visfile.file.path)
         file_meta_list: List[Dict] = core.get_channel_data_split(params)
