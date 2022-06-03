@@ -1,6 +1,8 @@
 import datetime
 import json
 import traceback
+import urllib.parse
+import urllib
 from json import JSONDecodeError
 from typing import Dict, List
 
@@ -264,16 +266,31 @@ class GetNcfContent(views.APIView):
         if params['filenum_limit'] < 1:
             return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
 
+        return_type = 'tiff' # default is tiff
+        if params.__contains__('return_type'):
+            return_type = params['return_type']
+
+        scalar_format = 6
+        if params.__contains__('scalar_format'):
+            scalar_format = params['scalar_format']
+            # scalar_format = urllib.parse.unquote(params['scalar_format'])
+        # URLDecoder.decode(params['return_scalar_format'], "utf-8")
         core = NcfCoreClass(visfile.file.path)
-        file_meta_list: List[Dict] = core.get_channel_data_split(params)
-        files = []
-        for f in file_meta_list:
-            url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
-            f['file'] = request.build_absolute_uri(url)
-            del f['filepath']
-        return JsonResponseOK(data={
-            'files': file_meta_list
-        })
+        data = {}
+        if return_type == 'array':
+            channel_data_array_list = core.get_channel_data_array(params)
+            data['arrays'] = channel_data_array_list
+        elif return_type == 'tiff':
+            file_meta_list: List[Dict] = core.get_channel_data_split(params)
+            files = []
+            for f in file_meta_list:
+                url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
+                f['file'] = request.build_absolute_uri(url)
+                del f['filepath']
+            data['files'] = file_meta_list
+        else:
+            return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
+        return JsonResponseOK(data=data)
 
 
 def not_found(request: HttpRequest) -> HttpResponse:

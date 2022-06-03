@@ -328,5 +328,128 @@ class NcfCoreClass(SKLECBaseCore):
                 tiff_meta_list.append(tiff_meta)
         return tiff_meta_list
 
+    def get_channel_data_array(self, params):
+        # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
+        # # 文件夹超过100MB 清空
+        # if doc_size / 1024 / 1024 > 100:
+        #     del_files(CACHE_FOLDER_DIR)
+
+        # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
+        doc_size, status = self._get_doc_real_size(CACHE_FOLDER_DIR)
+        doc_counter = 0
+        while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
+            oldest_status = status[doc_counter]
+            try:
+                os.remove(os.path.join(CACHE_FOLDER_DIR,
+                          oldest_status['file_name']))
+                doc_size -= oldest_status['file_size']
+            except Exception as e:
+                print("except:", e)
+            doc_counter += 1
+
+        label = params['channel_label']
+        channel_dimensions = self.file[label].dimensions
+        data = np.array(self.file.variables[label]).astype(np.float64)
+        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
+        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
+        i = 0
+        # 找出四个维度对应的index
+        for dim in channel_dimensions:
+            if dim in self.string_for_datetime:
+                datetime_field = dim
+                datetime_idx = i
+            elif dim in self.string_for_depth:
+                depth_field = dim
+                depth_idx = i
+            elif dim in self.string_for_longitude:
+                longitude_field = dim
+                longitude_idx = i
+            elif dim in self.string_for_latitude:
+                latitude_field = dim
+                latitude_idx = i
+            i += 1
+        # 不存在datetime or depth 则进行升维操作
+        if datetime_idx == -1:
+            datetime_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+            params['datetime_start'] = params['datetime_end'] = 0
+        if depth_idx == -1:
+            depth_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+            params['depth_start'] = params['depth_end'] = 0
+
+        # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
+        transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
+        data = np.transpose(data, transpose_list)
+        # 反转一下 否则图是反的
+        # data = np.flip(data, axis=2)
+        # data = np.flip(data, axis = 3)
+
+        # 计算偏置和系数
+        # add_offset = self.file.variables[label].add_offset
+        # scale_factor = self.file.variables[label].scale_factor
+        # data = data * scale_factor + add_offset
+        fill_value = self.file.variables[label]._FillValue
+
+        Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
+        Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
+
+        # 影像的左上角和右下角坐标
+        LonMin, LatMax, LonMax, LatMin = [
+            Lon.min(), Lat.max(), Lon.max(), Lat.min()]
+
+        # 分辨率计算
+        N_Lat = len(Lat)
+        N_Lon = len(Lon)
+        Lon_Res = (LonMax - LonMin) / (float(N_Lon)-1)
+        Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
+
+        data_list = []
+        for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
+            for depth in range(params['depth_start'], params['depth_end'] + 1):
+                params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
+                    params['uuid'],
+                    datetime,
+                    depth,
+                    params['longitude_start'], params['longitude_end'],
+                    params['latitude_start'], params['latitude_end'],
+                    label)
+                print('222')
+                split_data = data[datetime,
+                                  depth,
+                                  params['latitude_start']: params['latitude_end'] + 1,
+                                  params['longitude_start']: params['longitude_end'] + 1,
+                                  ]
+                tmp_data = split_data.reshape(-1)
+                fill_pos = np.where(tmp_data == fill_value)
+                processed_data = np.delete(tmp_data, fill_pos)
+                if len(processed_data) > 0:
+                    min_value = processed_data.min()
+                    max_value = processed_data.max()
+                else:
+                    min_value = 0.0
+                    max_value = 0.0
+
+                split_data[np.where(split_data == fill_value)] = np.NaN
+                # split_data = split_data.squeeze()
+                # print(split_data.shape)
+                # 创建 .tif 文件
+                # 要在切片之后再翻转
+                split_data = np.flip(split_data, axis=0)
+                split_data = np.around(split_data, params['scalar_format'])
+                print(split_data)
+                array_meta = {
+                    'file_data': split_data.tolist(),
+                    'datetime': datetime,
+                    'depth': depth,
+                    'longitude_start': params['longitude_start'],
+                    'longitude_end': params['longitude_end'],
+                    'latitude_start': params['latitude_start'],
+                    'latitude_end': params['latitude_end'],
+                    'label': label
+                }
+                data_list.append(array_meta)
+        return data_list
+
     def close(self):
         self.file.close()
