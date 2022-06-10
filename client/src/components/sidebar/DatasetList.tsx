@@ -14,6 +14,7 @@ import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {DatasetTagBadge} from '../elements/DatasetTagBatch';
 import {DatasetTypeBadge} from '../elements/DatasetTypeBadge';
+import {DatasetTagSelector} from './DatasetTagSelector';
 
 export interface IDatasetListProps {
 }
@@ -59,18 +60,16 @@ const DatasetList = (props: IDatasetListProps) => {
     let searchStr = one.name;
     searchStr += one.dataset_type || '';
     searchStr += one.description;
-    if (one.tags) {
-      one.tags.forEach((tag: IDatasetTag) => {
-        let parent = tag as IDatasetTag;
-        while (parent && parent.full_name) {
-          console.log(parent);
-          searchStr += parent.name;
-          searchStr + parent.full_name;
-          parent = parent.parent as IDatasetTag;
-        }
-      });
-    }
+    one.tags?.forEach((tag: IDatasetTag) => {
+      let parent = tag as IDatasetTag;
+      while (parent) {
+        searchStr += parent.name || '';
+        searchStr += parent.full_name || '';
+        parent = parent.parent as IDatasetTag;
+      }
+    });
     searchStr = searchStr.toLowerCase();
+    console.log('Search string:', searchStr);
     return searchStr.match(searchText.toLowerCase());
   });
 
@@ -78,6 +77,7 @@ const DatasetList = (props: IDatasetListProps) => {
     <Box>
       <Box sx={{width: '90%', m: 2}}>
         <TextField label={'Search'} variant={'standard'} size={'small'} fullWidth={true}
+          sx={{mb: 1}}
           InputProps={{
             endAdornment: (
               <IconButton size={'small'} onClick={() => setSearchText('')}>
@@ -87,6 +87,7 @@ const DatasetList = (props: IDatasetListProps) => {
           }}
           value={searchText} onChange={(e) => setSearchText(e.target.value)}
         />
+        <DatasetTagSelector />
       </Box>
       <List dense={true}>
         {datasetListRender.map((item, index) => {
@@ -101,7 +102,7 @@ const DatasetList = (props: IDatasetListProps) => {
               <ListItemText
                 primary={item.name}
                 secondary={
-                  <Stack direction={'row'} spacing={1}>
+                  <Stack direction={'row'} sx={{flexWrap: 'wrap', gap: 1}}>
                     <DatasetTypeBadge type={item.dataset_type} />
                     {item.tags && item.tags.map((tag, index) => {
                       return <DatasetTagBadge key={index} tag={tag} />;
