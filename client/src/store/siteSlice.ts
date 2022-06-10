@@ -2,7 +2,7 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {DatasetType, IDataset} from '@/types';
 import {IDimensionType} from '@/types/ncf.type';
 
-export type GlobalState = 'data-listing' | 'data-inspecting';
+export type GlobalState = 'data-listing' | 'data-inspecting' | 'managing';
 
 export type IRasterState = {
     open: boolean;

@@ -66,6 +66,7 @@ const Sidebar = (props: ISidebarProps) => {
 
   switch (globalState) {
     case 'data-listing':
+    case 'managing':
       sidebarContent = (
         <DatasetList />
       );

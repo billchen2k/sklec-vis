@@ -1,0 +1,72 @@
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
+import {siteSlice} from '@/store/siteSlice';
+import {Add, FileUpload, SupervisedUserCircle, Tag} from '@mui/icons-material';
+import {Box, Button, ListItemIcon, ListItemText, MenuItem, MenuList, Paper, Popper} from '@mui/material';
+import * as React from 'react';
+
+export interface IToolbarManageActionProps {
+}
+
+export default function ToolbarManageAction(props: IToolbarManageActionProps) {
+  const {globalState} = useAppSelector((state) => state.site);
+  const dispatch = useAppDispatch();
+  //   const oldState = React.useRef<GlobalState>('data-listing');
+  const isManaging = (globalState == 'managing');
+
+  const handleToggleManage = () => {
+    if (isManaging) {
+      dispatch(siteSlice.actions.setGlobalState('data-listing'));
+    } else {
+      dispatch(siteSlice.actions.setGlobalState('managing'));
+      console.log('enter managing');
+    }
+  };
+
+  return (
+    <Box>
+      <Button id={'btn-manage'} variant={isManaging ? 'contained' : 'text'} color={'inherit'} sx={{
+        'color': isManaging ? 'black' : 'white',
+        // '& .content': {
+        //   color: 'warning',
+        // },
+        // ...(isManaging ? {
+        //   color: 'warning',
+        //   backgrounColor: 'white',
+        // }: {}),
+      }}
+      onClick={() => handleToggleManage()}>
+                Manage
+      </Button>
+      <Popper
+        open={isManaging}
+        anchorEl={document.getElementById('btn-manage')}
+        placement={'bottom'}
+      >
+        <Paper sx={{mt: 2}}>
+          <MenuList sx={{zIndex: 9999}}>
+            <MenuItem>
+              <ListItemIcon>
+                <Add fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Create Dataset</ListItemText>
+            </MenuItem>
+            <MenuItem>
+              <ListItemIcon>
+                <Tag fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Tag Management</ListItemText>
+            </MenuItem>
+            <MenuItem>
+              <ListItemIcon>
+                <SupervisedUserCircle fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>User Management</ListItemText>
+            </MenuItem>
+          </MenuList>
+        </Paper>
+
+
+      </Popper>
+    </Box>
+  );
+}
