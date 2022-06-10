@@ -6,6 +6,7 @@ import BaseMap from '@/components/map/BaseMap';
 import {Outlet} from 'react-router-dom';
 import config from '@/config';
 import {useAppSelector} from '@/app/hooks';
+import {orange} from '@mui/material/colors';
 
 export interface IBaseProps {
 
@@ -14,13 +15,16 @@ export interface IBaseProps {
 const Base = (props: IBaseProps) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const {isLoading} = useAppSelector((state) => state.ui);
+  const {globalState} = useAppSelector((state) => state.site);
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+  const isManaging = globalState == 'managing';
 
   return (
     <Box className={'app'}>
-      <AppBar position='fixed' sx={{height: config.appearance.appBarHeight}}>
+      <AppBar position='fixed' color={isManaging ? 'warning' : 'primary'}
+        sx={{height: config.appearance.appBarHeight}}>
         <SKToolbar sidebarOpen={sidebarOpen}
           onToggleOpen={toggleSidebar}
         ></SKToolbar>

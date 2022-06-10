@@ -1,7 +1,7 @@
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
-import {Close, Launch} from '@mui/icons-material';
+import {Close, Delete, Edit, Launch} from '@mui/icons-material';
 import {
   Box, IconButton,
   List,
@@ -29,11 +29,14 @@ interface IDataListItem {
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const {datasetListCache} = useAppSelector((state) => state.site);
+  const {datasetListCache, globalState} = useAppSelector((state) => state.site);
   const [searchText, setSearchText] = React.useState('');
+  const isManaging = globalState == 'managing';
 
   useEffect(() => {
-    dispatch(siteSlice.actions.setGlobalState('data-listing'));
+    if (!['data-listing', 'managing'].includes(globalState)) {
+      dispatch(siteSlice.actions.setGlobalState('data-listing'));
+    }
   });
 
 
@@ -69,7 +72,7 @@ const DatasetList = (props: IDatasetListProps) => {
       }
     });
     searchStr = searchStr.toLowerCase();
-    console.log('Search string:', searchStr);
+    // console.log('Search string:', searchStr);
     return searchStr.match(searchText.toLowerCase());
   });
 
@@ -91,12 +94,25 @@ const DatasetList = (props: IDatasetListProps) => {
       </Box>
       <List dense={true}>
         {datasetListRender.map((item, index) => {
+          let secondaryAction = (<IconButton
+            onClick={() => navigate(`view/${item.uuid}`)} >
+            <Launch />
+          </IconButton>);
+          if (isManaging) {
+            secondaryAction = (<Stack direction={'row'}>
+              <IconButton
+                onClick={() => alert('delete')} >
+                <Delete />
+              </IconButton>
+              <IconButton
+                onClick={() => alert('edit')} >
+                <Edit />
+              </IconButton>
+            </Stack>);
+          }
           return (
             <ListItem key={index}
-              secondaryAction={<IconButton
-                onClick={() => navigate(`view/${item.uuid}`)} >
-                <Launch />
-              </IconButton>}
+              secondaryAction={secondaryAction}
             >
               {/* <ListItemButton> */}
               <ListItemText

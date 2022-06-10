@@ -73,6 +73,7 @@ export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
             size={'small'}
             disabled={loading}
             value={selectedTags}
+            variant={'standard'}
             onChange={(event) => handleSelectedTagsChange(event.target.value)}
             renderValue={(selectedTags) => (
               <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5}}>
