@@ -26,6 +26,7 @@ urlpatterns = [
     path('ncfcontent/<str:uuid>/', views.GetNcfContent.as_view(), name='ncf-content'),
     path('tags/', views.TagList.as_view()),
     path('user/token/', views.token, name='get-token'),
+    path('user/login/', views.Login, name='user-login'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

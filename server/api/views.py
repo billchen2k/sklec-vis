@@ -292,6 +292,42 @@ class GetNcfContent(views.APIView):
             return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
         return JsonResponseOK(data=data)
 
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import Permission, User
+class Login(views.APIView):
+
+    @swagger_auto_schema(operation_description='用户登录',
+                         request_body=LoginRequestSerializer,
+                         response={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def login(self, request, *args, **kwargs):
+        if not request.query_params.__contains__('username'):
+            return JsonResponseError(f'username is empty.')
+        if not request.query_params.__contains__('password'):
+            return JsonResponseError(f'password is empty.')
+        username = request.query_params['username']
+        password = request.query_params['password']
+        # password should be sha256 encrypted
+        print(request.query_params['username'])
+        print(request.query_params['password'])
+
+        user = authenticate(username=username, password=password)
+        print(user)
+        if user is None:
+            # login failure
+            return JsonResponseError(f'User does not exist.')
+        if not user.is_active:
+            return JsonResponseError(f'User is not active.')
+
+        login(request, user)
+        print(user.id)
+        data = {}
+        data['token'] = 'this is a token'
+        return JsonResponseOK(data=data)
+
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({

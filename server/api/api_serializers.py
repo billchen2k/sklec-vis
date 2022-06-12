@@ -122,3 +122,9 @@ class GetNcfContentResponseSerializer(SuccessResponseSerializer):
             ref_name = 'NcfContentResponseData'
 
     data = DataSerializer()
+
+
+class LoginRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    password = serializers.CharField(required=False, help_text="密码")
