@@ -303,7 +303,7 @@ class Login(views.APIView):
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    def login(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         if not request.query_params.__contains__('username'):
             return JsonResponseError(f'username is empty.')
         if not request.query_params.__contains__('password'):
