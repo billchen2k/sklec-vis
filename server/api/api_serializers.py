@@ -124,7 +124,45 @@ class GetNcfContentResponseSerializer(SuccessResponseSerializer):
     data = DataSerializer()
 
 
-class LoginRequestSerializer(serializers.Serializer):
+class POSTLoginRequestSerializer(serializers.Serializer):
 
     username = serializers.CharField(required=False, help_text="用户名")
     password = serializers.CharField(required=False, help_text="密码")
+
+
+class RegisterRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    password = serializers.CharField(required=False, help_text="密码")
+    display_name = serializers.CharField(required=False, help_text="显示名称")
+    affiliation = serializers.CharField(required=False, help_text="所属机构")
+    country = serializers.CharField(required=False, help_text="国家")
+    phone = serializers.CharField(required=False, help_text="电话")
+    address = serializers.CharField(required=False, help_text="地址")
+    city = serializers.CharField(required=False, help_text="所在市")
+    state = serializers.CharField(required=False, help_text="所在省")
+
+
+class UserAuthenticateRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    token = serializers.CharField(required=False, help_text="用户token")
+
+
+class GetUserProfileResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+
+        username = serializers.CharField(required=False, help_text="用户名")
+        email = serializers.CharField(required=False, help_text="邮箱")
+        display_name = serializers.CharField(required=False, help_text="显示名称")
+        affiliation = serializers.CharField(required=False, help_text="所属机构")
+        country = serializers.CharField(required=False, help_text="国家")
+        phone = serializers.CharField(required=False, help_text="电话")
+        address = serializers.CharField(required=False, help_text="地址")
+        city = serializers.CharField(required=False, help_text="所在市")
+        state = serializers.CharField(required=False, help_text="所在省")
+        class Meta:
+            ref_name = 'VisContentResponseData'
+
+    data = DataSerializer()

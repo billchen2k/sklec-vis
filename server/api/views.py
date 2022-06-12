@@ -14,6 +14,7 @@ from drf_yasg.utils import swagger_auto_schema
 from requests import delete
 from rest_framework import status, generics
 from rest_framework import views
+from rest_framework.permissions import IsAuthenticated
 
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
@@ -202,6 +203,7 @@ def token(request: HttpRequest) -> HttpResponse:
 
 
 class GetNcfContent(views.APIView):
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据(仅限NCF)',
                          query_serializer=GetNcfContentRequestSerializer,
@@ -296,23 +298,36 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Permission, User
 class Login(views.APIView):
 
+    authentication_classes = (CsrfExemptSessionAuthentication, )
+
     @swagger_auto_schema(operation_description='用户登录',
-                         request_body=LoginRequestSerializer,
+                         operation_id='user_login',
+                         request_body=POSTLoginRequestSerializer,
                          response={
                              200: SuccessResponseSerializer,
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    def post(self, request, *args, **kwargs):
-        if not request.query_params.__contains__('username'):
-            return JsonResponseError(f'username is empty.')
-        if not request.query_params.__contains__('password'):
-            return JsonResponseError(f'password is empty.')
-        username = request.query_params['username']
-        password = request.query_params['password']
-        # password should be sha256 encrypted
-        print(request.query_params['username'])
-        print(request.query_params['password'])
+    def post(self, request: HttpRequest, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        params = jdata
+        print(params)
+        username = params.get('username')
+        password = params.get('password')
+
+        # if not request.query_params.__contains__('username'):
+        #     return JsonResponseError(f'username is empty.')
+        # if not request.query_params.__contains__('password'):
+        #     return JsonResponseError(f'password is empty.')
+        # username = request.query_params['username']
+        # password = request.query_params['password']
+
+        print(username)
+        print(password)
 
         user = authenticate(username=username, password=password)
         print(user)
@@ -328,6 +343,103 @@ class Login(views.APIView):
         data['token'] = 'this is a token'
         return JsonResponseOK(data=data)
 
+
+class Logout(views.APIView):
+
+    @swagger_auto_schema(operation_description='用户登出',
+                         operation_id='user_logout',
+                         response={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponseError(f'Invalid user identity.')
+        logout(request)
+        data = {}
+        return JsonResponseOK(data=data)
+
+
+class Register(views.APIView):
+
+    authentication_classes = (CsrfExemptSessionAuthentication, )
+
+    @swagger_auto_schema(operation_description='用户注册',
+                         operation_id='user_register',
+                         request_body=POSTLoginRequestSerializer,
+                         response={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def post(self, request: HttpRequest, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        params = jdata
+
+        username = params.get('username')
+        password = params.get('password')
+        user_email = params.get('email')
+        display_name = params.get('display_name')
+        affiliation = params.get('affiliation')
+        country = params.get('country')
+        phone = params.get('phone')
+        address = params.get('address')
+        city = params.get('city')
+        state = params.get('state')
+
+        user = User(username=username, email=user_email)
+        user.set_password(password)
+        user.save()
+
+        user_serializer = SiteUser(user=user,
+                                   display_name=display_name,
+                                   affiliation=affiliation,
+                                   country=country,
+                                   phone=phone,
+                                   address=address,
+                                   city=city,
+                                   state=state
+        )
+        user_serializer.affiliation = affiliation
+
+        user = user_serializer.save()
+        print(user)
+        data = {}
+        data['username'] = username
+        return JsonResponseOK(data=data)
+
+
+class GetUserProfile(views.APIView):
+
+    @swagger_auto_schema(operation_description='用户信息',
+                         operation_id='user_profile',
+                         response={
+                             200: GetUserProfileResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponseError('Invalid user identity.')
+
+        user = SiteUser.objects.get(user=request.user)
+        site_data = user.__dict__
+        print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in site_data.items()]))
+        user_data = {
+            'username': request.user.username,
+            'user_email': request.user.email,
+            'login_time':request.user.last_login
+        }
+        data = user_data.copy()
+        data.update(site_data)
+        print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in data.items()]))
+
+        return JsonResponseOK(data=data)
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({
