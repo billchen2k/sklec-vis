@@ -195,6 +195,7 @@ class NcfCoreClass(SKLECBaseCore):
         else:
             ratio = math.sqrt(total_filenum / params['filenum_limit'])
             datetime_num = max(1, int(total_datetime / ratio))
+            datetime_num = min(datetime_num, params['filenum_limit'])
             depth_num = max(1, params['filenum_limit'] // datetime_num)
             datetime_step = total_datetime / datetime_num
             depth_step = total_depth / depth_num
@@ -297,6 +298,7 @@ class NcfCoreClass(SKLECBaseCore):
                     else:
                         ratio = math.sqrt(total_res / params['res_limit'])
                         out_width = max(1, int(total_width / ratio))
+                        out_width = min(out_width, params['res_limit'])
                         out_height = max(1, params['res_limit'] // out_width)
                     translate_options = gdal.TranslateOptions(format='GTiff',
                                                               creationOptions=[
