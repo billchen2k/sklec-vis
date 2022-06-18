@@ -429,6 +429,7 @@ class GetUserProfile(views.APIView):
 
         user = SiteUser.objects.get(user=request.user)
         site_data = user.__dict__
+        site_data['_state'] = None
         print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in site_data.items()]))
         user_data = {
             'username': request.user.username,
