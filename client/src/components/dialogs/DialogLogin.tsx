@@ -51,13 +51,13 @@ export function DialogLogin(props: IDialogLoginProps) {
       <DialogTitle>Log In</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{mb: 2}}>
-          Welcome.
+          Welcome to the SKLEC database.
         </DialogContentText>
         <Stack spacing={1} sx={{width: '20rem'}}>
           <Box sx={{display: 'flex', alignItems: 'flex-end'}}>
             <AccountCircle sx={{color: 'action.active', mr: 1, my: 0.5}} />
             <TextField value={username} fullWidth
-              error={!loading && error}
+              error={!loading && Boolean(error)}
               onChange={(e) => setUsername(e.target.value)}
               label={'Username'}
               variant={'standard'}
@@ -66,7 +66,7 @@ export function DialogLogin(props: IDialogLoginProps) {
           <Box sx={{display: 'flex', alignItems: 'flex-end'}}>
             <Key sx={{color: 'action.active', mr: 1, my: 0.5}} />
             <TextField value={password} fullWidth
-              error={!loading && error}
+              error={!loading && Boolean(error)}
               label={'Password'}
               type={'password'}
               onChange={(e) => setPassword(e.target.value)}
