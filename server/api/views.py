@@ -367,7 +367,7 @@ class Register(views.APIView):
 
     @swagger_auto_schema(operation_description='用户注册',
                          operation_id='user_register',
-                         request_body=POSTLoginRequestSerializer,
+                         request_body=RegisterRequestSerializer,
                          response={
                              200: SuccessResponseSerializer,
                              400: ErrorResponseSerializer,

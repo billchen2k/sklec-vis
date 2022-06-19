@@ -94,7 +94,7 @@ export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
                   value={tag.uuid}
                 >
                   <Checkbox size={'small'} checked={selectedTags.map((uuid) => uuid).indexOf(tag.uuid) != -1} />
-                  <Typography variant={'body'}>
+                  <Typography variant={'body1'}>
                     {getLevelPlaceholder(tag.level || 0)}
                     {tag.full_name}
                   </Typography>
