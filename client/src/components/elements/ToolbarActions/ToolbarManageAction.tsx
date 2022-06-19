@@ -1,6 +1,6 @@
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
-import {Add, FileUpload, SupervisedUserCircle, Tag} from '@mui/icons-material';
+import {Add, SupervisedUserCircle, Tag} from '@mui/icons-material';
 import {Box, Button, ListItemIcon, ListItemText, MenuItem, MenuList, Paper, Popper} from '@mui/material';
 import * as React from 'react';
 
@@ -22,20 +22,17 @@ export default function ToolbarManageAction(props: IToolbarManageActionProps) {
     }
   };
 
+  if (!['data-listing', 'managing'].includes(globalState)) {
+    return null;
+  }
+
   return (
     <Box>
       <Button id={'btn-manage'} variant={isManaging ? 'contained' : 'text'} color={'inherit'} sx={{
         'color': isManaging ? 'black' : 'white',
-        // '& .content': {
-        //   color: 'warning',
-        // },
-        // ...(isManaging ? {
-        //   color: 'warning',
-        //   backgrounColor: 'white',
-        // }: {}),
       }}
       onClick={() => handleToggleManage()}>
-                Manage
+        {globalState == 'managing' ? 'Leave Managing' : 'Manage'}
       </Button>
       <Popper
         open={isManaging}
@@ -64,8 +61,6 @@ export default function ToolbarManageAction(props: IToolbarManageActionProps) {
             </MenuItem>
           </MenuList>
         </Paper>
-
-
       </Popper>
     </Box>
   );

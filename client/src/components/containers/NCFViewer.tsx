@@ -145,7 +145,7 @@ export function NCFViewer(props: INCFViewerProps) {
           depth_start: guardRangeVal('depth', 0),
           depth_end: guardRangeVal('depth', 1),
           filenum_limit: 15,
-          res_limit: 1024 * 1024,
+          res_limit: 500 * 500,
         }),
     );
   };

@@ -8,7 +8,8 @@ type NCFContentRangeParams = 'datetime_start' | 'datetime_end' |
   'longitude_start' | 'longitude_end' |
   'latitude_start' | 'latitude_end' |
   'depth_start' | 'depth_end' |
-  'filesize_limit' | 'filenum_limit' | 'return_type';
+  'filesize_limit' | 'filenum_limit' |
+  'return_type' | 'res_limit' | 'scalar_format';
 
 export const endpoints = {
   getDatasetList: (): AxiosRequestConfig<any> => {
@@ -54,7 +55,8 @@ export const endpoints = {
       },
     };
   },
-  getNcfContent: (uuid: string, channel_label: string,
+  getNcfContent: (uuid: string,
+      channel_label: string,
       xparams?: Partial<Record<NCFContentRangeParams, string | number>>): AxiosRequestConfig<any> => {
     return {
       url: `${API_ROOT}/ncfcontent/${uuid}/`,
