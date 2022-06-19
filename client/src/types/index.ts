@@ -81,3 +81,24 @@ export interface IDatasetTag {
   fa_icon: string;
   color: string;
 }
+
+export interface IDatasetTagForRender extends IDatasetTag {
+  level? :number;
+}
+
+export interface IUser {
+  username: string;
+  user_email: string;
+  login_time: string;
+  _state: string;
+  id: number;
+  uuid: string;
+  display_name: string;
+  affiliation: string;
+  country: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  is_deleted: boolean;
+}

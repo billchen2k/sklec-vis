@@ -5,6 +5,7 @@ import {Box, IconButton, Stack, Toolbar, Typography} from '@mui/material';
 import * as React from 'react';
 import ToolbarAboutAction from '@/components/elements/ToolbarActions/ToolbarAboutAction';
 import ToolbarManageAction from '@/components/elements/ToolbarActions/ToolbarManageAction';
+import {ToolbarUserAction} from './ToolbarActions/ToolbarUserAction';
 
 export interface ISKToolbarProps {
   sidebarOpen: boolean;
@@ -32,15 +33,18 @@ const SKToolbar = (props: ISKToolbarProps) => {
       </IconButton>
       <Typography variant={'h6'}>
         SKLEC Spatial-temporal Data Visualization
-        {globalState == 'managing' && ' (Management Mode)'}
+        {globalState == 'managing' && ' - Management Mode'}
       </Typography>
       <Typography variant={'caption'} sx={{m: 2}}>
         <i>{loadingText}</i>
       </Typography>
       <Box sx={{flexGrow: 1}} />
       <Stack direction={'row'} spacing={1}>
-        <ToolbarManageAction />
+        {['data-listing', 'managing'].includes(globalState) &&
+          <ToolbarManageAction />
+        }
         <ToolbarAboutAction />
+        <ToolbarUserAction />
       </Stack>
     </Toolbar>
   );

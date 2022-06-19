@@ -5,10 +5,11 @@ import config from '@/config';
 import {BrowserRouter} from 'react-router-dom';
 import AppRoutes from '@/app/AppRoutes';
 import AppHeaders from '@/app/AppHeaders';
-import {Provider, ReactReduxContext} from 'react-redux';
+import {Provider} from 'react-redux';
 import {store} from '@/store';
 import GlobalSnackBar from '@/components/elements/GlobalSnackBar';
 import GlobalDialog from '@/components/elements/GlobalDialog';
+import {AppAuth} from './AppAuth';
 
 export interface IAppProps {
 }
@@ -18,6 +19,7 @@ const App = (props: IAppProps) => {
     <ThemeProvider theme={config.theme}>
       <Provider store={store}>
         <AppHeaders />
+        <AppAuth />
         <GlobalSnackBar />
         <GlobalDialog />
         <BrowserRouter>

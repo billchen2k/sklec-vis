@@ -3,8 +3,8 @@ import {endpoints} from '@/config/endpoints';
 import {uiSlice} from '@/store/uiSlice';
 import {IDatasetTag, IDatasetTagForRender} from '@/types';
 import {IModelListResponse} from '@/types/api';
-import {Close} from '@mui/icons-material';
-import {Box, Checkbox, FormControl, IconButton, MenuItem, Select, SelectChangeEvent, Stack, Typography} from '@mui/material';
+import {Check, Close} from '@mui/icons-material';
+import {Box, Checkbox, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, Stack, Typography} from '@mui/material';
 import useAxios from 'axios-hooks';
 import * as React from 'react';
 import {DatasetTagBadge} from '../elements/DatasetTagBatch';
@@ -68,11 +68,13 @@ export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
       <Stack direction={'row'} alignItems={'center'}>
         <Typography sx={{mr: 1}} variant={'body1'}>Tags:</Typography>
         <FormControl sx={{flexGrow: 1}}>
+          {/* <InputLabel>Tags</InputLabel> */}
           <Select
             multiple
             size={'small'}
             disabled={loading}
             value={selectedTags}
+            // label={'Tags'}
             variant={'standard'}
             onChange={(event) => handleSelectedTagsChange(event.target.value)}
             renderValue={(selectedTags) => (
@@ -92,7 +94,7 @@ export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
                   value={tag.uuid}
                 >
                   <Checkbox size={'small'} checked={selectedTags.map((uuid) => uuid).indexOf(tag.uuid) != -1} />
-                  <Typography variant={'body'}>
+                  <Typography variant={'body1'}>
                     {getLevelPlaceholder(tag.level || 0)}
                     {tag.full_name}
                   </Typography>
@@ -105,6 +107,11 @@ export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
           onClick={() => handleSelectedTagsChange([])}
         >
           <Close />
+        </IconButton>
+        <IconButton
+          onClick={() => handleSelectedTagsChange([])}
+        >
+          <Check />
         </IconButton>
       </Stack>
     </Box>

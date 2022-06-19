@@ -134,6 +134,7 @@ class RegisterRequestSerializer(serializers.Serializer):
 
     username = serializers.CharField(required=False, help_text="用户名")
     password = serializers.CharField(required=False, help_text="密码")
+    email = serializers.CharField(required=False, help_text="邮箱")
     display_name = serializers.CharField(required=False, help_text="显示名称")
     affiliation = serializers.CharField(required=False, help_text="所属机构")
     country = serializers.CharField(required=False, help_text="国家")
