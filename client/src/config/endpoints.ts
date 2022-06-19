@@ -70,14 +70,14 @@ export const endpoints = {
   getNcfContent: (uuid: string,
       channel_label: string,
       xparams?: Partial<Record<NCFContentRangeParams, string | number>>): AxiosRequestConfig<any> => {
-    return {
+    return withAuthorization({
       url: `${API_ROOT}/ncfcontent/${uuid}/`,
       method: 'GET',
       params: {
         uuid, channel_label,
         ...xparams,
       },
-    };
+    });
   },
   getDatasetTagList: (): AxiosRequestConfig<IModelListResponse<IDatasetTag>> => {
     return {

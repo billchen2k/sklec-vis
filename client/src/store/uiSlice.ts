@@ -32,6 +32,8 @@ export interface IUIState {
     type: DialogType,
     title: string,
     content: JSX.Element | JSX.Element[] | string,
+    cancelText?: string,
+    confirmText?: string,
     onConfirm?: () => void,
     onCancel?: () => void,
   }
@@ -87,6 +89,8 @@ export const uiSlice = createSlice({
         content: action.payload.content,
         onConfirm: action.payload.onConfirm,
         onCancel: action.payload.onCancel,
+        cancelText: action.payload.cancelText,
+        confirmText: action.payload.confirmText,
       };
     },
     dialogConfirm(state: IUIState) {

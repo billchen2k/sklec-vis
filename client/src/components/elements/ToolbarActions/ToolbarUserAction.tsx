@@ -1,9 +1,11 @@
 import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
+import DialogAccount from '@/components/dialogs/DialogAccount';
 import {DialogLogin} from '@/components/dialogs/DialogLogin';
 import authSlice from '@/store/authSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {AccountCircle, Key, Login, Logout, Person} from '@mui/icons-material';
 import {Box, Button, ListItemIcon, ListItemText, Menu, MenuItem, MenuList} from '@mui/material';
+import Cookies from 'js-cookie';
 import * as React from 'react';
 
 export interface IToolbarUserActionProps {
@@ -12,10 +14,31 @@ export interface IToolbarUserActionProps {
 export function ToolbarUserAction(props: IToolbarUserActionProps) {
   const dispatch = useAppDispatch();
   const {isAuthorized} = useAppSelector((state) => state.auth);
+  const user = useUser();
 
   const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
   const [loginOpen, setLoginOpen] = React.useState<boolean>(false);
-  const user = useUser();
+  const [accountOpen, setAccountOpen] = React.useState<boolean>(false);
+
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    dispatch(uiSlice.actions.openDialog({
+      type: 'confirm',
+      title: 'Confirm',
+      confirmText: 'YES',
+      cancelText: 'NO',
+      content: `Are you sure to log out ${user?.username}?`,
+      onConfirm: () => {
+        dispatch(authSlice.actions.loggedOut());
+        setMenuOpen(false);
+        dispatch(uiSlice.actions.openSnackbar({
+          severity: 'info',
+          message: 'Logged out.',
+        }));
+      },
+    }));
+  };
   return (
     <Box>
       <Button variant={'text'}
@@ -25,7 +48,7 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
         startIcon={
           <Person />
         }>
-        {user?.username || 'Guest'}
+        {user?.username || (Cookies.get('sklecvis_refresh_token') ? '...' : 'Guest')}
       </Button>
       <Menu
         open={menuOpen}
@@ -64,24 +87,22 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
 
         {/* Profile Action */}
         {isAuthorized &&
-          <MenuItem>
+          <MenuItem
+            onClick={() => {
+              setAccountOpen(true);
+              setMenuOpen(false);
+            }}
+          >
             <ListItemIcon>
               <AccountCircle fontSize="small" />
             </ListItemIcon>
-            <ListItemText>Account</ListItemText>
+            <ListItemText>My Account</ListItemText>
           </MenuItem>
         }
 
         {/* Logout Action */}
         {isAuthorized &&
-          <MenuItem onClick={() => {
-            dispatch(authSlice.actions.loggedOut());
-            setMenuOpen(false);
-            dispatch(uiSlice.actions.openSnackbar({
-              severity: 'info',
-              message: 'Logged out.',
-            }));
-          }}>
+          <MenuItem onClick={() => handleLogout()}>
             <ListItemIcon>
               <Logout fontSize="small" />
             </ListItemIcon>
@@ -93,6 +114,7 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
       </Menu>
 
       <DialogLogin open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <DialogAccount open={accountOpen} onClose={() => setAccountOpen(false)} />
 
     </Box>
   );
