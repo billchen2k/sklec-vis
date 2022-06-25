@@ -47,7 +47,9 @@ export function DialogLogin(props: IDialogLoginProps) {
   };
 
   return (
-    <Dialog open={props.open}>
+    <Dialog open={props.open}
+      onClose={props.onClose}
+    >
       <DialogTitle>Log In</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{mb: 2}}>
