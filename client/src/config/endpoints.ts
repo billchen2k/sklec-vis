@@ -1,7 +1,8 @@
+import {IRegisterFormData} from '@/components/dialogs/DialogRegister';
 import store from '@/store';
 import {IDatasetTag} from '@/types';
 import {IModelListResponse} from '@/types/api';
-import {AxiosRequestConfig} from 'axios';
+import {AxiosRequestConfig, AxiosRequestConfig} from 'axios';
 import Cookies from 'js-cookie';
 
 const API_ROOT = '/api';
@@ -93,6 +94,13 @@ export const endpoints = {
         username: username,
         password: password,
       },
+    };
+  },
+  postRegister: (registerFormData?: Partial<IRegisterFormData>): AxiosRequestConfig<any> => {
+    return {
+      url: `${API_ROOT}/user/register/`,
+      method: 'POST',
+      data: registerFormData,
     };
   },
   postRefreshToken(): AxiosRequestConfig<any> {

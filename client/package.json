@@ -27,6 +27,7 @@
     "chroma-js": "^2.4.2",
     "d3": "^7.1.1",
     "flat": "^5.0.2",
+    "formik": "^2.2.9",
     "georaster": "^1.5.6",
     "georaster-layer-for-leaflet": "^3.5.0",
     "js-cookie": "^3.0.1",
@@ -50,7 +51,8 @@
     "vega-embed": "^6.20.5",
     "vega-lite": "^5.2.0",
     "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.6.0"
+    "webpack-dev-server": "^4.6.0",
+    "yup": "^0.32.11"
   },
   "scripts": {
     "start": "webpack serve --mode development",

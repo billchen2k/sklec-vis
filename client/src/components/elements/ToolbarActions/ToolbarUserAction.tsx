@@ -1,6 +1,7 @@
 import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
 import DialogAccount from '@/components/dialogs/DialogAccount';
 import {DialogLogin} from '@/components/dialogs/DialogLogin';
+import DialogRegister from '@/components/dialogs/DialogRegister';
 import authSlice from '@/store/authSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {AccountCircle, Key, Login, Logout, Person} from '@mui/icons-material';
@@ -19,6 +20,7 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
   const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
   const [loginOpen, setLoginOpen] = React.useState<boolean>(false);
   const [accountOpen, setAccountOpen] = React.useState<boolean>(false);
+  const [registerOpen, setRegisterOpen] = React.useState<boolean>(false);
 
 
   const handleLogout = () => {
@@ -77,7 +79,12 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
 
         {/* Register Action */}
         {!isAuthorized &&
-          <MenuItem>
+          <MenuItem
+            onClick={() => {
+              setRegisterOpen(true);
+              setMenuOpen(false);
+            }}
+          >
             <ListItemIcon>
               <Key fontSize="small" />
             </ListItemIcon>
@@ -115,6 +122,7 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
 
       <DialogLogin open={loginOpen} onClose={() => setLoginOpen(false)} />
       <DialogAccount open={accountOpen} onClose={() => setAccountOpen(false)} />
+      <DialogRegister open={registerOpen} onClose={() => setRegisterOpen(false)} />
 
     </Box>
   );
