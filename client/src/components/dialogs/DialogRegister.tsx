@@ -122,7 +122,7 @@ export default function DialogRegister(props: IDialogRegisterProps) {
           .min(3, 'Password is too short')
           .max(40, 'Passowrd is too long.'),
       retype_password: Yup.string()
-          .oneOf([Yup.ref('password'), null], 'Password not match.'),
+          .oneOf([Yup.ref('password')], 'Password not match.'),
       phone: Yup.string().matches(/^(\+?\d{0,4})?\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{4}\)?)?$/,
           'Invalid phone number.'),
     }),
