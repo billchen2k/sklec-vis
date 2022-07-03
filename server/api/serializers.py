@@ -169,6 +169,10 @@ class DatasetDetailSerializer(serializers.ModelSerializer):
         model = Dataset
         fields = '__all__'
 
+class DatasetUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dataset
+        fields = '__all__'
 
 class ViewTiffFileSerializer(serializers.ModelSerializer):
 

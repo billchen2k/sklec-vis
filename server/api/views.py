@@ -78,7 +78,7 @@ class DatasetCreate(views.APIView):
         })
 
 
-class DataContent(generics.RetrieveAPIView):
+class DataContent(generics.RetrieveUpdateAPIView):
     serializer_class = DatasetDetailSerializer
     lookup_field = 'uuid'
 
@@ -88,6 +88,7 @@ class DataContent(generics.RetrieveAPIView):
     @swagger_auto_schema(operation_description='获取指定数据集的详细信息。',)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
+
 
 class TagList(generics.ListAPIView):
 
@@ -474,7 +475,7 @@ class GetUserProfile(views.APIView):
 class FileUploadView(views.APIView):
     parser_classes = (MultiPartParser, )
 
-    @swagger_auto_schema(operation_description='上传rawfile',
+    @swagger_auto_schema(operation_description='上传rawfile至指定dataset',
                          request_body=RawFileUploadSerializer,
                          responses= {
                              200: SuccessResponseSerializer,
