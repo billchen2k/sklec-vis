@@ -15,14 +15,15 @@ from requests import delete
 from rest_framework import status, generics
 from rest_framework import views
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser
 
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass
+from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass
 from api.sklec.VisualQueryManager import VisualQueryManager
-
+from api.models import Dataset
 
 def JsonResponseOK(data=None):
     return JsonResponse({
@@ -49,7 +50,35 @@ class DatasetList(generics.ListAPIView):
         return self.list(request, *args, **kwargs)
 
 
-class DataContent(generics.RetrieveAPIView):
+
+class DatasetCreate(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    # serializer_class = DatasetCreateSerializer
+
+    @swagger_auto_schema(operation_description='添加一个新的数据集。',
+                         query_serializer = DatasetCreateSerializer,
+                         responses = {
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        validation = DatasetCreateSerializer(data=request.query_params)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
+        user = SiteUser.objects.get(user=request.user)
+        params['created_by'] = user
+        dataset = Dataset(**params)
+        dataset.save()
+        uuid = dataset.uuid
+        return JsonResponseOK(data = {
+            'uuid' : uuid
+        })
+
+
+class DataContent(generics.RetrieveUpdateAPIView):
     serializer_class = DatasetDetailSerializer
     lookup_field = 'uuid'
 
@@ -59,6 +88,7 @@ class DataContent(generics.RetrieveAPIView):
     @swagger_auto_schema(operation_description='获取指定数据集的详细信息。',)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
+
 
 class TagList(generics.ListAPIView):
 
@@ -441,6 +471,28 @@ class GetUserProfile(views.APIView):
         print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in data.items()]))
 
         return JsonResponseOK(data=data)
+
+class FileUploadView(views.APIView):
+    parser_classes = (MultiPartParser, )
+
+    @swagger_auto_schema(operation_description='上传rawfile至指定dataset',
+                         request_body=RawFileUploadSerializer,
+                         responses= {
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request: HttpRequest, format=None):
+        # return JsonResponseOK(data={'a': 1})
+        file = request.FILES['file']
+        if (file.name.endswith('.nc')):
+            core = NcfFileUploadClass(file)
+
+        params = request.POST
+        res = core.create(params)
+        if res == 'success':
+            return JsonResponseOK()
+        else:
+            return JsonResponseError()
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({

@@ -30,6 +30,7 @@ for f in files:
         continue
     full_path = os.path.join(BASE_DIR, 'media/datasets/ncf', f)
     # print(full_path)
+    core = NcfCoreClass(fullpath)
     nc = netCDF4.Dataset(full_path)
     print(nc.dimensions)
     print(nc.variables)
@@ -89,9 +90,9 @@ for f in files:
         # dim_dict['dimension_units'] = nc.dimensions[dim].units
         dim_dict['dimension_values'] = list(np.asarray(nc[dim][:], dtype=np.float64))
         dimensions.append(dim_dict)
+
     for variable in nc.variables.keys():
         if (variable in nc.dimensions.keys()): continue
-        # print(nc[variable])
         var_dict = {}
         var_dict['variable_name'] = variable
         if hasattr(nc[variable], 'units'):
@@ -114,8 +115,16 @@ for f in files:
             elif (dim in string_for_depth):
                 dimension_type = 'depth'
             var_dict['variable_dimensions'].append(dimension_type)
+        preview_info = core.gen_preview(variable, visfile.uuid)
+        url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
+        # print(preview_info['filepath'])
+        # print(url)
+        preview_info['file'] = url
+        del preview_info['filepath']
+        var_dict['preview_info'] = preview_info
+        print(preview_info)
         variables.append(var_dict)
-    # print(variables)
+
     meta['dimensions'] = dimensions
     meta['variables'] = variables
     visfile = VisFile(dataset=dataset,
