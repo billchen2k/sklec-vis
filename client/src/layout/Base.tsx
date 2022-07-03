@@ -13,9 +13,33 @@ export interface IBaseProps {
 }
 
 const Base = (props: IBaseProps) => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const {isLoading} = useAppSelector((state) => state.ui);
   const {globalState} = useAppSelector((state) => state.site);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [sidebarWidth, setSidebarWidth] = React.useState<number>(config.appearance.sideBarWidth);
+
+  const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+  const onSidebarControlDown = React.useCallback(
+      (event) => {
+        const startWidth = sidebarWidth;
+        const startPosition = {
+          x: event.pageX,
+          y: event.pageY,
+        };
+        const onMouseMove = (event: MouseEvent) => {
+        // @ts-ignore
+          setSidebarWidth(Number(startWidth - startPosition.x + event.pageX));
+        };
+        const onMouseUp = () => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      }, [sidebarWidth]);
+
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -45,12 +69,30 @@ const Base = (props: IBaseProps) => {
         overflow: 'hidden',
       }} >
         {sidebarOpen &&
-         <Sidebar sx={{
-           minWidth: config.appearance.sideBarWidth,
-           width: config.appearance.sideBarWidth,
-           height: '100vh',
-           overflowY: 'scroll',
-         }} />
+         <Sidebar
+           sx={{
+             //  minWidth: config.appearance.sideBarWidth,
+             //  width: config.appearance.sideBarWidth,
+             minWidth: sidebarWidth,
+             width: sidebarWidth,
+             height: '100vh',
+             overflowY: 'scroll',
+           }} />
+        }
+        {sidebarOpen &&
+        // @ts-ignore
+          <Box sx={{
+            'height': '100vh',
+            'width': '5px',
+            'background': '#CCCCCC',
+            'transition': 'all 0.2s',
+            'cursor': 'col-resize',
+            ':hover': {
+              background: '#919191',
+            },
+          }}
+          onMouseDown={onSidebarControlDown}
+          />
         }
         <Box component={'main'}
           sx={{

@@ -5,7 +5,7 @@ import demoData from '@/lib/demoData';
 import {siteSlice} from '@/store/siteSlice';
 import {INCFVariable} from '@/types/ncf.type';
 import {ArrowBack} from '@mui/icons-material';
-import {Box, Card, FormControl, IconButton, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, SxProps, Typography} from '@mui/material';
+import {Box, Card, FormControl, IconButton, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, SxProps, Tooltip, Typography} from '@mui/material';
 import * as React from 'react';
 import {useNavigate} from 'react-router-dom';
 
@@ -52,8 +52,15 @@ const Sidebar = (props: ISidebarProps) => {
                 onClick={(e) => handleChangeSelectedChannel(e, index)}
               >
                 <ListItemText
-                  primary={index == selectedChannel ? <b>{one.variable_name}</b> : one.variable_name}
-                  secondary={`Unit: ${one.variable_units}; Full name: ${one.variable_longname}`}
+                  primary={
+                    <Tooltip title={one.variable_longname}>
+                      {index == selectedChannel ?
+                          <b>{one.variable_name} ({one.variable_units})</b> :
+                          <div>{one.variable_name} ({one.variable_units})</div>
+                      }
+                    </Tooltip>
+                  }
+                  // secondary={`Unit: ${one.variable_units}; Full name: ${one.variable_longname}`}
                 />
               </ListItemButton>
             );

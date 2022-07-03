@@ -2,7 +2,6 @@ import * as React from 'react';
 import {Box, IconButton} from '@mui/material';
 import {Fullscreen, FullscreenExit} from '@mui/icons-material';
 import {useState} from 'react';
-import {DomEvent, DomUtil} from 'leaflet';
 
 export interface IBoyLayerProps {
   mode: 'inset' | 'full' | 'rb' | 'lb' | 'rt';
@@ -25,7 +24,8 @@ const LayerBox = (props: IBoyLayerProps) => {
           position.x += event.movementX;
           position.y += event.movementY;
           const element = boxRef.current;
-          if (element) {
+          // @ts-ignore
+          if (element && event.layerY < 30) {
             element.style.transform = `translate(${position.x}px, ${position.y}px)`;
           }
           setPosition(position);

@@ -16,7 +16,7 @@ const config = {
     },
   }),
   appearance: {
-    sideBarWidth: '24rem',
+    sideBarWidth: 380,
     appBarHeight: '48px',
     snackBarAutoHideDuration: 5000, // in ms
     snackBarAnchorOrigin: {
