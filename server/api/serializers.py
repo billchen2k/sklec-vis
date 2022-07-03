@@ -55,6 +55,15 @@ class DatasetSerializer(serializers.ModelSerializer):
         model = Dataset
         exclude = ['id']
 
+class DatasetCreateSerializer(serializers.ModelSerializer):
+    """
+        Serializer used in dataset list.
+        """
+
+    class Meta:
+        model = Dataset
+        exclude = ['id', 'created_by', 'tags']
+
 class DataChannelOfVisFileSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -160,3 +169,17 @@ class DatasetDetailSerializer(serializers.ModelSerializer):
         model = Dataset
         fields = '__all__'
 
+
+class ViewTiffFileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ViewTiffFile
+        exclude = ['uuid']
+
+class RawFileUploadSerializer(serializers.ModelSerializer):
+
+    # file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
+    uuid = serializers.CharField(max_length=256, required=True, allow_blank=True)
+    class Meta:
+        model = RawFile
+        exclude = ['dataset', 'visfile', 'file_name', 'file_size']

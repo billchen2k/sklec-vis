@@ -3,14 +3,20 @@ import math
 import numpy as np
 import netCDF4
 from api.sklec.SKLECBaseCore import SKLECBaseCore
+from django.core.files import File
 from osgeo import gdal, osr
 from sklecvis import settings
 import subprocess
 import re
-
+import uuid
+from api.models import *
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
+
+PREVIEW_FOLDER_DIR = os.path.join(
+    settings.MEDIA_ROOT, 'previews', 'nc_to_tiff'
+)
 
 class NcfCoreException:
     pass
@@ -167,8 +173,10 @@ class NcfCoreClass(SKLECBaseCore):
         # add_offset = self.file.variables[label].add_offset
         # scale_factor = self.file.variables[label].scale_factor
         # data = data * scale_factor + add_offset
-        fill_value = self.file.variables[label]._FillValue
-
+        if hasattr(self.file.variables[label], '_FillValue'):
+            fill_value = self.file.variables[label]._FillValue
+        else:
+            fill_value = -10000
         Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
         Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
 
@@ -453,5 +461,363 @@ class NcfCoreClass(SKLECBaseCore):
                 data_list.append(array_meta)
         return data_list
 
+    def gen_preview(self, channel_label, uuid):
+        params = {}
+        params['res_limit'] = 99999999
+        params['uuid'] = uuid
+        label = channel_label
+        channel_dimensions = self.file[label].dimensions
+        data = np.array(self.file.variables[label]).astype(np.float64)
+        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
+        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
+        i = 0
+        # 找出四个维度对应的index
+        for dim in channel_dimensions:
+            # print('a', dim)
+            if dim in self.string_for_datetime:
+                datetime_field = dim
+                datetime_idx = i
+            elif dim in self.string_for_depth:
+                depth_field = dim
+                depth_idx = i
+            elif dim in self.string_for_longitude:
+                longitude_field = dim
+                longitude_idx = i
+            elif dim in self.string_for_latitude:
+                latitude_field = dim
+                latitude_idx = i
+            i += 1
+        params['longitude_start'] = 0
+        params['longitude_end'] = data.shape[longitude_idx]
+        params['latitude_start'] = 0
+        params['latitude_end'] = data.shape[latitude_idx]
+        params['datetime_start'] = params['datetime_end'] = 0
+        params['depth_start'] = params['depth_end'] = 0
+        # print(params)
+        # 不存在datetime or depth 则进行升维操作
+        if datetime_idx == -1:
+            datetime_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+            params['datetime_start'] = params['datetime_end'] = 0
+        if depth_idx == -1:
+            depth_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+            params['depth_start'] = params['depth_end'] = 0
+
+        # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
+        transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
+        # print(transpose_list)
+        data = np.transpose(data, transpose_list)
+        # 计算偏置和系数
+        # add_offset = self.file.variables[label].add_offset
+        # scale_factor = self.file.variables[label].scale_factor
+        # data = data * scale_factor + add_offset
+        if hasattr(self.file.variables[label], '_FillValue'):
+            fill_value = self.file.variables[label]._FillValue
+        else:
+            fill_value = -10000
+        Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
+        Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
+
+        # 影像的左上角和右下角坐标
+        LonMin, LatMax, LonMax, LatMin = [
+            Lon.min(), Lat.max(), Lon.max(), Lat.min()]
+
+        # 分辨率计算
+        N_Lat = len(Lat)
+        N_Lon = len(Lon)
+        Lon_Res = (LonMax - LonMin) / (float(N_Lon)-1)
+        Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
+
+        tiff_meta_list = []
+        total_datetime = params['datetime_end'] - params['datetime_start'] + 1
+        total_depth = params['depth_end'] - params['depth_start'] + 1
+        total_filenum = total_datetime * total_depth
+        # 计算降采样后datetime和depth分别多少维
+        # params['filenum_limit'] = 10
+        params['filenum_limit'] = 1
+        if params['filenum_limit'] > total_filenum:
+            datetime_num = total_datetime
+            depth_num = total_depth
+            datetime_step = depth_step = 1
+        else:
+            ratio = math.sqrt(total_filenum / params['filenum_limit'])
+            datetime_num = max(1, int(total_datetime / ratio))
+            datetime_num = min(datetime_num, params['filenum_limit'])
+            depth_num = max(1, params['filenum_limit'] // datetime_num)
+            datetime_step = total_datetime / datetime_num
+            depth_step = total_depth / depth_num
+
+        for datetime_idx in range(datetime_num):
+            datetime = params['datetime_start'] + int(datetime_idx * datetime_step)
+            # in range(params['datetime_start'], params['datetime_end'] + 1, step_date):
+            for depth_idx in range(depth_num):
+                # in range(params['depth_start'], params['depth_end'] + 1, step_depth):
+                depth = params['depth_start'] + int(depth_idx * depth_step)
+                params_str = "preview_{}_{}".format(
+                    params['uuid'],
+                    label)
+                full_name = self._find_in_cache_folder(params_str)
+                split_data = data[datetime,
+                                    depth,
+                                    params['latitude_start']: params['latitude_end'] + 1,
+                                    params['longitude_start']: params['longitude_end'] + 1,
+                                    ]
+                tmp_data = split_data.reshape(-1)
+                fill_pos = np.where(tmp_data == fill_value)
+                # fill_pos = np.where(tmp_data= fill_value)
+                processed_data = np.delete(tmp_data, fill_pos)
+                if len(processed_data) > 0:
+                    min_value = processed_data.min()
+                    max_value = processed_data.max()
+                else:
+                    min_value = 0.0
+                    max_value = 0.0
+
+                out_tif_name = params_str + \
+                    "_mn={:.6f}_mx={:.6f}.tiff".format(
+                        min_value, max_value)
+                tmp_tif_path = os.path.join(PREVIEW_FOLDER_DIR, out_tif_name)
+                warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
+                translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
+                translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
+
+                split_data[np.where(split_data == fill_value)] = 9.9e36
+                # 创建 .tif 文件
+                # 要在切片之后再翻转
+                # split_data = np.flip(split_data, axis=0)
+
+                driver = gdal.GetDriverByName('GTiff')
+
+                tmp_tif_path = os.path.join(PREVIEW_FOLDER_DIR, out_tif_name)
+                out_tif = driver.Create(
+                    tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
+                # 设置影像的显示范围 这样写不用翻转即可
+                geotransform = (LonMin, Lon_Res, 0, LatMin, 0, Lat_Res)
+                out_tif.SetGeoTransform(geotransform)
+                out_tif.GetRasterBand(1).WriteArray(
+                    split_data)
+                out_tif.FlushCache()  # 将数据写入硬盘
+                out_tif = None  # 注意必须关闭tif文件
+
+                # 获取地理坐标系统信息，用于选取需要的地理坐标系统
+                srs = osr.SpatialReference()
+                # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
+                srs.ImportFromEPSG(4326)
+
+                warp_options = gdal.WarpOptions(format='Gtiff',
+                                                srcSRS=srs.ExportToWkt(),
+                                                # srcSRS='EPSG:4326'
+                                                )
+                gdal.Warp(warp_tif_path, tmp_tif_path,
+                            format='Gtiff', options=warp_options)
+                total_width = params['longitude_end'] - params['longitude_start'] + 1
+                total_height = params['latitude_end'] - params['latitude_start'] + 1
+                total_res = total_width * total_height
+
+                if params['res_limit'] > total_res:
+                    out_width = total_width
+                    out_height = total_height
+                else:
+                    ratio = math.sqrt(total_res / params['res_limit'])
+                    out_width = max(1, int(total_width / ratio))
+                    out_width = min(out_width, params['res_limit'])
+                    out_height = max(1, params['res_limit'] // out_width)
+                translate_options = gdal.TranslateOptions(format='GTiff',
+                                                            creationOptions=[
+                                                                'TILED=YES', 'COMPRESS=LZW'],
+                                                            width=out_width,
+                                                            height=out_height,
+                )
+                gdal.Translate(translate_tif_path, warp_tif_path,
+                                options=translate_options)
+                tiff_meta = {
+                    'filepath': translate_tif_path,
+                    'file_size': os.path.getsize(translate_tif_path),
+                    'file_name': translate_tif_name,
+                    'datetime': datetime,
+                    'depth': depth,
+                    'longitude_start': params['longitude_start'],
+                    'longitude_end': params['longitude_end'],
+                    'latitude_start': params['latitude_start'],
+                    'latitude_end': params['latitude_end'],
+                    'label': label,
+                    'min_value': min_value,
+                    'max_value': max_value
+                }
+            tiff_meta_list.append(tiff_meta)
+        return tiff_meta_list[0]
+
     def close(self):
         self.file.close()
+
+class NcfFileUploadClass():
+    def __init__(self, file):
+        self.file = file
+        self.dataset = None
+        self.save_path = None
+        self.nc = None
+        self.string_for_datetime = ['datetime', 'time']
+        self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
+        self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
+        self.string_for_depth = ['depth', 'Depth']
+
+    def _save_vis_and_raw(self):
+        fobj = open(self.save_path, 'rb')
+        nc = self.nc
+
+        meta = {}
+        dimensions = []
+        variables = []
+        core_ncf = NcfCoreClass(self.save_path)
+        for dim in nc.dimensions.keys():
+            # 'level' 字段需要特殊处理
+            if not (dim in nc.variables.keys()):
+                continue
+            # print(dim)
+            dim_dict = {}
+            dim_dict['dimension_name'] = dim
+            dim_dict['dimension_length'] = nc.dimensions[dim].size
+            dimension_type = ''
+            if (dim in self.string_for_datetime):
+                dimension_type = 'datetime'
+            elif (dim in self.string_for_longitude):
+                dimension_type = 'longitude'
+            elif (dim in self.string_for_latitude):
+                dimension_type = 'latitude'
+            elif (dim in self.string_for_depth):
+                dimension_type = 'depth'
+            dim_dict['dimension_type'] = dimension_type
+            # dim_dict['dimension_units'] = nc.dimensions[dim].units
+            dim_dict['dimension_values'] = list(np.asarray(nc[dim][:], dtype=np.float64))
+            dimensions.append(dim_dict)
+
+        for variable in nc.variables.keys():
+            if (variable in nc.dimensions.keys()): continue
+            var_dict = {}
+            var_dict['variable_name'] = variable
+            if hasattr(nc[variable], 'units'):
+                var_dict['variable_units'] = nc[variable].units
+            else:
+                var_dict['variable_units'] = ''
+            if hasattr(nc[variable], 'long_name'):
+                var_dict['variable_longname'] = nc[variable].long_name
+            else:
+                var_dict['variable_longname'] = ''
+            var_dict['variable_dimensions'] = []
+            for dim in nc[variable].dimensions:
+                dimension_type = ''
+                if (dim in self.string_for_datetime):
+                    dimension_type = 'datetime'
+                elif (dim in self.string_for_longitude):
+                    dimension_type = 'longitude'
+                elif (dim in self.string_for_latitude):
+                    dimension_type = 'latitude'
+                elif (dim in self.string_for_depth):
+                    dimension_type = 'depth'
+                var_dict['variable_dimensions'].append(dimension_type)
+            preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
+            url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
+            # print(preview_info['filepath'])
+            # print(url)
+            preview_info['file'] = url
+            del preview_info['filepath']
+            var_dict['preview_info'] = preview_info
+            print(preview_info)
+            variables.append(var_dict)
+
+        meta['dimensions'] = dimensions
+        meta['variables'] = variables
+        visfile = VisFile(dataset=self.dataset,
+                          format=VisFile.FileFormat.NCF,
+                          file=File(fobj, name=self.file.name),
+                          file_name=os.path.basename(self.save_path),
+                          file_size=os.path.getsize(self.save_path) / 1024,
+                          meta_data=meta,
+                          # default_sample_count=min(rsk.npsamples().shape[0], 100000),
+                          )
+        visfile.save()
+
+        rawfile = RawFile(dataset=self.dataset,
+                          file_name=os.path.basename(self.save_path),
+                          file_size=os.path.getsize(self.save_path) / 1024,
+                          file=None,
+                          file_same_as_vis=True,
+                          visfile=visfile, )
+        rawfile.save()
+
+        channels = []
+        for c in nc.variables.keys():
+            channel = nc[c]
+            # if c in nc.dimensions.keys():
+            #     channel_meta['type'] = 'dimension'
+            # elif c in nc.variables.keys():
+            #     channel_meta['type'] = 'variable'
+            channel_meta = {}
+            datachannel = DataChannel(visfile=visfile,
+                                      name=channel.long_name if hasattr(channel, 'long_name') else '',
+                                      label=c,
+                                      unit=channel.units if hasattr(channel, 'units') else '',
+                                      # datetime_start=startdate[0],
+                                      # datetime_end=enddate[0],
+                                      shape=str(channel.shape),
+                                      meta_data=channel_meta
+                                      )
+            channels.append(datachannel)
+            datachannel.save()
+
+    def _check_dims(self):
+        has_lat = 0
+        has_lon = 0
+        for dim in self.nc.dimensions.keys():
+            # 'level' 字段需要特殊处理
+            if not (dim in self.nc.variables.keys()):
+                continue
+
+            elif (dim in self.string_for_longitude):
+                has_lon = 1
+            elif (dim in self.string_for_latitude):
+                has_lat = 1
+        return (has_lat and has_lon)
+
+    def create(self, params):
+        path = os.path.join(settings.MEDIA_ROOT, 'datasets', 'uploads', self.file.name)
+        with open(path, 'wb') as f:
+            f.write(self.file.read())
+            f.close()
+        self.save_path = path
+        self.nc = netCDF4.Dataset(path)
+        if not self._check_dims():
+            return 'fail'
+        self.dataset = Dataset.objects.get(uuid=params['uuid'])
+        self._save_vis_and_raw()
+        # info = {}
+        # info['path'] = path
+        # info['name'] = self.file.name
+        # info['size'] = os.path.getsize(path)
+        #
+        # attrs = {}
+        # for attr in nc.ncattrs():
+        #     attrs[attr] = str(nc.getncattr(attr))
+        # info['file_info'] = attrs
+        #
+        # dims = []
+        # for dim in nc.dimensions.keys():
+        #     dim_temp = {}
+        #     dim_temp['name'] = nc.dimensions[dim].name
+        #     dim_temp['size'] = nc.dimensions[dim].size
+        #     dims.append(dim_temp)
+        # info['dims'] = dims
+        #
+        # vars = []
+        # for var in nc.variables.keys():
+        #     var_temp = {}
+        #     for attr in nc.variables[var].ncattrs():
+        #         var_temp[attr] = str(nc.variables[var].getncattr(attr))
+        #     vars.append(var_temp)
+        # info['vars'] = vars
+        # # info['variables'] = str(nc.variables)
+        # # info['dimensions'] = str(nc.dimensions)
+        # # info['path'] = str(path)
+        # # info['name'] = str(self.file.name)
+        return 'success'

@@ -167,3 +167,12 @@ class GetUserProfileResponseSerializer(SuccessResponseSerializer):
             ref_name = 'VisContentResponseData'
 
     data = DataSerializer()
+
+class CreateDatasetResponseSerializer(SuccessResponseSerializer):
+
+    uuid = serializers.CharField(required = False)
+
+class FileUploadSerializer(serializers.Serializer):
+
+    file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
+    format = serializers.CharField(max_length=256, allow_blank=True, required=False)

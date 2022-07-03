@@ -176,3 +176,25 @@ class PasswordUpdateRecord(models.Model):
     ip = models.GenericIPAddressField()
     previous_password = models.CharField(max_length=200)
     new_password = models.CharField(max_length=200)
+
+class ViewTiffFile(models.Model):
+    is_preview = models.BooleanField(blank=True, null=True)
+    file = models.FileField(upload_to='cache_files/nc_to_tiff/', null=True, blank=True)
+
+    file_size = models.IntegerField(blank = True, null = True)
+    file_name = models.CharField(max_length = 200, blank = True, null = True)
+
+    datetime = models.IntegerField(blank = True, null = True)
+    depth = models.IntegerField(blank = True, null = True)
+    longitude_start = models.IntegerField(blank = True, null = True)
+    longitude_end = models.IntegerField(blank = True, null = True)
+    latitude_start = models.IntegerField(blank = True, null = True)
+    latitude_end = models.IntegerField(blank = True, null = True)
+    label = models.CharField(max_length=100, blank = True, null = True)
+
+    min_value = models.FloatField(blank = True, null = True)
+    max_value = models.FloatField(blank = True, null = True)
+    file = models.CharField(max_length = 256, blank = True, null = True)
+
+    create_time = models.DateTimeField(blank = True, null = True)
+    last_access_time = models.DateTimeField(blank = True, null = True)
