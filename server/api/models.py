@@ -27,7 +27,7 @@ class SiteUser(models.Model):
     city = models.CharField(max_length=50, blank=True, null=True)
     state = models.CharField(max_length=50, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-
+    is_activated = models.BooleanField(default=False)
 
     def __str__(self):
         """

@@ -45,6 +45,8 @@ urlpatterns = [
     path('user/logout/', views.Logout.as_view(), name='user-logout'),
     path('user/register/', views.Register.as_view(), name='user-register'),
     path('user/profile/', views.GetUserProfile.as_view(), name='user-profile'),
+    path('user/email/send/', views.SendVerificationEmail.as_view(), name='send-verification-email'),
+    path('user/email/verify/<str:tokenstr>/', views.VerifyEmailToken.as_view(), name='verify-email-token'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
