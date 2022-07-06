@@ -10,6 +10,8 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
+from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from requests import delete
 from rest_framework import status, generics
@@ -324,6 +326,7 @@ class GetNcfContent(views.APIView):
             return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
         return JsonResponseOK(data=data)
 
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Permission, User
 class Login(views.APIView):
@@ -464,13 +467,14 @@ class GetUserProfile(views.APIView):
         user_data = {
             'username': request.user.username,
             'user_email': request.user.email,
-            'login_time':request.user.last_login
+            'login_time': request.user.last_login
         }
         data = user_data.copy()
         data.update(site_data)
         print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in data.items()]))
 
         return JsonResponseOK(data=data)
+
 
 class FileUploadView(views.APIView):
     parser_classes = (MultiPartParser, )
@@ -493,6 +497,65 @@ class FileUploadView(views.APIView):
             return JsonResponseOK()
         else:
             return JsonResponseError()
+
+
+
+
+class SendVerificationEmail(views.APIView):
+
+    @swagger_auto_schema(operation_description='发送验证邮件',
+                         operation_id='send_verification_email',
+                         response={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponseError('Invalid user identity.')
+
+        # todo check user in db status
+        email_address = request.user.email
+
+        # generate email content
+        msg = '这是一封email address验证邮件'
+
+        # send email, get error code
+        send_status = send_mail(
+            subject='邮件地址验证',
+            message=msg,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[email_address]
+        )
+        if not send_status:
+            return JsonResponseError('Send verification email failed')
+        return JsonResponseOK(data={})
+
+
+class VerifyEmailToken(views.APIView):
+
+    @swagger_auto_schema(operation_description='验证认证链接',
+                         operation_id='verify_email_token',
+                         response={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        token_str = kwargs['tokenstr']
+        # todo parse token
+        # get userid from token, todo check token time
+        userid = ''
+        try:
+            user = User.objects.get(id=userid)
+            if user.is_active:
+                return JsonResponseError('User email is already verified.')
+            user.is_active = True
+            user.save()
+        except User.DoesNotExist:
+            return JsonResponseError('User does not exist.')
+        return JsonResponseOK(data={})
+
 
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({
