@@ -52,10 +52,10 @@ export interface IDataset {
   datetime_start: Date;
   description: string;
   detail: string;
-  is_active: Boolean;
-  is_coordinated: Boolean;
-  is_deleted: Boolean;
-  is_public: Boolean;
+  is_active: boolean;
+  is_coordinated: boolean;
+  is_deleted: boolean;
+  is_public: boolean;
   latitude: number;
   longitude: number;
   name: string;

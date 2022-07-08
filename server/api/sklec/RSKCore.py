@@ -10,7 +10,7 @@ class RSKCoreException:
 
 class RSKCore(SKLECBaseCore):
 
-    TARGET_VIS_LENGTH = 2000
+    TARGET_VIS_LENGTH: int = 2000
 
     def __init__(self, file_path):
         self.file = pyrsktools.open(file_path)

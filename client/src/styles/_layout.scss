@@ -67,6 +67,12 @@
     left: 0px;
   }
 
+  &-lt {
+    @extend .layer-wrapper;
+    top: 48px;
+    left: 0px;
+  }
+
   &-rt {
     @extend .layer-wrapper;
     top: 36px;
@@ -126,6 +132,17 @@
 // }
 
 .layer-content-lb {
+  background-color: white;
+  border-radius: 4px;
+  padding: 1rem;
+  height: 90%;
+  flex-grow: 1;
+  overflow-y: auto;
+  box-shadow: #666666 0px 0px 5px;
+  pointer-events: all;
+}
+
+.layer-content-lt {
   background-color: white;
   border-radius: 4px;
   padding: 1rem;

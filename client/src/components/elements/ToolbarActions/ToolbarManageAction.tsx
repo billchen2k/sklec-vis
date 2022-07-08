@@ -3,22 +3,24 @@ import {siteSlice} from '@/store/siteSlice';
 import {Add, SupervisedUserCircle, Tag} from '@mui/icons-material';
 import {Box, Button, ListItemIcon, ListItemText, MenuItem, MenuList, Paper, Popper} from '@mui/material';
 import * as React from 'react';
+import {useNavigate} from 'react-router-dom';
 
 export interface IToolbarManageActionProps {
 }
 
 export default function ToolbarManageAction(props: IToolbarManageActionProps) {
   const {globalState} = useAppSelector((state) => state.site);
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   //   const oldState = React.useRef<GlobalState>('data-listing');
   const isManaging = (globalState == 'managing');
 
   const handleToggleManage = () => {
     if (isManaging) {
-      dispatch(siteSlice.actions.setGlobalState('data-listing'));
+      dispatch(siteSlice.actions.enterDataListing());
+      navigate('/');
     } else {
       dispatch(siteSlice.actions.setGlobalState('managing'));
-      console.log('enter managing');
     }
   };
 

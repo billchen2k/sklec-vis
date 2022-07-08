@@ -76,6 +76,14 @@ const DatasetList = (props: IDatasetListProps) => {
     return searchStr.match(searchText.toLowerCase());
   });
 
+  const handleClickEdit = (datasetId: string) => {
+    navigate(`edit/${datasetId}`);
+  };
+
+  const handleClickDelete = (datasetId: string) => {
+    alert(`Delete {datasetId}`);
+  };
+
   return (
     <Box>
       <Box sx={{width: '90%', m: 2}}>
@@ -101,11 +109,11 @@ const DatasetList = (props: IDatasetListProps) => {
           if (isManaging) {
             secondaryAction = (<Stack direction={'row'}>
               <IconButton
-                onClick={() => alert('delete')} >
+                onClick={() => handleClickDelete(item.uuid)} >
                 <Delete />
               </IconButton>
               <IconButton
-                onClick={() => alert('edit')} >
+                onClick={() => handleClickEdit(item.uuid)} >
                 <Edit />
               </IconButton>
             </Stack>);

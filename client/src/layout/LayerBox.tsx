@@ -2,9 +2,10 @@ import * as React from 'react';
 import {Box, IconButton} from '@mui/material';
 import {Fullscreen, FullscreenExit} from '@mui/icons-material';
 import {useState} from 'react';
+import config from '@/config';
 
 export interface IBoyLayerProps {
-  mode: 'inset' | 'full' | 'rb' | 'lb' | 'rt';
+  mode: 'inset' | 'full' | 'rb' | 'lb' | 'rt' | 'lt';
   opacity?: number;
   content?: React.ReactNode;
   children?: React.ReactNode;
@@ -16,17 +17,28 @@ const LayerBox = (props: IBoyLayerProps) => {
 
   const [position, setPosition] = useState({x: 0, y: 0});
   const boxRef = React.useRef<HTMLDivElement>(null);
+  const DRAG_AREA_THRESHOLD = 30;
 
   // Reference: https://stackoverflow.com/a/68842808/10926869
   const onMouseDown = React.useCallback(
       (event) => {
+        const boxElement = boxRef.current;
+        if (!boxElement) {
+          return;
+        }
+        // Calculate the Y coornidate relative to the box element.
+        //   Ref: https://stackoverflow.com/a/2614472/10926869
+        const insideY = event.clientY - boxElement.getBoundingClientRect().top;
+        if (insideY >= config.behaviour.layerBoxTopDragAreaPixels) {
+          return;
+        }
         const onMouseMove = (event: MouseEvent) => {
           position.x += event.movementX;
           position.y += event.movementY;
-          const element = boxRef.current;
           // @ts-ignore
-          if (element && event.layerY < 30) {
-            element.style.transform = `translate(${position.x}px, ${position.y}px)`;
+          if (insideY < config.behaviour.layerBoxTopDragAreaPixels) {
+            event.preventDefault();
+            boxElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
           }
           setPosition(position);
         };

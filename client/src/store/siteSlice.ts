@@ -102,12 +102,16 @@ export const siteSlice = createSlice({
         state.globalState = 'data-inspecting';
       }
     },
-    leaveDataInspecting(state: ISiteState) {
+    enterDataListing(state: ISiteState) {
       state.globalState = 'data-listing';
       state.currentData = initState.currentData;
       state.currentType = initState.currentType;
       state.rasterState = initState.rasterState;
       state.inspectState = initState.inspectState;
+    },
+    enterDataManaging(state: ISiteState, action: PayloadAction<string>) {
+      state.currentData = action.payload;
+      state.globalState = 'managing';
     },
     setInspectingState: (state: ISiteState, action: PayloadAction<Partial<IInspectState>>) => {
       state.inspectState = {

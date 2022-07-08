@@ -19,7 +19,7 @@ const Sidebar = (props: ISidebarProps) => {
   const {globalState, currentData, currentType, rasterState, datasetDetailCache} = useAppSelector((state) => state.site);
   const {selectedVisFile, selectedChannel} = useAppSelector((state) => state.site.inspectState);
   const handleNavigateBack = () => {
-    dispatch(siteSlice.actions.leaveDataInspecting());
+    dispatch(siteSlice.actions.enterDataListing());
     navigate('/');
   };
 
@@ -87,6 +87,17 @@ const Sidebar = (props: ISidebarProps) => {
             datasetName={demoData[currentData as string]['name']}
             downloadLink={demoData[currentData as string]['downloadLink']}
           />
+        );
+        sidebarContent = (
+          <Box sx={{p: 2}}>
+            <Stack sx={{mb: 1}} spacing={'1'} direction={'row'} alignItems={'center'}>
+              <IconButton onClick={handleNavigateBack}>
+                <ArrowBack />
+              </IconButton>
+              <Typography variant={'h5'}>(DEMO DATA)</Typography>
+            </Stack>
+            {detailContent}
+          </Box>
         );
       } else if (datasetDetailCache) {
         // Real data
