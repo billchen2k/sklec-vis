@@ -121,8 +121,11 @@ SWAGGER_SETTINGS = {
 }
 
 SIMPLE_JWT = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_ALLOW_REFRESH': True,
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
 }
 
 # Password validation
@@ -180,11 +183,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 UUID_SHORT_LENGTH = 9
 
 # Email Send Settings
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.qq.com'
+EMAIL_HOST = 'smtp.163.com'
 EMAIL_PORT = 25
-EMAIL_HOST_USER = '2839645547@qq.com'  # todo: use aliyun
-EMAIL_HOST_PASSWORD = 'password config'
-EMAIL_FROM = 'sklec-vis-verify-robot<2839645547@qq.com>'
+EMAIL_HOST_USER = 'sklecvis@163.com'
+EMAIL_HOST_PASSWORD = 'FTPWFVTVERPCERTI'
 EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_FROM = 'sklec-vis-verify-robot<sklecvis@163.com>'
