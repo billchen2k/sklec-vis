@@ -9,7 +9,7 @@ from typing import Dict, List
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import Permission, User
+from django.contrib.auth.models import Permission, User, Group
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
@@ -414,6 +414,9 @@ class Register(views.APIView):
 
         user = User(username=username, email=user_email)
         user.set_password(password)
+
+        group = Group.objects.get(name='data_viewer')
+        user.groups.add(group)
         user.save()
 
         user_serializer = SiteUser(user=user,
