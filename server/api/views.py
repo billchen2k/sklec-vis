@@ -66,18 +66,21 @@ class DatasetCreate(views.APIView):
                              500: ErrorResponseSerializer,
                          })
     def post(self, request, *args, **kwargs):
-        validation = DatasetCreateSerializer(data=request.query_params)
-        if not validation.is_valid():
-            return JsonResponseError(validation.errors)
-        params = validation.data
-        user = SiteUser.objects.get(user=request.user)
-        params['created_by'] = user
-        dataset = Dataset(**params)
-        dataset.save()
-        uuid = dataset.uuid
-        return JsonResponseOK(data = {
-            'uuid' : uuid
-        })
+        try:
+            validation = DatasetCreateSerializer(data=request.query_params)
+            if not validation.is_valid():
+                return JsonResponseError(validation.errors)
+            params = validation.data
+            user = SiteUser.objects.get(user=request.user)
+            params['created_by'] = user
+            dataset = Dataset(**params)
+            dataset.save()
+            uuid = dataset.uuid
+            return JsonResponseOK(data = {
+                'uuid' : uuid
+            })
+        except Exception as e:
+            return JsonResponseError(message=e.args)
 
 
 class DataContent(generics.RetrieveUpdateAPIView):
@@ -92,6 +95,84 @@ class DataContent(generics.RetrieveUpdateAPIView):
         return self.retrieve(request, *args, **kwargs)
 
 
+class DatasetDestroy(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    # serializer_class = DatasetDestroySerializer
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return Dataset.objects.all()
+
+    @swagger_auto_schema(operation_description='删除指定数据集。',
+                         responses={
+                             204: SuccessResponseSerializer,
+                             404: ErrorResponseSerializer,
+                         })
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+
+        return JsonResponseOK(data={'message': 'success'})
+
+class DatasetTagsAdd(views.APIView):
+
+    lookup_field = 'uuid'
+    serializer_class = DatasetTagsAddSerializer
+
+    def get_queryset(self):
+        return Dataset.objects.all()
+
+    @swagger_auto_schema(operation_description='为指定数据集添加标签，不可重复添加同一标签。',
+                         query_serializer = DatasetTagsAddSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        uuid_tag = request.query_params['uuid_tag']
+        uuid_dataset = kwargs['uuid']
+        try:
+            dataset = Dataset.objects.get(uuid=uuid_dataset)
+            tag = DatasetTag.objects.get(uuid=uuid_tag)
+            if dataset.tags.filter(id=tag.id).exists():
+                return JsonResponseError(message=f"Tag {tag.name} (uuid = {uuid_tag}) already exists.")
+            dataset.tags.add(tag.id)
+            dataset.save()
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+        return JsonResponseOK()
+
+class DatasetTagsRemove(views.APIView):
+
+    def get_queryset(self):
+        return Dataset.objects.all()
+
+    @swagger_auto_schema(operation_description='为指定数据集删除标签，只能删除已存在的标签。',
+                         query_serializer = DatasetTagsAddSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def get(self, request, *args, **kwargs):
+        uuid_tag = request.query_params['uuid_tag']
+        uuid_dataset = kwargs['uuid']
+        try:
+            dataset = Dataset.objects.get(uuid=uuid_dataset)
+            tag = DatasetTag.objects.get(uuid=uuid_tag)
+            if not dataset.tags.filter(id=tag.id).exists():
+                return JsonResponseError(message=f"Tag {tag.name} (uuid = {uuid_tag}) does not exists.")
+            dataset.tags.remove(tag.id)
+            dataset.save()
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+        return JsonResponseOK()
+
 class TagList(generics.ListAPIView):
 
     serializer_class = SimpleDatasetTagSerializer
@@ -102,6 +183,8 @@ class TagList(generics.ListAPIView):
         '使用这种方式来表达标签的层级关系，从而来实现标签的嵌套关系。',)
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+
 class GetRskContent(views.APIView):
 
     @swagger_auto_schema(operation_description='从指定 RSK VisFile 中获取指定 Channel 的数据',
@@ -486,17 +569,19 @@ class FileUploadView(views.APIView):
                              400: ErrorResponseSerializer,
                          })
     def post(self, request: HttpRequest, format=None):
-        # return JsonResponseOK(data={'a': 1})
-        file = request.FILES['file']
-        if (file.name.endswith('.nc')):
-            core = NcfFileUploadClass(file)
+        try:
+            file = request.FILES['file']
+            if (file.name.endswith('.nc')):
+                core = NcfFileUploadClass(file)
 
-        params = request.POST
-        res = core.create(params)
-        if res == 'success':
-            return JsonResponseOK()
-        else:
-            return JsonResponseError()
+            params = request.POST
+            res = core.create(params)
+            if res == 'success':
+                return JsonResponseOK()
+            else:
+                return JsonResponseError()
+        except Exception as e:
+            return JsonResponseError(message=e.args)
 
 
 

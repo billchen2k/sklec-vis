@@ -32,9 +32,12 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('dataset/', views.DatasetList.as_view()),
-    path('dataset/create', views.DatasetCreate.as_view()),
-    path('dataset/rawfile/upload', views.FileUploadView.as_view()),
+    path('dataset/create/', views.DatasetCreate.as_view()),
+    path('dataset/destroy/<str:uuid>/', views.DatasetDestroy.as_view()),
+    path('dataset/rawfile/upload/', views.FileUploadView.as_view()),
     path('dataset/<str:uuid>/', views.DataContent.as_view(), name='dataset-detail'),
+    path('dataset/tags/add/<str:uuid>/', views.DatasetTagsAdd.as_view()),
+    path('dataset/tags/remove/<str:uuid>/', views.DatasetTagsRemove.as_view()),
     path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
     path('viscontent/<str:uuid>/', views.GetRskContent.as_view(), name='rsk-content'),
     path('ncfcontent/<str:uuid>/', views.GetNcfContent.as_view(), name='ncf-content'),
