@@ -27,7 +27,8 @@ class SiteUser(models.Model):
     city = models.CharField(max_length=50, blank=True, null=True)
     state = models.CharField(max_length=50, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    is_activated = models.BooleanField(default=False)
+    is_activated = models.BooleanField(default=False)  # 用户邮箱地址是否已验证
+    email_token = models.CharField(max_length=100, blank=True, null=True)  # 邮箱验证用token
 
     def __str__(self):
         """

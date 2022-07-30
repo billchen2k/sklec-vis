@@ -7,13 +7,6 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-'''
-path('login/', obtain_jwt_token)其实相当于path('login/', ObtainJSONWebToken.as_view())
-因为我们之间进源码可以看到
-obtain_jwt_token = ObtainJSONWebToken.as_view()     #获得
-refresh_jwt_token = RefreshJSONWebToken.as_view()   #刷新
-verify_jwt_token = VerifyJSONWebToken.as_view()     #验证
-'''
 
 
 from . import views
