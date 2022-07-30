@@ -8,6 +8,8 @@ from typing import Dict, List
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import Permission, User, Group
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
@@ -410,8 +412,6 @@ class GetNcfContent(views.APIView):
         return JsonResponseOK(data=data)
 
 
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import Permission, User
 class Login(views.APIView):
 
     authentication_classes = (CsrfExemptSessionAuthentication, )
@@ -431,30 +431,17 @@ class Login(views.APIView):
             return JsonResponseError('Invalid request body. Check your json format.')
 
         params = jdata
-        print(params)
         username = params.get('username')
         password = params.get('password')
 
-        # if not request.query_params.__contains__('username'):
-        #     return JsonResponseError(f'username is empty.')
-        # if not request.query_params.__contains__('password'):
-        #     return JsonResponseError(f'password is empty.')
-        # username = request.query_params['username']
-        # password = request.query_params['password']
-
-        print(username)
-        print(password)
-
         user = authenticate(username=username, password=password)
-        print(user)
         if user is None:
-            # login failure
             return JsonResponseError(f'User does not exist.')
         if not user.is_active:
             return JsonResponseError(f'User is not active.')
 
         login(request, user)
-        print(user.id)
+
         data = {}
         data['token'] = 'this is a token'
         return JsonResponseOK(data=data)
@@ -510,6 +497,9 @@ class Register(views.APIView):
 
         user = User(username=username, email=user_email)
         user.set_password(password)
+
+        group = Group.objects.get(name='data_viewer')
+        user.groups.add(group)
         user.save()
 
         user_serializer = SiteUser(user=user,
@@ -524,7 +514,7 @@ class Register(views.APIView):
         user_serializer.affiliation = affiliation
 
         user = user_serializer.save()
-        print(user)
+
         data = {}
         data['username'] = username
         return JsonResponseOK(data=data)
@@ -546,7 +536,6 @@ class GetUserProfile(views.APIView):
         user = SiteUser.objects.get(user=request.user)
         site_data = user.__dict__
         site_data['_state'] = None
-        print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in site_data.items()]))
         user_data = {
             'username': request.user.username,
             'user_email': request.user.email,
@@ -554,8 +543,7 @@ class GetUserProfile(views.APIView):
         }
         data = user_data.copy()
         data.update(site_data)
-        print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in data.items()]))
-
+        # print('\n'.join(['{0}: {1}'.format(item[0], item[1]) for item in data.items()]))
         return JsonResponseOK(data=data)
 
 
@@ -584,8 +572,6 @@ class FileUploadView(views.APIView):
             return JsonResponseError(message=e.args)
 
 
-
-
 class SendVerificationEmail(views.APIView):
 
     @swagger_auto_schema(operation_description='发送验证邮件',
@@ -598,19 +584,34 @@ class SendVerificationEmail(views.APIView):
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponseError('Invalid user identity.')
+        user = SiteUser.objects.get(user=request.user)
+        if user.is_activated:
+            return JsonResponseError('User email is already verified.')
 
-        # todo check user in db status
-        email_address = request.user.email
+        token = str(uuid.uuid4()).replace('-','')
+        user.email_token = token
+        # 设置过期时间字段供校验 user.email_token_expire_time = {timestamp}
+        user.save()
 
-        # generate email content
-        msg = '这是一封email address验证邮件'
+        host = '{scheme}://{host}'.format(scheme=request.scheme, host=request.get_host())
+        path = '{}/api/user/email/verify/{}/'.format(host, token)
+        msg = '''
+        你好，这是一封邮箱验证邮件，请<br><a href="{}">点击链接</a>
+        <br>或复制以下链接到浏览器访问以激活您的邮箱。
+        <br>{}
+        <br>链接有效期为3天。
+        <br>sklec-vis
+        '''.format(path, path)
+        email_address = user.user.email
 
         # send email, get error code
         send_status = send_mail(
-            subject='邮件地址验证',
+            subject='sklec-vis用户邮箱激活验证',
             message=msg,
             from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[email_address]
+            recipient_list=[email_address],
+            fail_silently=False,
+            html_message=msg,
         )
         if not send_status:
             return JsonResponseError('Send verification email failed')
@@ -619,7 +620,9 @@ class SendVerificationEmail(views.APIView):
 
 class VerifyEmailToken(views.APIView):
 
-    @swagger_auto_schema(operation_description='验证认证链接',
+    authentication_classes = (CsrfExemptSessionAuthentication,)
+
+    @swagger_auto_schema(operation_description='验证邮箱认证链接',
                          operation_id='verify_email_token',
                          response={
                              200: SuccessResponseSerializer,
@@ -628,18 +631,17 @@ class VerifyEmailToken(views.APIView):
                          })
     def get(self, request, *args, **kwargs):
         token_str = kwargs['tokenstr']
-        # todo parse token
-        # get userid from token, todo check token time
-        userid = ''
         try:
-            user = User.objects.get(id=userid)
-            if user.is_active:
+            user = SiteUser.objects.get(email_token=token_str)
+            if user is None:
+                return JsonResponseError('Invalid token for email verification.')
+            if user.is_activated:
                 return JsonResponseError('User email is already verified.')
-            user.is_active = True
+            user.is_activated = True
             user.save()
         except User.DoesNotExist:
             return JsonResponseError('User does not exist.')
-        return JsonResponseOK(data={})
+        return JsonResponseOK(data={'result': 'Successfully verified your email address.'})
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
