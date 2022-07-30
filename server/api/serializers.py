@@ -174,6 +174,11 @@ class DatasetUpdateSerializer(serializers.ModelSerializer):
         model = Dataset
         fields = '__all__'
 
+class DatasetDestroySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dataset
+        fields = '__all__'
+
 class ViewTiffFileSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -187,3 +192,7 @@ class RawFileUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = RawFile
         exclude = ['dataset', 'visfile', 'file_name', 'file_size']
+
+class DatasetTagsAddSerializer(serializers.Serializer):
+
+    uuid_tag = serializers.CharField(max_length=256, required=True, allow_blank=True)
