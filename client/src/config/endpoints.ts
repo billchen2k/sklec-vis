@@ -2,7 +2,7 @@ import {IRegisterFormData} from '@/components/dialogs/DialogRegister';
 import store from '@/store';
 import {IDatasetTag} from '@/types';
 import {IModelListResponse} from '@/types/api';
-import {AxiosRequestConfig, AxiosRequestConfig} from 'axios';
+import {AxiosRequestConfig} from 'axios';
 import Cookies from 'js-cookie';
 
 const API_ROOT = '/api';
@@ -116,6 +116,12 @@ export const endpoints = {
     return withAuthorization({
       url: `${API_ROOT}/user/profile/`,
       method: 'GET',
+    });
+  },
+  patchDataset(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/${uuid}/`,
+      method: 'PATCH',
     });
   },
 };

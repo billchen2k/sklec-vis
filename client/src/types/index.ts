@@ -46,7 +46,7 @@ export interface INCFContentFile extends IVisFile {
 
 export interface IDataset {
   created_at: string;
-  created_by: string;
+  created_by: string | IUser;
   dataset_type: DatasetType;
   datetime_end: Date;
   datetime_start: Date;
