@@ -35,9 +35,7 @@ export default function DefaultPage(props: IDefaultPageProps) {
       }
 
       {props.showHome &&
-      <Button onClick={() => navigate('/')}
-        sx={{mt: 2}}
-        variant={'outlined'}>
+      <Button onClick={() => navigate('/')} sx={{mt: 2}} variant={'outlined'}>
         Go Home
       </Button>
       }

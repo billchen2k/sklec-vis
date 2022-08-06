@@ -30,9 +30,7 @@ export default function DataEditor(props: IDataEditorProps) {
   }, [data, loading, error, dispatch]);
 
   React.useEffect(() => {
-    if (user.username) {
-      dispatch(siteSlice.actions.enterDataManaging(datasetId));
-    }
+    dispatch(siteSlice.actions.enterDataManaging(datasetId));
   }, [dispatch, datasetId]);
 
   if (!user.username) {
