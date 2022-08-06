@@ -63,7 +63,7 @@ class DatasetCreate(views.APIView):
     @swagger_auto_schema(operation_description='添加一个新的数据集。',
                          query_serializer = DatasetCreateSerializer,
                          responses = {
-                             200: SuccessResponseSerializer,
+                             200: CreateDatasetResponseSerializer,
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
@@ -186,6 +186,29 @@ class TagList(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
+class GetNcfContentVQDatastream(views.APIView):
+
+    @swagger_auto_schema(operation_description="从指定 VisFile 中根据经纬度和深度获取所有变量的时域特征。",
+                         query_serializer=GetNcfContentVQDatastreamRequestSerializer,
+                         responses= {
+                             200: GetNcfContentVQDatastreamResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request: HttpRequest, *args, **kwargs):
+        validation = GetNcfContentVQDatastreamRequestSerializer(data=request.query_params)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
+        uuid = kwargs['uuid']
+        try:
+            visfile = VisFile.objects.get(uuid=uuid)
+        except VisFile.DoesNotExist as e:
+            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
+
+        core = NcfCoreClass(visfile.file.path)
+        vq_data = core.get_vq_datastream(params)
+        return JsonResponseOK(data = vq_data)
 
 class GetRskContent(views.APIView):
 

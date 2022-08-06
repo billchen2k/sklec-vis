@@ -34,6 +34,7 @@ urlpatterns = [
     path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
     path('viscontent/<str:uuid>/', views.GetRskContent.as_view(), name='rsk-content'),
     path('ncfcontent/<str:uuid>/', views.GetNcfContent.as_view(), name='ncf-content'),
+    path('ncfcontent/vqdatastream/<str:uuid>/', views.GetNcfContentVQDatastream.as_view(), name='ncf-content-vq-datastream'),
     path('tags/', views.TagList.as_view()),
     path('user/token/', views.token, name='get-token'),
     path('user/login/', TokenObtainPairView.as_view(), name='user-login'),

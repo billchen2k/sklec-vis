@@ -9,6 +9,7 @@ from sklecvis import settings
 import subprocess
 import re
 import uuid
+from collections import defaultdict
 from api.models import *
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
@@ -35,6 +36,9 @@ class NcfCoreClass(SKLECBaseCore):
         self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
         self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
         self.dimension_list = ['datetime', 'depth', 'longitude', 'latitude']
+        # self.processed_data = None
+        # self.dimensions = self.file.dimensions
+        # self.variables = self.file.variables
         # Channel_label: Channel_name
         # self.channel_name = {'timestamp': 'Time'}
         # for channel in self.channels:
@@ -115,6 +119,120 @@ class NcfCoreClass(SKLECBaseCore):
             # 第二步：删除空文件夹
             for name in dirs:
                 os.rmdir(os.path.join(root, name))  # 删除一个空目录
+
+    def _preprocess_data(self, label):
+        channel_dimensions = self.file[label].dimensions
+        data = self.file.variables[label]
+        # data = np.asarray(self.file.variables[label]).astype(np.float64)
+        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
+        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
+        # 找出四个维度对应的index
+        for i, dim in enumerate(channel_dimensions):
+            if dim in self.string_for_datetime:
+                datetime_field = dim
+                datetime_idx = i
+            elif dim in self.string_for_depth:
+                depth_field = dim
+                depth_idx = i
+            elif dim in self.string_for_longitude:
+                longitude_field = dim
+                longitude_idx = i
+            elif dim in self.string_for_latitude:
+                latitude_field = dim
+                latitude_idx = i
+        # 不存在datetime or depth 则进行升维操作
+        if datetime_idx == -1:
+            datetime_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+        if depth_idx == -1:
+            depth_idx = len(data.shape)
+            data = np.expand_dims(data, axis=len(data.shape))
+        #
+        # # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
+        transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
+        data = np.transpose(data, transpose_list)
+        return data
+
+    def get_vq_data_all_labels(self, params):
+        lat = int(params['lat'])
+        lng = int(params['lng'])
+        dpt = int(params['dpt'])
+        label = params['label']
+        vq_data = defaultdict()
+        if hasattr(self.file.variables[label], '_FillValue'):
+            fill_value = self.file.variables[label]._FillValue
+        else:
+            fill_value = -10000
+        stream_data = np.asarray(self._preprocess_data(label)[:, dpt, lat, lng])\
+            .astype(np.float64)
+        stream_data[np.where(stream_data==fill_value)] = 0
+        vq_data['stream_data'] = stream_data.tolist()
+        return vq_data
+
+    def get_vq_datastream(self, params):
+        lat = int(params['lat'])
+        lng = int(params['lng'])
+        dpt = int(params['dpt'])
+        label = params['label']
+        ret = {}
+
+        channel_dimensions = self.file[label].dimensions
+        variable: netCDF4.Variable = self.file.variables[label]
+
+        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
+        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
+        for i, dim in enumerate(channel_dimensions):
+            if dim in self.string_for_datetime:
+                datetime_field = dim
+                datetime_idx = i
+            elif dim in self.string_for_depth:
+                depth_field = dim
+                depth_idx = i
+            elif dim in self.string_for_longitude:
+                longitude_field = dim
+                longitude_idx = i
+            elif dim in self.string_for_latitude:
+                latitude_field = dim
+                latitude_idx = i
+
+        if (datetime_idx == -1):
+            raise 'Time dimension does not exist.'
+        if (latitude_idx == -1):
+            raise 'Latitude dimension does not exist.'
+        if (longitude_idx == -1):
+            raise 'Longitude dimension does not exist.'
+
+        ret['datetime_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
+
+        idx_params = [0] * 4
+        for i in range(3):
+            if (latitude_idx == i):
+                idx_params[i] = lat
+            if (longitude_idx == i):
+                idx_params[i] = lng
+            if (depth_idx == i):
+                idx_params[i] = dpt
+            if (datetime_idx == i):
+                idx_params[i] = Ellipsis
+
+        if (len(channel_dimensions) == 3):
+            stream_data = variable[idx_params[0], idx_params[1], idx_params[2]]
+        elif (len(channel_dimensions) == 4):
+            stream_data = variable[idx_params[0], idx_params[1], idx_params[2], idx_params[3]]
+        else:
+            raise 'Length of channel dimensions must be [3, 4].'
+
+        if hasattr(self.file.variables[label], '_FillValue'):
+            fill_value = self.file.variables[label]._FillValue
+        else:
+            fill_value = -10000
+
+        stream_data = np.asarray(stream_data).astype(np.float32)
+
+        stream_data[np.where(stream_data == fill_value)] = 0
+        ret['stream_data'] = stream_data.tolist()
+
+        return ret
 
     def get_channel_data_split(self, params):
         # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
@@ -674,7 +792,6 @@ class NcfFileUploadClass():
             # 'level' 字段需要特殊处理
             if not (dim in nc.variables.keys()):
                 continue
-            # print(dim)
             dim_dict = {}
             dim_dict['dimension_name'] = dim
             dim_dict['dimension_length'] = nc.dimensions[dim].size
@@ -688,8 +805,7 @@ class NcfFileUploadClass():
             elif (dim in self.string_for_depth):
                 dimension_type = 'depth'
             dim_dict['dimension_type'] = dimension_type
-            # dim_dict['dimension_units'] = nc.dimensions[dim].units
-            dim_dict['dimension_values'] = list(np.asarray(nc[dim][:], dtype=np.float64))
+            dim_dict['dimension_values'] = list(np.asarray(nc[dim][:], dtype=np.float32))
             dimensions.append(dim_dict)
 
         for variable in nc.variables.keys():
@@ -718,8 +834,6 @@ class NcfFileUploadClass():
                 var_dict['variable_dimensions'].append(dimension_type)
             preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
             url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
-            # print(preview_info['filepath'])
-            # print(url)
             preview_info['file'] = url
             del preview_info['filepath']
             var_dict['preview_info'] = preview_info
@@ -749,10 +863,6 @@ class NcfFileUploadClass():
         channels = []
         for c in nc.variables.keys():
             channel = nc[c]
-            # if c in nc.dimensions.keys():
-            #     channel_meta['type'] = 'dimension'
-            # elif c in nc.variables.keys():
-            #     channel_meta['type'] = 'variable'
             channel_meta = {}
             datachannel = DataChannel(visfile=visfile,
                                       name=channel.long_name if hasattr(channel, 'long_name') else '',
@@ -791,33 +901,4 @@ class NcfFileUploadClass():
             return 'fail'
         self.dataset = Dataset.objects.get(uuid=params['uuid'])
         self._save_vis_and_raw()
-        # info = {}
-        # info['path'] = path
-        # info['name'] = self.file.name
-        # info['size'] = os.path.getsize(path)
-        #
-        # attrs = {}
-        # for attr in nc.ncattrs():
-        #     attrs[attr] = str(nc.getncattr(attr))
-        # info['file_info'] = attrs
-        #
-        # dims = []
-        # for dim in nc.dimensions.keys():
-        #     dim_temp = {}
-        #     dim_temp['name'] = nc.dimensions[dim].name
-        #     dim_temp['size'] = nc.dimensions[dim].size
-        #     dims.append(dim_temp)
-        # info['dims'] = dims
-        #
-        # vars = []
-        # for var in nc.variables.keys():
-        #     var_temp = {}
-        #     for attr in nc.variables[var].ncattrs():
-        #         var_temp[attr] = str(nc.variables[var].getncattr(attr))
-        #     vars.append(var_temp)
-        # info['vars'] = vars
-        # # info['variables'] = str(nc.variables)
-        # # info['dimensions'] = str(nc.dimensions)
-        # # info['path'] = str(path)
-        # # info['name'] = str(self.file.name)
         return 'success'

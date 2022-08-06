@@ -170,9 +170,40 @@ class GetUserProfileResponseSerializer(SuccessResponseSerializer):
 
 class CreateDatasetResponseSerializer(SuccessResponseSerializer):
 
-    uuid = serializers.CharField(required = False)
+    class DataSerializer(serializers.Serializer):
+        uuid = serializers.CharField(required = False)
+        class Meta:
+            ref_name = 'CreateDatasetResponseData'
+
+    data = DataSerializer()
 
 class FileUploadSerializer(serializers.Serializer):
 
     file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     format = serializers.CharField(max_length=256, allow_blank=True, required=False)
+
+class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
+
+    # class LatrLngItemSerializer(serializers.Serializer):
+    #     lat = serializers.IntegerField(required=False)
+    #     lng = serializers.IntegerField(required=False)
+    #
+    # lat_lngs = serializers.ListField(child=serializers.IntegerField(), required=True, help_text='采样点的经纬度列表。')
+    # list_test = serializes.ListField(child=serializers.IntegerField(), required=True)
+    lat = serializers.IntegerField(required=True, min_value=0)
+    lng = serializers.IntegerField(required=True, min_value=0)
+    dpt = serializers.FloatField(required=False, min_value=0, default=0)
+    label = serializers.CharField(max_length=256, required=True)
+    # radius = serializers.IntegerField(required=False, help_text="")
+
+
+class GetNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
+
+    class DataSerializer(serializers.Serializer):
+        date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
+        stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
+        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        class Meta:
+            ref_name = 'GetNcfContentVQDatastreamData'
+
+    data = DataSerializer()
