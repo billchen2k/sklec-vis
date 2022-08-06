@@ -1,4 +1,4 @@
-import {useAppDispatch, useAppSelector} from '@/app/hooks';
+import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
 import {siteSlice} from '@/store/siteSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
 import {Close, Delete, Edit, Launch} from '@mui/icons-material';
@@ -29,6 +29,7 @@ interface IDataListItem {
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const user = useUser();
   const {datasetListCache, globalState} = useAppSelector((state) => state.site);
   const [searchText, setSearchText] = React.useState('');
   const isManaging = globalState == 'managing';
@@ -73,7 +74,9 @@ const DatasetList = (props: IDatasetListProps) => {
     });
     searchStr = searchStr.toLowerCase();
     // console.log('Search string:', searchStr);
-    return searchStr.match(searchText.toLowerCase());
+    const searchHit: boolean = Boolean(searchStr.match(searchText.toLowerCase()));
+    const isVisible: boolean = one.is_public || Boolean(user.username);
+    return searchHit && isVisible;
   });
 
   const handleClickEdit = (datasetId: string) => {

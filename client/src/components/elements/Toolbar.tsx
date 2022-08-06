@@ -1,4 +1,4 @@
-import {useAppSelector} from '@/app/hooks';
+import {useAppSelector, useUser} from '@/app/hooks';
 import config from '@/config';
 import {Menu as MenuIcon} from '@mui/icons-material';
 import {Box, IconButton, Stack, Toolbar, Typography} from '@mui/material';
@@ -15,6 +15,7 @@ export interface ISKToolbarProps {
 const SKToolbar = (props: ISKToolbarProps) => {
   const loadingText = useAppSelector((state) => state.ui.loadingText);
   const {globalState} = useAppSelector((state) => state.site);
+  const user = useUser();
 
 
   return (
@@ -40,7 +41,7 @@ const SKToolbar = (props: ISKToolbarProps) => {
       </Typography>
       <Box sx={{flexGrow: 1}} />
       <Stack direction={'row'} spacing={1}>
-        {['data-listing', 'managing'].includes(globalState) &&
+        {['data-listing', 'managing'].includes(globalState) && user?.username &&
           <ToolbarManageAction />
         }
         <ToolbarAboutAction />

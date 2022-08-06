@@ -49,10 +49,18 @@ export function NCFViewer(props: INCFViewerProps) {
       dispatch(uiSlice.actions.endLoading());
     }
     if (error) {
-      dispatch(uiSlice.actions.openSnackbar({
-        message: `Error loading NCF content: ${error.message}`,
-        severity: 'error',
-      }));
+      console.log('error', error);
+      if (error.message.includes('401')) {
+        dispatch(uiSlice.actions.openSnackbar({
+          message: `You need to log in to view this content.`,
+          severity: 'error',
+        }));
+      } else {
+        dispatch(uiSlice.actions.openSnackbar({
+          message: `Error loading NCF content: ${error.message}`,
+          severity: 'error',
+        }));
+      }
     }
   }, [loading, dispatch, error]);
 

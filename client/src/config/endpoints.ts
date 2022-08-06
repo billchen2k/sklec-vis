@@ -124,4 +124,10 @@ export const endpoints = {
       method: 'PATCH',
     });
   },
+  uploadRawFile(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/rawfile/upload/`,
+      method: 'POST',
+    });
+  },
 };

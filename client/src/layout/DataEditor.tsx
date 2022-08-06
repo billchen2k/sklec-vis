@@ -1,14 +1,14 @@
-import {useAppDispatch} from '@/app/hooks';
-import DatasetEditorPanel from '@/components/containers/DatasetEditorPanel';
-import {DatasetTypeBadge} from '@/components/elements/DatasetTypeBadge';
+import {useAppDispatch, useUser} from '@/app/hooks';
+import DatasetEditorPanel from '@/components/editor/DatasetEditorPanel';
 import {endpoints} from '@/config/endpoints';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {IDataset} from '@/types';
-import {Box, Grid, LinearProgress, Stack, TextField, Typography} from '@mui/material';
+import {Box} from '@mui/material';
 import useAxios from 'axios-hooks';
 import * as React from 'react';
 import {useParams} from 'react-router-dom';
+import DefaultPage from './DefaultPage';
 import LayerBox from './LayerBox';
 
 export interface IDataEditorProps {
@@ -16,6 +16,7 @@ export interface IDataEditorProps {
 
 export default function DataEditor(props: IDataEditorProps) {
   const dispatch = useAppDispatch();
+  const user = useUser();
   const {datasetId} = useParams();
   const [{data, loading, error}] = useAxios<IDataset>(endpoints.getDatasetDetail(datasetId));
 
@@ -29,8 +30,14 @@ export default function DataEditor(props: IDataEditorProps) {
   }, [data, loading, error, dispatch]);
 
   React.useEffect(() => {
-    dispatch(siteSlice.actions.enterDataManaging(datasetId));
+    if (user.username) {
+      dispatch(siteSlice.actions.enterDataManaging(datasetId));
+    }
   }, [dispatch, datasetId]);
+
+  if (!user.username) {
+    return <DefaultPage type={'403'} showHome />;
+  }
 
   return (
     <LayerBox mode={'lt'}>

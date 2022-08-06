@@ -3,6 +3,7 @@ import {Route, Routes} from 'react-router-dom';
 import Base from '@/layout/Base';
 import DataViewer from '@/layout/DataViewer';
 import DataEditor from '@/layout/DataEditor';
+import DefaultPage from '@/layout/DefaultPage';
 
 export interface IAppRoutesProps {
 }
@@ -14,6 +15,7 @@ const AppRoutes = (props: IAppRoutesProps) => {
         <Route index element={<div />}/>
         <Route path={'/view/:datasetId'} element={<DataViewer />}/>
         <Route path={'/edit/:datasetId'} element={<DataEditor />} />
+        <Route path={'*'} element={<DefaultPage type={'404'} showHome />}/>
       </Route>
     </Routes>
   );
