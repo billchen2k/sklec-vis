@@ -36,6 +36,24 @@ class NcfCoreClass(SKLECBaseCore):
         self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
         self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
         self.dimension_list = ['datetime', 'depth', 'longitude', 'latitude']
+
+        self.datetime_dim, self.depth_dim, self.longitude_dim, self.latitude_dim = -1, -1, -1, -1
+        self.datetime, self.depth, self.longitude, self.latitude = None, None, None, None
+        for i, dim in enumerate(self.file.dimensions):
+            if dim in self.string_for_datetime:
+                self.datetime_dim = i
+                self.datetime = self.file[dim]
+            if dim in self.string_for_depth:
+                self.depth_dim = i
+                self.depth = self.file[dim]
+            if dim in self.string_for_longitude:
+                self.longitude_dim = i
+                self.longitude = self.file[dim]
+            if dim in self.string_for_latitude:
+                self.latitude_dim = i
+                self.latitude = self.file[dim]
+
+
         # self.processed_data = None
         # self.dimensions = self.file.dimensions
         # self.variables = self.file.variables
@@ -152,27 +170,29 @@ class NcfCoreClass(SKLECBaseCore):
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
         return data
-
-    def get_vq_data_all_labels(self, params):
-        lat = int(params['lat'])
-        lng = int(params['lng'])
-        dpt = int(params['dpt'])
-        label = params['label']
-        vq_data = defaultdict()
-        if hasattr(self.file.variables[label], '_FillValue'):
-            fill_value = self.file.variables[label]._FillValue
-        else:
-            fill_value = -10000
-        stream_data = np.asarray(self._preprocess_data(label)[:, dpt, lat, lng])\
-            .astype(np.float64)
-        stream_data[np.where(stream_data==fill_value)] = 0
-        vq_data['stream_data'] = stream_data.tolist()
-        return vq_data
+    def _get_idx_from_list(self, value, lst):
+        mn = min(lst)
+        mx = max(lst)
+        if (value < mn or value > mx):
+            return -1
+        for i, v in enumerate(lst):
+            if value < v:
+                return i
 
     def get_vq_datastream(self, params):
-        lat = int(params['lat'])
-        lng = int(params['lng'])
-        dpt = int(params['dpt'])
+        lat_value = float(params['lat'])
+        lng_value = float(params['lng'])
+        dpt_value = float(params['dpt'])
+        lat = self._get_idx_from_list(lat_value, self.latitude[:].tolist())
+        lng = self._get_idx_from_list(lng_value, self.longitude[:].tolist())
+        if lat == -1:
+            raise Exception('lat error(out of range).')
+        if lng == -1:
+            raise Exception('lng error(out of range).')
+        if self.depth is not None:
+            dpt = self._get_idx_from_list(dpt_value, self.depth[:].tolist())
+        else:
+            dpt = 0
         label = params['label']
         ret = {}
 
@@ -196,13 +216,13 @@ class NcfCoreClass(SKLECBaseCore):
                 latitude_idx = i
 
         if (datetime_idx == -1):
-            raise 'Time dimension does not exist.'
+            raise Exception('Time dimension does not exist.')
         if (latitude_idx == -1):
-            raise 'Latitude dimension does not exist.'
+            raise Exception('Latitude dimension does not exist.')
         if (longitude_idx == -1):
-            raise 'Longitude dimension does not exist.'
+            raise Exception('Longitude dimension does not exist.')
 
-        ret['datetime_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
+        ret['date_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
 
         idx_params = [0] * 4
         for i in range(3):
@@ -232,6 +252,10 @@ class NcfCoreClass(SKLECBaseCore):
         stream_data[np.where(stream_data == fill_value)] = 0
         ret['stream_data'] = stream_data.tolist()
 
+        ret['lat_idx'] = lat
+        ret['lng_idx'] = lng
+        # ret['dim_lat'] = self.latitude[:].tolist()
+        # ret['dim_lng'] = self.longitude[:].tolist()
         return ret
 
     def get_channel_data_split(self, params):

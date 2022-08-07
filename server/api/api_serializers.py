@@ -184,15 +184,9 @@ class FileUploadSerializer(serializers.Serializer):
 
 class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
 
-    # class LatrLngItemSerializer(serializers.Serializer):
-    #     lat = serializers.IntegerField(required=False)
-    #     lng = serializers.IntegerField(required=False)
-    #
-    # lat_lngs = serializers.ListField(child=serializers.IntegerField(), required=True, help_text='采样点的经纬度列表。')
-    # list_test = serializes.ListField(child=serializers.IntegerField(), required=True)
-    lat = serializers.IntegerField(required=True, min_value=0)
-    lng = serializers.IntegerField(required=True, min_value=0)
-    dpt = serializers.FloatField(required=False, min_value=0, default=0)
+    lat = serializers.FloatField(required=True)
+    lng = serializers.FloatField(required=True)
+    dpt = serializers.FloatField(required=False, default=0)
     label = serializers.CharField(max_length=256, required=True)
     # radius = serializers.IntegerField(required=False, help_text="")
 
