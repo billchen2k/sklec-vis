@@ -32,7 +32,7 @@ class NcfCoreClass(SKLECBaseCore):
         self.name = os.path.basename(file_path)
         self.channels = list(self.file.variables.keys())
         self.string_for_datetime = ['datetime', 'time']
-        self.string_for_depth = ['depth', 'Depth', 'level', 'Level']
+        self.string_for_depth = ['depth', 'Depth']
         self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
         self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
         self.dimension_list = ['datetime', 'depth', 'longitude', 'latitude']
@@ -829,7 +829,7 @@ class NcfFileUploadClass():
             elif (dim in self.string_for_depth):
                 dimension_type = 'depth'
             dim_dict['dimension_type'] = dimension_type
-            dim_dict['dimension_values'] = list(np.asarray(nc[dim][:], dtype=np.float32))
+            dim_dict['dimension_values'] = np.asarray(nc[dim][:], dtype=np.float32).tolist()
             dimensions.append(dim_dict)
 
         for variable in nc.variables.keys():
@@ -870,7 +870,7 @@ class NcfFileUploadClass():
                           format=VisFile.FileFormat.NCF,
                           file=File(fobj, name=self.file.name),
                           file_name=os.path.basename(self.save_path),
-                          file_size=os.path.getsize(self.save_path) / 1024,
+                          file_size=os.path.getsize(self.save_path) // 1024,
                           meta_data=meta,
                           # default_sample_count=min(rsk.npsamples().shape[0], 100000),
                           )
@@ -878,7 +878,7 @@ class NcfFileUploadClass():
 
         rawfile = RawFile(dataset=self.dataset,
                           file_name=os.path.basename(self.save_path),
-                          file_size=os.path.getsize(self.save_path) / 1024,
+                          file_size=os.path.getsize(self.save_path) // 1024,
                           file=None,
                           file_same_as_vis=True,
                           visfile=visfile, )
@@ -915,14 +915,26 @@ class NcfFileUploadClass():
         return (has_lat and has_lon)
 
     def create(self, params):
+        self.file_same_as_vis = params['file_same_as_vis']
         path = os.path.join(settings.MEDIA_ROOT, 'datasets', 'uploads', self.file.name)
         with open(path, 'wb') as f:
             f.write(self.file.read())
             f.close()
         self.save_path = path
         self.nc = netCDF4.Dataset(path)
-        if not self._check_dims():
-            return 'fail'
-        self.dataset = Dataset.objects.get(uuid=params['uuid'])
-        self._save_vis_and_raw()
-        return 'success'
+
+        if (self.file_same_as_vis):
+
+            if not self._check_dims():
+                return 'fail'
+            self.dataset = Dataset.objects.get(uuid=params['uuid'])
+            self._save_vis_and_raw()
+            return 'success'
+        else:
+            rawfile = RawFile(dataset=self.dataset,
+                              file_name=os.path.basename(self.save_path),
+                              file_size=os.path.getsize(self.save_path) // 1024,
+                              file=None,
+                              file_same_as_vis=True,)
+            rawfile.save()
+            return 'success'

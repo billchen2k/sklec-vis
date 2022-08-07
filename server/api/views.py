@@ -689,7 +689,7 @@ class FileUploadView(views.APIView):
                              400: ErrorResponseSerializer,
                          })
     def post(self, request: HttpRequest, format=None):
-        try:
+        # try:
             file = request.FILES['file']
             if (file.name.endswith('.nc')):
                 core = NcfFileUploadClass(file)
@@ -700,8 +700,8 @@ class FileUploadView(views.APIView):
                 return JsonResponseOK()
             else:
                 return JsonResponseError()
-        except Exception as e:
-            return JsonResponseError(message=e.args)
+        # except Exception as e:
+        #     return JsonResponseError(message=e.args)
 
 
 class SendVerificationEmail(views.APIView):
