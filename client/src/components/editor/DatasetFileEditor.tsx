@@ -28,6 +28,7 @@ export interface IDatasetVisFileEditFormData {
 
 export default function VisFileEditor(props: IVisFileEditorProps) {
   const dispatch = useAppDispatch();
+  // Selected visfile uuid
   const [selectedVisFile, setSelectedVisFile] = React.useState<| string>(
     props.datasetDetail.vis_files.length > 0 ? props.datasetDetail.vis_files[0].uuid : null,
   );
@@ -40,6 +41,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
 
   const [patchDatasetFileAxiosResult, patchDatasetFileExecute] = useAxios<any>({}, {manual: true});
 
+
   React.useEffect(() => {
     if (props.datasetDetail.vis_files?.length > 0) {
       setSelectedVisFile(props.datasetDetail.vis_files[0].uuid);
@@ -47,7 +49,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
   }, [props.datasetDetail.vis_files]);
 
   const currentVisFile = selectedVisFile ?
-    props.datasetDetail.vis_files.find((one) => one.uuid = selectedVisFile) : null;
+    props.datasetDetail.vis_files.find((one) => one.uuid == selectedVisFile) : null;
 
   const formikEditVisFile = useFormik<IDatasetVisFileEditFormData>({
     initialValues: {
@@ -82,6 +84,27 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
     }),
 
   });
+
+  React.useEffect(() => {
+    if (currentVisFile) {
+      formikEditVisFile.setValues({
+        file_name: currentVisFile.file_name,
+        datetime_start: currentVisFile.datetime_start,
+        datetime_end: currentVisFile.datetime_end,
+      });
+    }
+  }, [currentVisFile]);
+
+  React.useEffect(() => {
+    const {data, loading, error} = uploadAxiosResult;
+    if (data && !loading && !error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'File uploaded successfully.',
+        severity: 'success',
+      }));
+      props.onVisFileUpdate();
+    }
+  }, [uploadAxiosResult, dispatch]);
 
 
   const handleUploadSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,7 +254,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
                   formikEditVisFile.setFieldValue('datetime_end', date);
                 }}
                 renderInput={(props) => (
-                  <TextField size={'small'} variant={'standard'} fullWidth
+                  <TextField size={'small'} variant={'standard'}
                     {...props}
                     label={'End date'}
                     value={formikEditVisFile.values.datetime_end}

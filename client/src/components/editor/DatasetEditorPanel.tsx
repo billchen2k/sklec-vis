@@ -39,7 +39,7 @@ const DatasetEditorPanel = (props: IDatasetEditorPanelProps) => {
 
         {/* VisFile Editor */}
         <Grid item xs={6}>
-          <DatasetFileEditor datasetDetail={props.datasetDetail} />
+          <DatasetFileEditor datasetDetail={props.datasetDetail} onVisFileUpdate={props.onDatasetUpdated} />
         </Grid>
       </Grid>
     </Box>

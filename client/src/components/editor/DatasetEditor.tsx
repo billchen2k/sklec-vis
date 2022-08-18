@@ -79,10 +79,6 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
     manual: true,
   });
 
-  const [getDatasetListAxiosRes, getDatasetListExecute] = useAxios({
-    ...endpoints.getDatasetList(),
-  });
-
   React.useEffect(() => {
     const {data, loading, error} = patchDatasetAxiosResult;
     if (data && !loading && !error) {
@@ -90,7 +86,7 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         severity: 'success',
         message: 'Successfully updated dataset information',
       }));
-      getDatasetListExecute();
+      props.onDatasetUpdated();
     }
     if (!loading && error) {
       dispatch(uiSlice.actions.openSnackbar({
@@ -98,14 +94,7 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         message: `Fail to update dataset information: ${error.message}.`,
       }));
     }
-  }, [patchDatasetAxiosResult, dispatch, getDatasetListExecute]);
-
-  React.useEffect(() => {
-    const {data, loading, error} = getDatasetListAxiosRes;
-    if (data && !error && !loading) {
-      dispatch(siteSlice.actions.setDatasetListCache(data.results));
-    }
-  }, [getDatasetListAxiosRes, dispatch]);
+  }, [patchDatasetAxiosResult, dispatch]);
 
   React.useEffect(() => {
     const onCoordinateSelected = (event: CustomEvent) => {

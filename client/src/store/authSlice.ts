@@ -18,15 +18,17 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: initState,
   reducers: {
-    loggedIn: (state: IAuthorizationState, action: PayloadAction<{
+    loggedIn: (state: IAuthorizationState, action: PayloadAction<Partial<{
           accessToken: string;
           refreshToken: string;
-      }>) => {
+      }>>) => {
       state.isAuthorized = true;
       state.accessToken = action.payload.accessToken;
-      Cookies.set('sklecvis_refresh_token', action.payload.refreshToken,
-          {expires: 7},
-      );
+      if (action.payload.refreshToken) {
+        Cookies.set('sklecvis_refresh_token', action.payload.refreshToken,
+            {expires: 7},
+        );
+      }
       console.log('Cookies set.');
     },
     loggedOut: (state: IAuthorizationState) => {
