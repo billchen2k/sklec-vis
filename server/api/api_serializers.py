@@ -170,9 +170,34 @@ class GetUserProfileResponseSerializer(SuccessResponseSerializer):
 
 class CreateDatasetResponseSerializer(SuccessResponseSerializer):
 
-    uuid = serializers.CharField(required = False)
+    class DataSerializer(serializers.Serializer):
+        uuid = serializers.CharField(required = False)
+        class Meta:
+            ref_name = 'CreateDatasetResponseData'
+
+    data = DataSerializer()
 
 class FileUploadSerializer(serializers.Serializer):
 
     file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     format = serializers.CharField(max_length=256, allow_blank=True, required=False)
+
+class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
+
+    lat = serializers.FloatField(required=True)
+    lng = serializers.FloatField(required=True)
+    dpt = serializers.FloatField(required=False, default=0)
+    label = serializers.CharField(max_length=256, required=True)
+    # radius = serializers.IntegerField(required=False, help_text="")
+
+
+class GetNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
+
+    class DataSerializer(serializers.Serializer):
+        date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
+        stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
+        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        class Meta:
+            ref_name = 'GetNcfContentVQDatastreamData'
+
+    data = DataSerializer()

@@ -63,7 +63,7 @@ class DatasetCreate(views.APIView):
     @swagger_auto_schema(operation_description='添加一个新的数据集。',
                          query_serializer = DatasetCreateSerializer,
                          responses = {
-                             200: SuccessResponseSerializer,
+                             200: CreateDatasetResponseSerializer,
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
@@ -186,6 +186,29 @@ class TagList(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
+class GetNcfContentVQDatastream(views.APIView):
+
+    @swagger_auto_schema(operation_description="从指定 VisFile 中根据经纬度和深度获取所有变量的时域特征。",
+                         query_serializer=GetNcfContentVQDatastreamRequestSerializer,
+                         responses= {
+                             200: GetNcfContentVQDatastreamResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def get(self, request: HttpRequest, *args, **kwargs):
+        validation = GetNcfContentVQDatastreamRequestSerializer(data=request.query_params)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
+        uuid = kwargs['uuid']
+        try:
+            visfile = VisFile.objects.get(uuid=uuid)
+        except VisFile.DoesNotExist as e:
+            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
+
+        core = NcfCoreClass(visfile.file.path)
+        vq_data = core.get_vq_datastream(params)
+        return JsonResponseOK(data = vq_data)
 
 class GetRskContent(views.APIView):
 
@@ -318,6 +341,115 @@ def token(request: HttpRequest) -> HttpResponse:
     response['X-CSRFToken'] = token
     return response
 
+class RawfileUpdateView(generics.UpdateAPIView):
+    serializer_class = RawfileUpdateSerializer
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return RawFile.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        try:
+            instance = self.get_object()
+        except Exception as e:
+            return JsonResponseError(f'rawfile with uuid {kwargs["uuid"]} not found.')
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        if (not serializer.is_valid):
+            return JsonResponseError(serializer.errors)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return JsonResponseOK(data=serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='更新指定Visfile信息。',
+                         responses={
+                             200: ResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+class RawfileDestroyView(generics.DestroyAPIView):
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return RawFile.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Exception as e:
+            return JsonResponseError(f'visfile with uuid {kwargs["uuid"]} not found.')
+        self.perform_destroy(instance)
+        return JsonResponseOK()
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+class VisfileUpdateView(generics.UpdateAPIView):
+    serializer_class = VisfileUpdateSerializer
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return VisFile.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        try:
+            instance = self.get_object()
+        except Exception as e:
+            return JsonResponseError(f'visfile with uuid {kwargs["uuid"]} not found.')
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        if (not serializer.is_valid):
+            return JsonResponseError(serializer.errors)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return JsonResponseOK(data=serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='更新指定Visfile信息。',
+                         responses={
+                             200: ResponseSerializer,
+                             400: ErrorResponseSerializer,
+                             500: ErrorResponseSerializer,
+                         })
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+class VisfileDestroyView(generics.DestroyAPIView):
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return VisFile.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Exception as e:
+            return JsonResponseError(f'visfile with uuid {kwargs["uuid"]} not found.')
+        self.perform_destroy(instance)
+        return JsonResponseOK()
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 class GetNcfContent(views.APIView):
     permission_classes = [IsAuthenticated]
@@ -557,7 +689,7 @@ class FileUploadView(views.APIView):
                              400: ErrorResponseSerializer,
                          })
     def post(self, request: HttpRequest, format=None):
-        try:
+        # try:
             file = request.FILES['file']
             if (file.name.endswith('.nc')):
                 core = NcfFileUploadClass(file)
@@ -568,8 +700,8 @@ class FileUploadView(views.APIView):
                 return JsonResponseOK()
             else:
                 return JsonResponseError()
-        except Exception as e:
-            return JsonResponseError(message=e.args)
+        # except Exception as e:
+        #     return JsonResponseError(message=e.args)
 
 
 class SendVerificationEmail(views.APIView):

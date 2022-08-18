@@ -88,6 +88,13 @@ class VisFileSerializer(serializers.ModelSerializer):
         model = VisFile
         exclude = ['id', 'dataset']
 
+class VisfileUpdateSerializer(serializers.ModelSerializer):
+    file_name = serializers.CharField(max_length=200, required=False)
+
+    class Meta:
+        model = VisFile
+        fields = ['file_name', 'is_georeferenced', 'longitude1', 'latitude1', 'longitude2', 'latitude2', 'datetime_start', 'datetime_end']
+
 class RawFileOfDatasetSerializer(serializers.ModelSerializer):
 
     file = serializers.SerializerMethodField()
@@ -107,6 +114,14 @@ class RawFileOfDatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = RawFile
         exclude = ['id', 'dataset', 'visfile']
+
+class RawfileUpdateSerializer(serializers.ModelSerializer):
+    file_name = serializers.CharField(max_length=200, required=False)
+
+    class Meta:
+        model = RawFile
+        fields = ['file_name', 'folder_hierarchy', 'file_same_as_vis']
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
