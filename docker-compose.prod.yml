@@ -19,6 +19,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    command: docker/django-start-prod.sh
     environment:
       DJANGO_SETTINGS_MODULE: sklecvis.settings
       DB_HOST: db
