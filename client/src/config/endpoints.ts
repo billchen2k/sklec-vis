@@ -130,4 +130,16 @@ export const endpoints = {
       method: 'POST',
     });
   },
+  patchRawFile(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/rawfile/update/${uuid}/`,
+      method: 'PATCH',
+    });
+  },
+  deleteRawFile(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/rawfile/destroy/${uuid}/`,
+      method: 'DELETE',
+    });
+  },
 };

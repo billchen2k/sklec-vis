@@ -1,4 +1,4 @@
-import {IDataset, IVisFile} from '@/types';
+import {IDataset} from '@/types';
 import {Stack, Typography, Box, Select, MenuItem, Button, LinearProgress, Divider, TextField, CircularProgress} from '@mui/material';
 import * as React from 'react';
 import FormItemLabel from '@/components/editor/FormItemLabel';
@@ -40,7 +40,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
   }, {manual: true});
 
   const [patchDatasetFileAxiosResult, patchDatasetFileExecute] = useAxios<any>({}, {manual: true});
-
+  const [destroyDatasetFileAxiosResult, destroyDatasetFileExecute] = useAxios<any>({}, {manual: true});
 
   React.useEffect(() => {
     if (props.datasetDetail.vis_files?.length > 0) {
@@ -58,7 +58,10 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
       datetime_end: currentVisFile?.datetime_end,
     },
     onSubmit: (values) => {
-
+      patchDatasetFileExecute({
+        ...endpoints.patchRawFile(currentVisFile.uuid),
+        data: values,
+      });
     },
     validationSchema: Yup.object().shape({
       file_name: Yup.string().required('This field is required.')
@@ -104,7 +107,47 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
       }));
       props.onVisFileUpdate();
     }
-  }, [uploadAxiosResult, dispatch]);
+    if (!loading && error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: `Fail to create dataset: ${data?.message || error.message}`,
+        severity: 'error',
+      }));
+    }
+  }, [uploadAxiosResult, dispatch, props.onVisFileUpdate]);
+
+  React.useEffect(() => {
+    const {data, loading, error} = destroyDatasetFileAxiosResult;
+    if (data && !loading && !error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'File deleted successfully.',
+        severity: 'success',
+      }));
+      props.onVisFileUpdate();
+    }
+    if (!loading && error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: `Fail to delete dataset: ${data?.message || error.message}`,
+        severity: 'error',
+      }));
+    }
+  }, [destroyDatasetFileAxiosResult, dispatch]);
+
+  React.useEffect(() => {
+    const {data, loading, error} = patchDatasetFileAxiosResult;
+    if (data && !loading && !error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'File updated successfully.',
+        severity: 'success',
+      }));
+      props.onVisFileUpdate();
+    }
+    if (!loading && error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: `Fail to update dataset: ${data?.message || error.message}`,
+        severity: 'error',
+      }));
+    }
+  }, [patchDatasetFileAxiosResult, dispatch]);
 
 
   const handleUploadSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +198,9 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
         </React.Fragment>
       ),
       onConfirm: () => {
-
+        destroyDatasetFileExecute({
+          ...endpoints.deleteRawFile(currentVisFile?.uuid),
+        });
       },
     }));
   };
@@ -188,9 +233,9 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
 
           <Button fullWidth variant={'outlined'} onClick={() => handleDeleteClicked()}
             color={'error'}
-            disabled={!currentVisFile}
+            disabled={!currentVisFile || destroyDatasetFileAxiosResult.loading}
           >
-            Delete
+            {destroyDatasetFileAxiosResult.loading ? 'Deleting...' : 'Delete'}
           </Button>
         </Stack>
       </Box>
@@ -239,9 +284,10 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
                   formikEditVisFile.setFieldValue('datetime_start', date);
                 }}
                 renderInput={(props) => (
-                  <TextField size={'small'} variant={'standard'} fullWidth
+                  <TextField size={'small'} variant={'standard'}
                     {...props}
                     label={'Start date'}
+                    sx={{'width': '95%'}}
                     value={formikEditVisFile.values.datetime_start}
                     helperText={formikEditVisFile.errors.datetime_start}
                     error={Boolean(formikEditVisFile.errors.datetime_start)}
@@ -256,6 +302,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
                 renderInput={(props) => (
                   <TextField size={'small'} variant={'standard'}
                     {...props}
+                    sx={{'width': '95%'}}
                     label={'End date'}
                     value={formikEditVisFile.values.datetime_end}
                     helperText={formikEditVisFile.errors.datetime_end}
@@ -276,7 +323,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
           <Button disabled={patchDatasetFileAxiosResult.loading} onClick={() => {
             formikEditVisFile.submitForm();
           }}>
-              Update File
+            {patchDatasetFileAxiosResult.loading ? 'Updating...' : 'Update File'}
           </Button>
         </Box>
       </React.Fragment>

@@ -1,12 +1,13 @@
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useUser} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
+import config from '@/config';
 import {copyMetaToClipboard} from '@/lib/dataset';
 import {uiSlice} from '@/store/uiSlice';
-import {CopyAll, Download, Edit} from '@mui/icons-material';
+import {CopyAll, Download, Edit, Storage} from '@mui/icons-material';
 import {Box, Button, Card, CardContent, Stack} from '@mui/material';
 import MDEditor from '@uiw/react-md-editor';
 import * as React from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 
 export interface IDataMetaInfoProps {
   datasetName?: string;
@@ -17,6 +18,9 @@ export interface IDataMetaInfoProps {
 
 const DataDetails = (props: IDataMetaInfoProps) => {
   const dispatch = useAppDispatch();
+  const user = useUser();
+  const {datasetId} = useParams();
+  const navigate = useNavigate();
 
   const detailsRows = Object.keys(props.meta).map((item) => {
     return (<tr key={item}>
@@ -26,6 +30,15 @@ const DataDetails = (props: IDataMetaInfoProps) => {
   });
 
   const demoSource = '## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.';
+
+  const handleDownloadClicked = () => {
+    window.open(props.downloadLink, '_blank');
+  };
+
+  const handleThreddsDownloadClicked = () => {
+    const fileName = props.downloadLink?.substring(props.downloadLink?.lastIndexOf('/') + 1);
+    window.open(`${config.THREDDS_BASE}/${fileName}`, '_blank');
+  };
 
   return (
     <Box>
@@ -55,19 +68,29 @@ const DataDetails = (props: IDataMetaInfoProps) => {
           Copy Metadata to Clipboard
         </Button>
 
-        <Button variant={'outlined'} size={'small'}
-          startIcon={<Edit />}
-        >
-          Edit description and attachments
-        </Button>
+        {user?.username &&
+          <Button variant={'outlined'} size={'small'}
+            startIcon={<Edit />}
+            onClick={() => {
+              navigate(`/edit/${datasetId}`);
+            }}
+          >
+            Edit description and attachments
+          </Button>
+        }
 
         {props.downloadLink &&
           <Button size={'small'} variant={'outlined'}
             startIcon={<Download />}
-            onClick={() => {
-              window.open(props.downloadLink, '_blank');
-            }}
+            onClick={handleDownloadClicked}
           >Download Original</Button>
+        }
+
+        {props.downloadLink?.endsWith('nc') &&
+          <Button size={'small'} variant={'outlined'}
+            startIcon={<Storage />}
+            onClick={handleThreddsDownloadClicked}
+          >Inspect with THREDDS</Button>
         }
 
       </Stack>

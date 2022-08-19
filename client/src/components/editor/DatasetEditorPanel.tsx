@@ -1,6 +1,8 @@
 import {IDataset} from '@/types';
-import {Box, Grid, Stack, Typography} from '@mui/material';
+import {Close} from '@mui/icons-material';
+import {Box, Grid, IconButton, Stack, Typography} from '@mui/material';
 import * as React from 'react';
+import {useNavigate} from 'react-router-dom';
 import {DatasetTypeBadge} from '../elements/DatasetTypeBadge';
 import DatasetEditor from './DatasetEditor';
 import DatasetFileEditor from './DatasetFileEditor';
@@ -22,11 +24,18 @@ export interface IDatasetEditFormData {
 }
 
 const DatasetEditorPanel = (props: IDatasetEditorPanelProps) => {
+  const navigate = useNavigate();
   return (
     <Box>
       <Stack direction={'row'} sx={{alignItems: 'flex-start', mb: 1}}>
         <Typography variant={'h4'} sx={{'mr': 2}}>{props.datasetDetail.name}</Typography>
         <DatasetTypeBadge type={props.datasetDetail.dataset_type}></DatasetTypeBadge>
+        <Box sx={{flex: 1, flexGrow: 1}} />
+        <IconButton onClick={() => {
+          navigate('/');
+        }}>
+          <Close />
+        </IconButton>
       </Stack>
       <Grid container spacing={2} sx={{
         maxHeight: '70vh',

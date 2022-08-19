@@ -28,6 +28,7 @@ const config = {
     layerBoxTopDragAreaPixels: 80,
   },
   API: '/api',
+  THREDDS_BASE: 'http://172.20.5.126:5678/thredds/catalog/sklec-vis/catalog.html?dataset=sklecvisfile',
   map: {
     apiToken: 'pk.eyJ1IjoiYmlsbGNoZW4yayIsImEiOiJja3R2MDBwNWgyNDljMnBvMmdzbnU0dTZ5In0.To49SgD0gHYceQ8Ap2BG3g',
   },
