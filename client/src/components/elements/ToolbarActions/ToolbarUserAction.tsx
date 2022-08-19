@@ -3,17 +3,20 @@ import DialogAccount from '@/components/dialogs/DialogAccount';
 import {DialogLogin} from '@/components/dialogs/DialogLogin';
 import DialogRegister from '@/components/dialogs/DialogRegister';
 import authSlice from '@/store/authSlice';
+import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {AccountCircle, Key, Login, Logout, Person} from '@mui/icons-material';
 import {Box, Button, ListItemIcon, ListItemText, Menu, MenuItem, MenuList} from '@mui/material';
 import Cookies from 'js-cookie';
 import * as React from 'react';
+import {useNavigate} from 'react-router-dom';
 
 export interface IToolbarUserActionProps {
 }
 
 export function ToolbarUserAction(props: IToolbarUserActionProps) {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const {isAuthorized} = useAppSelector((state) => state.auth);
   const user = useUser();
 
@@ -38,6 +41,8 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
           severity: 'info',
           message: 'Logged out.',
         }));
+        dispatch(siteSlice.actions.enterDataListing());
+        navigate('/');
       },
     }));
   };

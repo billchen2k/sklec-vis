@@ -5,6 +5,7 @@ import ReactDOMServer from 'react-dom/server';
 import {Button, Card, CardContent, Typography} from '@mui/material';
 import {ContentPaste} from '@mui/icons-material';
 import * as React from 'react';
+import consts from '../consts';
 
 export class CoordinateInspectorManager extends LayerManager {
   private marker: any;
@@ -19,6 +20,13 @@ export class CoordinateInspectorManager extends LayerManager {
       const longitudeDisplay = document.getElementById('longitude-display');
       latitudeDisplay.innerHTML = latlng.lat.toFixed(6);
       longitudeDisplay.innerHTML = latlng.lng.toFixed(6);
+      // Trigger global events for data editor to listen
+      document.dispatchEvent(new CustomEvent(consts.EVENT.COORDINATE_SELECTED, {
+        detail: {
+          lat: latlng.lat,
+          lng: latlng.lng,
+        },
+      }));
     };
 
     this.map.on('click', (e: LeafletMouseEvent) => {

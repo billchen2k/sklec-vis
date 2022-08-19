@@ -16,7 +16,7 @@ const config = {
     },
   }),
   appearance: {
-    sideBarWidth: '24rem',
+    sideBarWidth: 380,
     appBarHeight: '48px',
     snackBarAutoHideDuration: 5000, // in ms
     snackBarAnchorOrigin: {
@@ -24,7 +24,11 @@ const config = {
       horizontal: 'right',
     } as SnackbarOrigin,
   },
+  behaviour: {
+    layerBoxTopDragAreaPixels: 80,
+  },
   API: '/api',
+  THREDDS_BASE: 'http://172.20.5.126:5678/thredds/catalog/sklec-vis/catalog.html?dataset=sklecvisfile',
   map: {
     apiToken: 'pk.eyJ1IjoiYmlsbGNoZW4yayIsImEiOiJja3R2MDBwNWgyNDljMnBvMmdzbnU0dTZ5In0.To49SgD0gHYceQ8Ap2BG3g',
   },
