@@ -1,5 +1,6 @@
 import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
 import {endpoints} from '@/config/endpoints';
+import consts from '@/lib/consts';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
@@ -7,7 +8,7 @@ import {Close, Delete, Edit, Launch} from '@mui/icons-material';
 import {
   Box, IconButton,
   List,
-  ListItem, ListItemText,
+  ListItem, ListItemButton, ListItemText,
   Stack,
   TextField, Typography,
 } from '@mui/material';
@@ -133,6 +134,15 @@ const DatasetList = (props: IDatasetListProps) => {
     }));
   };
 
+  const handleDatasetClickedInList = (dataset: IDataset) => {
+    document.dispatchEvent(new CustomEvent(consts.EVENT.MAP_FLY_TO, {
+      detail: {
+        lat: dataset.latitude,
+        lng: dataset.longitude,
+      },
+    }));
+  };
+
   React.useEffect(() => {
     const {data, loading, error} = deleteDatasetAxiosResult;
     if (!loading && data) {
@@ -179,23 +189,25 @@ const DatasetList = (props: IDatasetListProps) => {
             <ListItem key={index}
               secondaryAction={secondaryAction}
             >
-              {/* <ListItemButton> */}
-              <ListItemText
-                primary={item.name}
-                secondary={
-                  <Stack direction={'row'} sx={{flexWrap: 'wrap', gap: 1}}>
-                    <DatasetTypeBadge type={item.dataset_type} />
-                    {item.tags && item.tags.map((tag, index) => {
-                      return <DatasetTagBadge key={index} tag={tag} />;
-                    })}
-                    {/* <Box sx={{flexGrow: 1}} /> */}
-                    {/* <Typography color={'text.secondary'} variant={'caption'}>
+              <ListItemButton disableGutters
+                onClick={() => handleDatasetClickedInList(item)}
+              >
+                <ListItemText
+                  primary={item.name}
+                  secondary={
+                    <Stack direction={'row'} sx={{flexWrap: 'wrap', gap: 1}}>
+                      <DatasetTypeBadge type={item.dataset_type} />
+                      {item.tags && item.tags.map((tag, index) => {
+                        return <DatasetTagBadge key={index} tag={tag} />;
+                      })}
+                      {/* <Box sx={{flexGrow: 1}} /> */}
+                      {/* <Typography color={'text.secondary'} variant={'caption'}>
                       {item.created_at?.substring(0, 19)}
                     </Typography> */}
-                  </Stack>
-                }
-              />
-              {/* </ListItemButton> */}
+                    </Stack>
+                  }
+                />
+              </ListItemButton>
             </ListItem>
           );
         })}

@@ -34,14 +34,6 @@ export interface IDatasetCreateFormData {
     dataset_type: DatasetType;
 }
 
-const datasetTypeFullNames: Record<DatasetType, string> = {
-  'NCF': 'NetCDF Dataset',
-  'RBR': 'Ruskin bouy data',
-  'RT': 'Raster file dataset (tiff)',
-  'TABLE': 'Simple Tabular datasets (csv, xlsx, etc.)',
-  'GNR': 'Other types or general dataset',
-};
-
 export default function DatasetCreator(props: IDatasetCreatorProps) {
   const user = useUser();
   const navigate = useNavigate();
@@ -167,11 +159,11 @@ export default function DatasetCreator(props: IDatasetCreatorProps) {
             onChange={formikCreateDataset.handleChange}
             error={Boolean(formikCreateDataset.errors.dataset_type)}
           >
-            {Object.keys(datasetTypeFullNames).map((type) => (
+            {Object.keys(consts.datasetTypeFullNames).map((type) => (
               <MenuItem value={type} key={type}>
                 <Stack direction={'row'} spacing={1}>
                   <DatasetTypeBadge type={type as DatasetType}></DatasetTypeBadge>
-                  <ListItemText>{datasetTypeFullNames[type as DatasetType]}</ListItemText>
+                  <ListItemText>{consts.datasetTypeFullNames[type as DatasetType]}</ListItemText>
                 </Stack>
               </MenuItem>
             ))}

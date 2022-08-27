@@ -48,7 +48,6 @@ export default function DefaultPage(props: IDefaultPageProps) {
         }
       </Stack>
 
-
     </LayerBox>
   );
 }

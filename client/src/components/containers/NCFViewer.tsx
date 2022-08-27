@@ -1,6 +1,7 @@
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {endpoints} from '@/config/endpoints';
 import LayerBox from '@/layout/LayerBox';
+import consts from '@/lib/consts';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {IDataset, IVisFile} from '@/types';
@@ -133,7 +134,7 @@ export function NCFViewer(props: INCFViewerProps) {
         getDimensionValue('longitude', requestRange['longitude'][1])) / 2;
       const targetLatLng: LatLng = new LatLng(lat, lng);
       // map.flyTo(targetLatLng);
-      document.dispatchEvent(new CustomEvent('fly-to', {
+      document.dispatchEvent(new CustomEvent(consts.EVENT.MAP_FLY_TO, {
         detail: targetLatLng,
       }));
     }
