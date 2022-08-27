@@ -18,3 +18,13 @@ export interface IVQDataStreamResData {
   stream_data: number[][];
   lat_lngs: L.LatLng[];
 }
+
+export interface ITokenResponse {
+  access: string;
+  refresh: string;
+}
+
+export interface IAuthErrorResponse {
+  detail: string;
+  code: string;
+}

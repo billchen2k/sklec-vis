@@ -38,7 +38,6 @@ const GlobalDialog = (props: IGlobalDialogProps) => {
           <DialogContent>
             <Typography>
               {dialog.content}
-
             </Typography>
           </DialogContent>
           <DialogActions>

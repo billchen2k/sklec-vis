@@ -39,7 +39,7 @@ export class LayerManager {
 
   removeLayer() {
     if (this.layer) {
-      console.log('removing layer');
+      // console.log('removing layer');
       this.layer.remove();
     }
   }

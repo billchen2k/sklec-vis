@@ -1,5 +1,7 @@
 import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
+import {endpoints} from '@/config/endpoints';
 import {siteSlice} from '@/store/siteSlice';
+import {uiSlice} from '@/store/uiSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
 import {Close, Delete, Edit, Launch} from '@mui/icons-material';
 import {
@@ -9,6 +11,7 @@ import {
   Stack,
   TextField, Typography,
 } from '@mui/material';
+import useAxios from 'axios-hooks';
 import * as React from 'react';
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -30,9 +33,15 @@ const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useUser();
-  const {datasetListCache, globalState} = useAppSelector((state) => state.site);
+  const {datasetListCache, globalState, datasetListRefreshToken} = useAppSelector((state) => state.site);
   const [searchText, setSearchText] = React.useState('');
   const isManaging = globalState == 'managing';
+
+  const [deleteDatasetAxiosResult, deleteDatasetExecute] = useAxios<any>({}, {manual: true});
+
+  const [{data, loading, error}, refetch] = useAxios({
+    ...endpoints.getDatasetList(),
+  });
 
   useEffect(() => {
     if (!['data-listing', 'managing'].includes(globalState)) {
@@ -40,18 +49,44 @@ const DatasetList = (props: IDatasetListProps) => {
     }
   });
 
+  useEffect(() => {
+    if (loading) {
+      dispatch(uiSlice.actions.beginLoading('Loading datasets...'));
+    } else {
+      dispatch(uiSlice.actions.endLoading());
+    }
+
+    if (error) {
+      dispatch(uiSlice.actions.openSnackbar({
+        message: 'Error fetching dataset list.' + error && error.message || 'Unknown error.',
+        severity: 'error',
+      }));
+    }
+
+    if (data) {
+      dispatch(siteSlice.actions.setDatasetListCache(data.results));
+    } else {
+      return;
+    }
+  }, [data, loading, error]);
+
+  useEffect(() => {
+    if (!loading && data) {
+      refetch();
+    }
+  }, [datasetListRefreshToken]);
 
   const demoDatasets: IDataListItem[]= [
-    {
-      'name': 'ADCP_202009-10',
-      'uuid': '1',
-      'dataset_type': 'TABLE',
-    },
-    {
-      'name': 'CTD_201283_20201111_1520',
-      'uuid': '2',
-      'dataset_type': 'TABLE',
-    },
+    // {
+    //   'name': 'ADCP_202009-10',
+    //   'uuid': '1',
+    //   'dataset_type': 'TABLE',
+    // },
+    // {
+    //   'name': 'CTD_201283_20201111_1520',
+    //   'uuid': '2',
+    //   'dataset_type': 'TABLE',
+    // },
     // {
     //   'name': 'RDI_S3A_20200220',
     //   'link': '/view/3',
@@ -79,13 +114,31 @@ const DatasetList = (props: IDatasetListProps) => {
     return searchHit && isVisible;
   });
 
-  const handleClickEdit = (datasetId: string) => {
+  const handleDatasetEdit = (datasetId: string) => {
     navigate(`edit/${datasetId}`);
   };
 
-  const handleClickDelete = (datasetId: string) => {
-    alert(`Delete {datasetId}`);
+  const handleDatasetDelete = (datasetId: string, datasetName: string) => {
+    dispatch(uiSlice.actions.openDialog({
+      type: 'confirm',
+      title: 'Confirm Delete?',
+      content: (<Typography variant={'body1'}>
+        Are you sure to delete this dataset ({datasetName})?
+      </Typography>),
+      onConfirm: () => {
+        deleteDatasetExecute({
+          ...endpoints.deleteDataset(datasetId),
+        });
+      },
+    }));
   };
+
+  React.useEffect(() => {
+    const {data, loading, error} = deleteDatasetAxiosResult;
+    if (!loading && data) {
+      dispatch(siteSlice.actions.refreshDatasetList());
+    }
+  }, [deleteDatasetAxiosResult, dispatch]);
 
   return (
     <Box>
@@ -112,11 +165,12 @@ const DatasetList = (props: IDatasetListProps) => {
           if (isManaging) {
             secondaryAction = (<Stack direction={'row'}>
               <IconButton
-                onClick={() => handleClickDelete(item.uuid)} >
+                disabled={deleteDatasetAxiosResult.loading}
+                onClick={() => handleDatasetDelete(item.uuid, item.name)} >
                 <Delete />
               </IconButton>
               <IconButton
-                onClick={() => handleClickEdit(item.uuid)} >
+                onClick={() => handleDatasetEdit(item.uuid)} >
                 <Edit />
               </IconButton>
             </Stack>);

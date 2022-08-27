@@ -124,21 +124,33 @@ export const endpoints = {
       method: 'PATCH',
     });
   },
+  postCreateDataset(): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/create/`,
+      method: 'POST',
+    });
+  },
   postUploadRawFile(uuid: string): AxiosRequestConfig<any> {
     return withAuthorization({
       url: `${API_ROOT}/dataset/rawfile/upload/`,
       method: 'POST',
     });
   },
-  patchRawFile(uuid: string): AxiosRequestConfig<any> {
+  patchVisFile(uuid: string): AxiosRequestConfig<any> {
     return withAuthorization({
-      url: `${API_ROOT}/rawfile/update/${uuid}/`,
+      url: `${API_ROOT}/visfile/update/${uuid}/`,
       method: 'PATCH',
     });
   },
-  deleteRawFile(uuid: string): AxiosRequestConfig<any> {
+  deleteVisFile(uuid: string): AxiosRequestConfig<any> {
     return withAuthorization({
-      url: `${API_ROOT}/rawfile/destroy/${uuid}/`,
+      url: `${API_ROOT}/visfile/destroy/${uuid}/`,
+      method: 'DELETE',
+    });
+  },
+  deleteDataset(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/destroy/${uuid}/`,
       method: 'DELETE',
     });
   },

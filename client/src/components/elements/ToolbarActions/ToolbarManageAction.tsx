@@ -4,6 +4,7 @@ import {Add, SupervisedUserCircle, Tag} from '@mui/icons-material';
 import {Box, Button, ListItemIcon, ListItemText, MenuItem, MenuList, Paper, Popper} from '@mui/material';
 import * as React from 'react';
 import {useNavigate} from 'react-router-dom';
+import ManageMenuCreateDataset from './ManageMenuItems/ManageMenuCreateDataset';
 
 export interface IToolbarManageActionProps {
 }
@@ -43,7 +44,8 @@ export default function ToolbarManageAction(props: IToolbarManageActionProps) {
       >
         <Paper sx={{mt: 2}}>
           <MenuList sx={{zIndex: 9999}}>
-            <MenuItem>
+            <MenuItem onClick={() => navigate('/manage/create')}
+            >
               <ListItemIcon>
                 <Add fontSize="small" />
               </ListItemIcon>

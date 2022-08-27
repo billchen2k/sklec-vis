@@ -67,9 +67,9 @@ class DatasetCreate(views.APIView):
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args, **kwargs):
         try:
-            validation = DatasetCreateSerializer(data=request.query_params)
+            validation = DatasetCreateSerializer(data=json.loads(request.body.decode('utf-8')))
             if not validation.is_valid():
                 return JsonResponseError(validation.errors)
             params = validation.data

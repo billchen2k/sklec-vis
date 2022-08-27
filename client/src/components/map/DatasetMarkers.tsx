@@ -56,9 +56,6 @@ export const markerIcons = {
 };
 
 const DatasetMarkers = (props: IDatasetMarkersProps) => {
-  const [{data, loading, error}, refetch] = useAxios({
-    ...endpoints.getDatasetList(),
-  });
   // const [markers, setMarkers] = React.useState<any[]>([]);
   const {datasetListCache} = useAppSelector((state) => state.site);
   const dispatch = useAppDispatch();
@@ -79,51 +76,6 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     'Latitude': '31˚04\'4.00"',
   };
 
-  useEffect(() => {
-    if (loading) {
-      dispatch(uiSlice.actions.beginLoading('Loading datasets...'));
-    } else {
-      dispatch(uiSlice.actions.endLoading());
-    }
-    if (error) {
-      dispatch(uiSlice.actions.openSnackbar({
-        message: 'Error fetching dataset list.' + error && error.message || 'Unknown error.',
-        severity: 'error',
-      }));
-    }
-    if (data) {
-      dispatch(siteSlice.actions.setDatasetListCache(data.results));
-    } else {
-      return;
-    }
-
-    // setMarkers(datasetListCache?.map((one: IDataset) => {
-    //   const center = new L.LatLng(one.latitude, one.longitude);
-    //   let icon = markerIcons.redCircle;
-    //   switch (one.dataset_type) {
-    //     case 'RT':
-    //       icon = markerIcons.greenCircle;
-    //       break;
-    //     case 'RBR':
-    //       icon = markerIcons.redCircle;
-    //       break;
-    //     case 'TABLE':
-    //       icon = markerIcons.cyanCircle;
-    //       break;
-    //     case 'NCF':
-    //       icon = markerIcons.yellowCircle;
-    //   }
-    //   console.log(one);
-    //   return (
-    //     <Marker position={center} key={one.uuid} icon={icon}>
-    //       <Popup>
-    //         <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
-    //       </Popup>
-    //     </Marker>
-    //   );
-    // }));
-  }, [loading, error, data, dispatch]);
-
 
   const markers = datasetListCache?.map((one: IDataset) => {
     const center = new L.LatLng(one.latitude, one.longitude);
@@ -141,7 +93,7 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
       case 'NCF':
         icon = markerIcons.yellowCircle;
     }
-    console.log(one);
+    // console.log(one);
     return (
       <Marker position={center} key={one.uuid} icon={icon}>
         <Popup>

@@ -59,7 +59,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
     },
     onSubmit: (values) => {
       patchDatasetFileExecute({
-        ...endpoints.patchRawFile(currentVisFile.uuid),
+        ...endpoints.patchVisFile(currentVisFile.uuid),
         data: values,
       });
     },
@@ -199,7 +199,7 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
       ),
       onConfirm: () => {
         destroyDatasetFileExecute({
-          ...endpoints.deleteRawFile(currentVisFile?.uuid),
+          ...endpoints.deleteVisFile(currentVisFile?.uuid),
         });
       },
     }));
