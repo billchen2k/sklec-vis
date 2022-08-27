@@ -20,11 +20,6 @@ export default function DataEditor(props: IDataEditorProps) {
   const {datasetId} = useParams();
   const [{data, loading, error}, execute] = useAxios<IDataset>(endpoints.getDatasetDetail(datasetId));
 
-  const [getDatasetListAxiosRes, getDatasetListExecute] = useAxios({
-    ...endpoints.getDatasetList(),
-  }, {manual: true});
-
-
   React.useEffect(() => {
     if (!loading && error) {
       dispatch(uiSlice.actions.openSnackbar({
@@ -33,13 +28,6 @@ export default function DataEditor(props: IDataEditorProps) {
       }));
     }
   }, [data, loading, error, dispatch]);
-
-  React.useEffect(() => {
-    const {data, loading, error} = getDatasetListAxiosRes;
-    if (data && !error && !loading) {
-      dispatch(siteSlice.actions.setDatasetListCache(data.results));
-    }
-  }, [getDatasetListAxiosRes, dispatch]);
 
   React.useEffect(() => {
     dispatch(siteSlice.actions.enterDataManaging(datasetId));
@@ -59,7 +47,7 @@ export default function DataEditor(props: IDataEditorProps) {
         {data && !error && !loading &&
           <DatasetEditorPanel datasetDetail={data} onDatasetUpdated={() => {
             execute();
-            getDatasetListExecute();
+            dispatch(siteSlice.actions.refreshDatasetList());
           }}/>
         }
       </Box>

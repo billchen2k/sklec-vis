@@ -2,6 +2,7 @@ import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
 import DialogAccount from '@/components/dialogs/DialogAccount';
 import {DialogLogin} from '@/components/dialogs/DialogLogin';
 import DialogRegister from '@/components/dialogs/DialogRegister';
+import consts from '@/lib/consts';
 import authSlice from '@/store/authSlice';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
@@ -25,6 +26,11 @@ export function ToolbarUserAction(props: IToolbarUserActionProps) {
   const [accountOpen, setAccountOpen] = React.useState<boolean>(false);
   const [registerOpen, setRegisterOpen] = React.useState<boolean>(false);
 
+  React.useEffect(() => {
+    document.addEventListener(consts.EVENT.TRIGGER_LOGIN_DIALOG, (event) => {
+      setLoginOpen(true);
+    });
+  });
 
   const handleLogout = () => {
     setMenuOpen(false);

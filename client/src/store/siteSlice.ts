@@ -1,6 +1,9 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {DatasetType, IDataset} from '@/types';
 import {IDimensionType} from '@/types/ncf.type';
+import axios from 'axios';
+import {endpoints} from '@/config/endpoints';
+import {random} from 'lodash';
 
 export type GlobalState = 'data-listing' | 'data-inspecting' | 'managing';
 
@@ -32,6 +35,7 @@ export interface ISiteState {
   rasterState?: IRasterState;
   inspectState?: Partial<IInspectState>;
   datasetListCache?: IDataset[] | any;
+  datasetListRefreshToken: number;
   datasetDetailCache?: IDataset; // The current viewing data. Will be set in any viewing panel.
 }
 
@@ -121,6 +125,9 @@ export const siteSlice = createSlice({
     },
     setDatasetListCache: (state: ISiteState, action: PayloadAction<any>) => {
       state.datasetListCache = action.payload;
+    },
+    refreshDatasetList: (state: ISiteState) => {
+      state.datasetListRefreshToken = random(999999999, false);
     },
     setDatasetDetailCache: (state: ISiteState, action: PayloadAction<any>) => {
       state.datasetDetailCache = action.payload;

@@ -55,7 +55,7 @@ const DataViewer = (props: IVisualizerProps) => {
     }
 
     if (data) {
-      // console.log('Data detail:', data);
+      console.log('Data detail:', data);
       dispatch(siteSlice.actions.setDatasetDetailCache(data));
       dispatch(siteSlice.actions.enterDataInspecting({
         dataId: data.uuid,
@@ -127,6 +127,7 @@ const DataViewer = (props: IVisualizerProps) => {
     // Real Data
 
     if (data && data['uuid'] == 'b45848e97') {
+      // Local csv now demo. [todo]
       viewerContent = (
         <LayerBox mode={'inset'}>
           <LineChart type={'csv-local'} xlabel={'DateTime'} localLink={'/dataset/ADCP_04.csv'}></LineChart>

@@ -123,7 +123,7 @@ const MapToolbar = (props) => {
       actions: [
         locateCenterAction,
         coordinateInspectAction,
-        ...(currentType === 'RT' ? [visualQueryAction] : []),
+        ...(['RT', 'NCF'].includes(currentType) ? [visualQueryAction] : []),
       ],
     });
     toolbar.addTo(map);

@@ -22,7 +22,7 @@ const DataDetails = (props: IDataMetaInfoProps) => {
   const {datasetId} = useParams();
   const navigate = useNavigate();
 
-  const detailsRows = Object.keys(props.meta).map((item) => {
+  const detailsRows = Object.keys(props.meta || {}).map((item) => {
     return (<tr key={item}>
       <td>{item}</td>
       <td>{props.meta[item]}</td>
