@@ -63,6 +63,7 @@ const initState: ISiteState = {
   },
   datasetListCache: undefined,
   datasetDetailCache: undefined,
+  datasetListRefreshToken: 0,
 };
 
 export const siteSlice = createSlice({

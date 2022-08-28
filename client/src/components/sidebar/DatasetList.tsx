@@ -4,21 +4,24 @@ import consts from '@/lib/consts';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
-import {Close, Delete, Edit, Launch} from '@mui/icons-material';
+import {Close, Delete, Edit, Folder, Launch, Sort, Tag} from '@mui/icons-material';
 import {
-  Box, IconButton,
+  Box, Chip, IconButton,
   List,
   ListItem, ListItemButton, ListItemText,
+  ListSubheader,
+  Popover,
   Stack,
   TextField, Typography,
 } from '@mui/material';
 import useAxios from 'axios-hooks';
+import _ from 'lodash';
 import * as React from 'react';
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {DatasetTagBadge} from '../elements/DatasetTagBatch';
 import {DatasetTypeBadge} from '../elements/DatasetTypeBadge';
-import {DatasetTagSelector} from './DatasetTagSelector';
+import TagSelector from '../elements/TagSelector';
 
 export interface IDatasetListProps {
 }
@@ -30,12 +33,26 @@ interface IDataListItem {
   tags?: IDatasetTag[];
 }
 
+export type sortingCriteria = 'date' | 'name' | 'type' | 'tag';
+
+interface TagFilterStatus {
+  open: boolean;
+  tags?: string[];
+  displayText?: string;
+}
+
 const DatasetList = (props: IDatasetListProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useUser();
   const {datasetListCache, globalState, datasetListRefreshToken} = useAppSelector((state) => state.site);
   const [searchText, setSearchText] = React.useState('');
+
+  const [tagFilterStatus, setTagFilterStatus] = React.useState<TagFilterStatus>({
+    open: false,
+  });
+
+
   const isManaging = globalState == 'managing';
 
   const [deleteDatasetAxiosResult, deleteDatasetExecute] = useAxios<any>({}, {manual: true});
@@ -112,7 +129,13 @@ const DatasetList = (props: IDatasetListProps) => {
     // console.log('Search string:', searchStr);
     const searchHit: boolean = Boolean(searchStr.match(searchText.toLowerCase()));
     const isVisible: boolean = one.is_public || Boolean(user.username);
-    return searchHit && isVisible;
+
+    let isTagFeasible = true;
+    if ((tagFilterStatus.tags || []).length > 0) {
+      isTagFeasible = _.intersection(tagFilterStatus.tags, one.tags.map((tag) => tag.uuid)).length > 0;
+    }
+
+    return searchHit && isVisible && isTagFeasible;
   });
 
   const handleDatasetEdit = (datasetId: string) => {
@@ -164,9 +187,35 @@ const DatasetList = (props: IDatasetListProps) => {
           }}
           value={searchText} onChange={(e) => setSearchText(e.target.value)}
         />
-        <DatasetTagSelector />
+        {/* <DatasetTagSelector /> */}
+        <Stack direction={'row'} spacing={1}>
+          <Chip icon={<Sort />} label={'Sort by'}
+            onDelete={() => {}}
+            onClick={() => {}} />
+          <Chip id={'filter-chip-tag'} icon={<Tag />} label={tagFilterStatus.displayText || 'Tag'}
+            color={tagFilterStatus.displayText ? 'primary' : 'default'}
+            onDelete={tagFilterStatus.displayText ? () => setTagFilterStatus({...tagFilterStatus, tags: [], displayText: null}) : null}
+            onClick={() => setTagFilterStatus({...tagFilterStatus, open: !tagFilterStatus.open})}
+          />
+          <Chip icon={<Folder />} label={'Type'}
+            onDelete={() => {}}
+            onClick={() => {}} />
+
+          <Popover anchorEl={document.getElementById('filter-chip-tag')}
+            anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
+            open={tagFilterStatus.open}
+            onClose={() => setTagFilterStatus({...tagFilterStatus, open: false})}
+          >
+            <TagSelector onTagSelected={(tags: string[], displayText? : string) => {
+              setTagFilterStatus({...tagFilterStatus, tags, displayText});
+            }} />
+          </Popover>
+        </Stack>
       </Box>
-      <List dense={true}>
+      <List dense={true}
+        // sx={{px: 1}}
+        subheader={<ListSubheader>Datasets</ListSubheader>}
+      >
         {datasetListRender.map((item, index) => {
           let secondaryAction = (<IconButton
             onClick={() => navigate(`view/${item.uuid}`)} >
@@ -200,10 +249,6 @@ const DatasetList = (props: IDatasetListProps) => {
                       {item.tags && item.tags.map((tag, index) => {
                         return <DatasetTagBadge key={index} tag={tag} />;
                       })}
-                      {/* <Box sx={{flexGrow: 1}} /> */}
-                      {/* <Typography color={'text.secondary'} variant={'caption'}>
-                      {item.created_at?.substring(0, 19)}
-                    </Typography> */}
                     </Stack>
                   }
                 />
@@ -212,6 +257,7 @@ const DatasetList = (props: IDatasetListProps) => {
           );
         })}
       </List>
+
       {datasetListRender.length === 0 &&
           <Box sx={{textAlign: 'center'}}>
             <Typography variant={'body1'} sx={{m: 3}}><i>No dataset found.</i></Typography>
@@ -219,6 +265,7 @@ const DatasetList = (props: IDatasetListProps) => {
               width={'96'} alt={'No dataset found'}/>
           </Box>
       }
+
     </Box>
   );
 };

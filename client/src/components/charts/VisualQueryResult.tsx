@@ -8,7 +8,6 @@ import useAxios from 'axios-hooks';
 import {endpoints} from '@/config/endpoints';
 import {IResponse, IVQDataStreamResData} from '@/types/api';
 import {uiSlice} from '@/store/uiSlice';
-import * as d3 from 'd3';
 import {VisualQueryResultPainter} from '@/lib/map/VisualQueryResultPainter';
 
 export interface IVisualQueryResultProps {
@@ -19,8 +18,7 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
   const {currentType, currentData, rasterState} = useAppSelector((state) => state.site);
   const [localVQLatLngs, setLocalVQLatLngs] = React.useState<any[]>([]);
 
-  const [{data, loading, error}, executeRequest] = useAxios<IResponse<IVQDataStreamResData>>(endpoints.postVQDataStream(
-      localVQLatLngs, 3, currentData as string));
+  const [{data, loading, error}, executeRequest] = useAxios<IResponse<IVQDataStreamResData>>({}, {manual: true});
 
   const calcBounds = (rasterMin: number, rasterMax: number) => {
     const range = rasterMax - rasterMin;
@@ -32,6 +30,10 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
   useEffect(() => {
     if (rasterState.visualQueryLatLngs.length > 0) {
       setLocalVQLatLngs(rasterState.visualQueryLatLngs);
+      executeRequest(endpoints.postVQDataStream(
+          rasterState.visualQueryLatLngs,
+          3,
+          currentData as string));
     }
   }, [rasterState.visualQueryLatLngs]);
 
@@ -51,7 +53,7 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
     painter.renderDataStream();
   }, [data]);
 
-  if (currentType != 'RT' || !rasterState || localVQLatLngs.length == 0) {
+  if (!['RT', 'NCF'].includes(currentType) || !rasterState || localVQLatLngs.length == 0) {
     return (<div></div>);
   }
 

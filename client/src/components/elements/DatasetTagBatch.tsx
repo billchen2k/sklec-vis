@@ -5,7 +5,8 @@ import {blue} from '@mui/material/colors';
 import * as React from 'react';
 
 export interface IDatasetTypeBadgeProps {
-    tag: IDatasetTag
+    tag: IDatasetTag,
+    displayName?: string,
 }
 
 export function DatasetTagBadge(props: IDatasetTypeBadgeProps) {
@@ -25,6 +26,7 @@ export function DatasetTagBadge(props: IDatasetTypeBadgeProps) {
     backgroundColor: props.tag.color || defaultColor,
     textAlign: 'center',
     display: 'flex',
+    width: 'fit-content',
     px: '0.2rem',
   }}>
     <TagRounded sx={{
@@ -38,7 +40,7 @@ export function DatasetTagBadge(props: IDatasetTypeBadgeProps) {
       textAlign: 'center',
       fontWeight: 'bold',
     }}>
-      {fullName}
+      {props.displayName || fullName}
     </Typography>
   </Box>;
 }
