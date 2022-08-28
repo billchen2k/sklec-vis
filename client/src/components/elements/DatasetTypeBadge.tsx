@@ -1,3 +1,4 @@
+import consts from '@/lib/consts';
 import {DatasetType} from '@/types';
 import {Box, Typography} from '@mui/material';
 import {amber, blueGrey, deepOrange, green, indigo, lightGreen, orange, yellow} from '@mui/material/colors';
@@ -8,13 +9,7 @@ export interface IDatasetTypeBadgeProps {
 }
 
 export function DatasetTypeBadge(props: IDatasetTypeBadgeProps) {
-  const typeColor: Record<DatasetType, string> = {
-    NCF: yellow[700],
-    TABLE: blueGrey[600],
-    RT: lightGreen[700],
-    RBR: deepOrange[700],
-    GNR: '',
-  };
+  const typeColor: Record<DatasetType, string> = consts.typeColors;
   return <Box sx={{
     borderRadius: '3px',
     backgroundColor: typeColor[props.type] || '#555555',

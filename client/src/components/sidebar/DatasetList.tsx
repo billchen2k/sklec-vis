@@ -4,18 +4,17 @@ import consts from '@/lib/consts';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
 import {DatasetType, IDataset, IDatasetTag} from '@/types';
-import {Close, Delete, Edit, Folder, Launch, Sort, Tag} from '@mui/icons-material';
+import {Abc, CalendarToday, Close, Delete, Edit, EventNote, ExpandCircleDownOutlined, Folder, Launch, Person, Sort, Tag} from '@mui/icons-material';
 import {
   Box, Chip, IconButton,
   List,
-  ListItem, ListItemButton, ListItemText,
-  ListSubheader,
-  Popover,
+  ListItem, ListItemButton, ListItemIcon, ListItemText,
+  ListSubheader, MenuItem, Popover,
   Stack,
   TextField, Typography,
 } from '@mui/material';
 import useAxios from 'axios-hooks';
-import _ from 'lodash';
+import _, {capitalize} from 'lodash';
 import * as React from 'react';
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -33,12 +32,68 @@ interface IDataListItem {
   tags?: IDatasetTag[];
 }
 
-export type sortingCriteria = 'date' | 'name' | 'type' | 'tag';
+export type SortingCriteria = 'creation_date' | 'modification_date' | 'name' | 'type' | 'uploader';
+
+const sortingConfig: Record<SortingCriteria, {
+  name: string;
+  fullName?: string;
+  icon: JSX.Element;
+  cmp?: (a: IDataset, b: IDataset) => boolean | number;
+}> = {
+  'name': {
+    name: 'Name',
+    icon: <Abc />,
+    cmp: (a: IDataset, b: IDataset) => {
+      return a.name > b.name;
+    },
+  },
+  'creation_date': {
+    name: 'Created',
+    fullName: 'Creation Date',
+    icon: <CalendarToday />,
+    cmp: (a: IDataset, b: IDataset) => {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    },
+  },
+  'modification_date': {
+    name: 'Modified',
+    fullName: 'Modification Date',
+    icon: <EventNote />,
+    cmp: (a: IDataset, b: IDataset) => {
+      return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+    },
+  },
+  'type': {
+    name: 'Type',
+    icon: <Folder />,
+    cmp: (a: IDataset, b: IDataset) => {
+      return a.dataset_type > b.dataset_type;
+    },
+  },
+  'uploader': {
+    name: 'Uploader',
+    icon: <Person />,
+    cmp: (a: IDataset, b: IDataset) => {
+      return a.created_by > b.created_by;
+    },
+  },
+};
 
 interface TagFilterStatus {
   open: boolean;
   tags?: string[];
   displayText?: string;
+}
+
+interface SortingStatus {
+  open: boolean;
+  sortBy: SortingCriteria;
+  ascending: boolean;
+}
+
+interface TypeStatus {
+  open: boolean;
+  type?: DatasetType;
 }
 
 const DatasetList = (props: IDatasetListProps) => {
@@ -51,7 +106,14 @@ const DatasetList = (props: IDatasetListProps) => {
   const [tagFilterStatus, setTagFilterStatus] = React.useState<TagFilterStatus>({
     open: false,
   });
-
+  const [sortingStatus, setSortingStatus] = React.useState<SortingStatus>({
+    open: false,
+    sortBy: 'name',
+    ascending: true,
+  });
+  const [typeStatus, setTypeStatus] = React.useState<TypeStatus>({
+    open: false,
+  });
 
   const isManaging = globalState == 'managing';
 
@@ -130,13 +192,19 @@ const DatasetList = (props: IDatasetListProps) => {
     const searchHit: boolean = Boolean(searchStr.match(searchText.toLowerCase()));
     const isVisible: boolean = one.is_public || Boolean(user.username);
 
-    let isTagFeasible = true;
+    let isTagEligible = true;
     if ((tagFilterStatus.tags || []).length > 0) {
-      isTagFeasible = _.intersection(tagFilterStatus.tags, one.tags.map((tag) => tag.uuid)).length > 0;
+      isTagEligible = _.intersection(tagFilterStatus.tags, one.tags.map((tag) => tag.uuid)).length > 0;
     }
-
-    return searchHit && isVisible && isTagFeasible;
+    const isTypeEligible = !typeStatus.type || (one.dataset_type == typeStatus.type);
+    return searchHit && isVisible && isTagEligible && isTypeEligible;
   });
+
+  // @ts-ignore
+  datasetListRender.sort(sortingConfig[sortingStatus.sortBy].cmp);
+  if (!sortingStatus.ascending) {
+    datasetListRender.reverse();
+  }
 
   const handleDatasetEdit = (datasetId: string) => {
     navigate(`edit/${datasetId}`);
@@ -189,32 +257,89 @@ const DatasetList = (props: IDatasetListProps) => {
         />
         {/* <DatasetTagSelector /> */}
         <Stack direction={'row'} spacing={1}>
-          <Chip icon={<Sort />} label={'Sort by'}
-            onDelete={() => {}}
-            onClick={() => {}} />
+          <Chip id={'filter-chip-sort-by'} icon={<Sort />} label={sortingConfig[sortingStatus.sortBy].name}
+            color={'primary'}
+            onDelete={() => setSortingStatus({...sortingStatus, ascending: !sortingStatus.ascending})}
+            deleteIcon={sortingStatus.ascending ? <ExpandCircleDownOutlined sx={{transform: 'rotate(180deg)'}}/> : <ExpandCircleDownOutlined /> }
+            onClick={() => setSortingStatus({...sortingStatus, open: true})} />
+          <Chip id={'filter-chip-type'} icon={<Folder/>} label={typeStatus.type || 'Type'}
+            color={typeStatus.type ? 'primary' : 'default'}
+            sx={{backgroundColor: typeStatus.type ? consts.typeColors[typeStatus.type] : 'default'}}
+            onDelete={typeStatus.type ? () => setTypeStatus({...typeStatus, type: null}) : null}
+            onClick={() => setTypeStatus({...typeStatus, open: true})} />
           <Chip id={'filter-chip-tag'} icon={<Tag />} label={tagFilterStatus.displayText || 'Tag'}
-            color={tagFilterStatus.displayText ? 'primary' : 'default'}
-            onDelete={tagFilterStatus.displayText ? () => setTagFilterStatus({...tagFilterStatus, tags: [], displayText: null}) : null}
+            color={tagFilterStatus.displayText ? 'info' : 'default'}
+            onDelete={tagFilterStatus.displayText ? () => {
+              setTagFilterStatus({...tagFilterStatus, tags: [], displayText: null});
+              localStorage.removeItem('selectedTags');
+            } : null}
             onClick={() => setTagFilterStatus({...tagFilterStatus, open: !tagFilterStatus.open})}
           />
-          <Chip icon={<Folder />} label={'Type'}
-            onDelete={() => {}}
-            onClick={() => {}} />
 
           <Popover anchorEl={document.getElementById('filter-chip-tag')}
             anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
             open={tagFilterStatus.open}
             onClose={() => setTagFilterStatus({...tagFilterStatus, open: false})}
           >
+            <ListSubheader>Filter dataset tags</ListSubheader>
             <TagSelector onTagSelected={(tags: string[], displayText? : string) => {
               setTagFilterStatus({...tagFilterStatus, tags, displayText});
             }} />
           </Popover>
+
+          <Popover open={sortingStatus.open}
+            onClose={() => setSortingStatus({...sortingStatus, open: false})}
+            anchorEl={document.getElementById('filter-chip-sort-by')}
+            anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}>
+            <List dense
+              subheader={<ListSubheader>Sort datasets by</ListSubheader>}
+            >
+              {Object.keys(sortingConfig).map((one: SortingCriteria) => (
+                <ListItem key={one} disablePadding>
+                  <ListItemButton
+                    selected={sortingStatus.sortBy === one}
+                    onClick={() => {
+                      setSortingStatus({...sortingStatus, sortBy: one, open: false});
+                    }}
+                  >
+                    <ListItemIcon>
+                      {sortingConfig[one].icon}
+                    </ListItemIcon>
+                    <ListItemText primary={
+                      capitalize(sortingConfig[one].fullName || sortingConfig[one].name)
+                    } />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Popover>
+
+          <Popover open={typeStatus.open}
+            onClose={() => setTypeStatus({...typeStatus, open: false})}
+            anchorEl={document.getElementById('filter-chip-type')}
+            anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}>
+            <List dense
+              subheader={<ListSubheader>Filter dataset type</ListSubheader>}
+            >
+              {Object.keys(consts.datasetTypeFullNames).map((type: DatasetType) => (
+                <MenuItem value={type} key={type} selected={typeStatus.type === type}
+                  onClick={() => setTypeStatus({type: type, open: false})}
+                >
+                  <Stack direction={'row'} spacing={1}>
+                    <DatasetTypeBadge type={type as DatasetType}></DatasetTypeBadge>
+                    <ListItemText>{consts.datasetTypeFullNames[type as DatasetType]}</ListItemText>
+                  </Stack>
+                </MenuItem>
+              ))}
+            </List>
+
+          </Popover>
+
         </Stack>
       </Box>
       <List dense={true}
         // sx={{px: 1}}
-        subheader={<ListSubheader>Datasets</ListSubheader>}
+        // subheader={<ListSubheader>Datasets</ListSubheader>}
       >
         {datasetListRender.map((item, index) => {
           let secondaryAction = (<IconButton
@@ -242,13 +367,22 @@ const DatasetList = (props: IDatasetListProps) => {
                 onClick={() => handleDatasetClickedInList(item)}
               >
                 <ListItemText
-                  primary={item.name}
+                  primary={<Typography variant={'body1'}>{item.name}</Typography>}
                   secondary={
                     <Stack direction={'row'} sx={{flexWrap: 'wrap', gap: 1}}>
                       <DatasetTypeBadge type={item.dataset_type} />
                       {item.tags && item.tags.map((tag, index) => {
                         return <DatasetTagBadge key={index} tag={tag} />;
                       })}
+                      {sortingStatus.sortBy === 'modification_date' &&
+                        <Typography variant={'caption'}>Modified: {new Date(item.updated_at).toISOString().substring(0, 19)}</Typography>
+                      }
+                      {sortingStatus.sortBy === 'creation_date' &&
+                        <Typography variant={'caption'}>Created: {new Date(item.created_at).toISOString().substring(0, 19)}</Typography>
+                      }
+                      {sortingStatus.sortBy === 'uploader' &&
+                        <Typography variant={'caption'}>Uploader id: {item.created_by}</Typography>
+                      }
                     </Stack>
                   }
                 />
@@ -260,7 +394,8 @@ const DatasetList = (props: IDatasetListProps) => {
 
       {datasetListRender.length === 0 &&
           <Box sx={{textAlign: 'center'}}>
-            <Typography variant={'body1'} sx={{m: 3}}><i>No dataset found.</i></Typography>
+            <Typography variant={'body1'} sx={{m: 3}}><i>No eligible dataset found.</i></Typography>
+            <Typography variant={'body1'} sx={{m: 3}}><i>Maybe try another filter?</i></Typography>
             <img style={{opacity: 0.5, filter: 'saturate(0.5)'}} src={'/android-chrome-192x192.png'}
               width={'96'} alt={'No dataset found'}/>
           </Box>
