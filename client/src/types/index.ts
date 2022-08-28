@@ -80,6 +80,7 @@ export interface IDatasetTag {
   parent: | string | IDatasetTag;
   fa_icon: string;
   color: string;
+  level?: number; // The level of the tag, starting from 0;
 }
 
 export interface IDatasetTagForRender extends IDatasetTag {

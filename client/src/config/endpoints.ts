@@ -1,6 +1,6 @@
 import {IRegisterFormData} from '@/components/dialogs/DialogRegister';
 import store from '@/store';
-import {IDatasetTag} from '@/types';
+import {DatasetType, IDatasetTag} from '@/types';
 import {IModelListResponse} from '@/types/api';
 import {AxiosRequestConfig} from 'axios';
 import Cookies from 'js-cookie';
@@ -57,9 +57,6 @@ export const endpoints = {
     return {
       url: `${API_ROOT}/viscontent/vqdatastream/`,
       method: 'POST',
-      // headers: {
-      //   'X-CSRFToken': document.cookie.split('csrftoken=')[1].split(';')[0],
-      // },
       data: {
         lat_lngs: latLngs,
         radius: radius,
