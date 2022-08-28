@@ -16,8 +16,13 @@ export interface ITagSelectorProps {
 
 export default function TagSelector(props: ITagSelectorProps) {
   const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getDatasetTagList());
-  const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
-
+  let currentSelectedTags = [];
+  try {
+    currentSelectedTags = JSON.parse(localStorage.getItem('selectedTags') || '[]');
+  } catch {
+    console.warn('Current selected tags in localStorage is in invalid format.');
+  };
+  const [selectedTags, setSelectedTags] = React.useState<string[]>(currentSelectedTags);
   const tagStore = React.useRef<TagStore>(undefined);
   const [allTags, setAllTags] = React.useState<IDatasetTag[]>([]);
 
@@ -51,8 +56,10 @@ export default function TagSelector(props: ITagSelectorProps) {
     setSelectedTags(newSelectedTags);
     if (newSelectedTags.length > 0) {
       props.onTagSelected(newSelectedTags, tagStore.current.tagFullName(newSelectedTags[0]) + (newSelectedTags.length > 1 ? '...' : ''));
+      localStorage.setItem('selectedTags', JSON.stringify(newSelectedTags));
     } else {
       props.onTagSelected([], null);
+      localStorage.setItem('selectedTags', JSON.stringify([]));
     }
   };
 
@@ -75,6 +82,7 @@ export default function TagSelector(props: ITagSelectorProps) {
               onChange={() => handleSelectTag(one.uuid)}
             />
             <ListItemButton
+              selected={selectedTags.indexOf(one.uuid) != -1}
               onClick={() => handleSelectTag(one.uuid)}
             >
               <ListItemText primary={
@@ -85,7 +93,5 @@ export default function TagSelector(props: ITagSelectorProps) {
         ))}
       </List>
     </Box>
-
-
   );
 }

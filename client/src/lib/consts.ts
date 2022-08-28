@@ -1,4 +1,5 @@
 import {DatasetType} from '@/types';
+import {yellow, blueGrey, lightGreen, deepOrange} from '@mui/material/colors';
 
 const consts = {
   EVENT: {
@@ -13,6 +14,13 @@ const consts = {
     'RT': 'Raster file dataset (tiff)',
     'TABLE': 'Simple Tabular datasets (csv, xlsx, etc.)',
     'GNR': 'Other types or general dataset',
+  },
+  typeColors: {
+    NCF: yellow[700],
+    TABLE: blueGrey[600],
+    RT: lightGreen[700],
+    RBR: deepOrange[700],
+    GNR: '#555555',
   },
 };
 
