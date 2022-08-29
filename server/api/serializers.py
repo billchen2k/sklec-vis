@@ -3,9 +3,47 @@ from rest_framework.reverse import reverse
 from rest_framework import validators
 from api.models import *
 
+class SimpleDatasetTagSerializer(serializers.ModelSerializer):
+
+    parent = serializers.SerializerMethodField()
+    dataset_count = serializers.SerializerMethodField()
+
+    def get_parent(self, obj):
+        if obj.parent:
+            return obj.parent.uuid
+        else:
+            return None
+
+    def get_dataset_count(self, obj):
+        return obj.dataset_set.count()
+
+    class Meta:
+        model = DatasetTag
+        exclude = ['id']
+        depth = 0
+
+class NestedDatasetTagSerializer(serializers.ModelSerializer):
+
+    parent = serializers.SerializerMethodField()
+
+    def get_parent(self, obj):
+        if obj.parent:
+            return NestedDatasetTagSerializer(obj.parent).data
+        else:
+            return None
+    class Meta:
+        model = DatasetTag
+        exclude = ['id', 'description']
+        depth = 10
+
+
 class DatasetSerializer(serializers.ModelSerializer):
+    """
+    Serializer used in dataset list.
+    """
 
     detail = serializers.SerializerMethodField()
+    tags = serializers.ListSerializer(child=NestedDatasetTagSerializer())
 
     def get_detail(self, dataset):
         request = self.context['request']
@@ -17,6 +55,14 @@ class DatasetSerializer(serializers.ModelSerializer):
         model = Dataset
         exclude = ['id']
 
+class DatasetCreateSerializer(serializers.ModelSerializer):
+    """
+        Serializer used in dataset list.
+        """
+
+    class Meta:
+        model = Dataset
+        exclude = ['id', 'created_by', 'tags']
 
 class DataChannelOfVisFileSerializer(serializers.ModelSerializer):
 
@@ -42,6 +88,13 @@ class VisFileSerializer(serializers.ModelSerializer):
         model = VisFile
         exclude = ['id', 'dataset']
 
+class VisfileUpdateSerializer(serializers.ModelSerializer):
+    file_name = serializers.CharField(max_length=200, required=False)
+
+    class Meta:
+        model = VisFile
+        fields = ['file_name', 'is_georeferenced', 'longitude1', 'latitude1', 'longitude2', 'latitude2', 'datetime_start', 'datetime_end']
+
 class RawFileOfDatasetSerializer(serializers.ModelSerializer):
 
     file = serializers.SerializerMethodField()
@@ -61,6 +114,14 @@ class RawFileOfDatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = RawFile
         exclude = ['id', 'dataset', 'visfile']
+
+class RawfileUpdateSerializer(serializers.ModelSerializer):
+    file_name = serializers.CharField(max_length=200, required=False)
+
+    class Meta:
+        model = RawFile
+        fields = ['file_name', 'folder_hierarchy', 'file_same_as_vis']
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -117,8 +178,36 @@ class DatasetDetailSerializer(serializers.ModelSerializer):
     vis_files = VisFileSerializer(many=True, read_only=True)
     raw_files = RawFileOfDatasetSerializer(many=True, read_only=True)
     created_by = SiteUserSerializer(read_only=True)
+    tags = serializers.ListSerializer(child=SimpleDatasetTagSerializer())
 
     class Meta:
         model = Dataset
         fields = '__all__'
 
+class DatasetUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dataset
+        fields = '__all__'
+
+class DatasetDestroySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dataset
+        fields = '__all__'
+
+class ViewTiffFileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ViewTiffFile
+        exclude = ['uuid']
+
+class RawFileUploadSerializer(serializers.ModelSerializer):
+
+    # file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
+    uuid = serializers.CharField(max_length=256, required=True, allow_blank=True)
+    class Meta:
+        model = RawFile
+        exclude = ['dataset', 'visfile', 'file_name', 'file_size']
+
+class DatasetTagsAddSerializer(serializers.Serializer):
+
+    uuid_tag = serializers.CharField(max_length=256, required=True, allow_blank=True)

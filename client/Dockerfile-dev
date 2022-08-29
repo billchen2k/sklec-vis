@@ -1,8 +1,10 @@
 FROM node:14
 WORKDIR /app
-COPY package.json /app/package.json
 EXPOSE 8080
-RUN yarn install
+
+# If package.json is not changed, this line should have caching.
+COPY package.json /app/package.json
+RUN npm install
+# Copying codes in the end is to improve caching.
 COPY . .
-RUN yarn global add webpack webpack-dev-server
-CMD ["yarn", "serve"]
+CMD ["npm", "run", "serve"]

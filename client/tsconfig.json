@@ -6,11 +6,17 @@
     "esModuleInterop": true,
     "moduleResolution": "Node",
     "downlevelIteration": true,
+    "lib": [
+      "es6",
+      "dom",
+      "es2017"
+    ],
     "module": "es6",
     "target": "es5",
     "allowJs": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
     "sourceMap": true,
+    "preserveSymlinks": true,
     "paths": {
       "@/*": ["./src/*"],
       "@dataset/*": ["./src/dataset/*"],

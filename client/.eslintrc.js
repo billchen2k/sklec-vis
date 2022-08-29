@@ -17,8 +17,8 @@ module.exports = {
   },
   plugins: ['react', '@typescript-eslint', 'import', 'react-hooks'],
   rules: {
-    'require-jsdoc': 'warn',
-    'max-len': 'warn',
+    'require-jsdoc': 'off',
+    'max-len': 'off',
     'no-unused-vars': 'warn',
     'spaced-comment': 'warn',
     'valid-jsdoc': 'warn',

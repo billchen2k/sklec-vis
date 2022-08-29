@@ -1,9 +1,12 @@
 /**
  * Raster controller.
  */
-import * as React from 'react';
-import {useEffect} from 'react';
-import d3 from 'd3';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
+import DataMetaTable from '@/components/containers/DataMetaTable';
+import {readableFileSize} from '@/lib/utils';
+import {IRasterState, siteSlice} from '@/store/siteSlice';
+import {INCFContentFile, IVisFile} from '@/types';
+import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -19,19 +22,14 @@ import {
   Typography,
 } from '@mui/material';
 import chroma from 'chroma-js';
-import {IRasterState, siteSlice} from '@/store/siteSlice';
-import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
-import {IVisFile} from '@/types';
-import range from 'lodash/range';
 import debounce from 'lodash/debounce';
-import {useAppDispatch, useAppSelector} from '@/app/hooks';
-import {uiSlice} from '@/store/uiSlice';
-import DataMetaTable from '@/components/containers/DataMetaTable';
-import {readableFileSize} from '@/lib/utils';
+import range from 'lodash/range';
+import * as React from 'react';
+import {useEffect} from 'react';
 
 export interface IRasterControlProps {
-  rasterFiles: IVisFile[];
-  onRasterChange?: (raster: IVisFile) => any;
+  rasterFiles: (INCFContentFile)[]; // only file field will be used
+  onRasterChange?: (raster: INCFContentFile) => any;
 }
 
 const RasterControl = (props: IRasterControlProps) => {
@@ -39,6 +37,7 @@ const RasterControl = (props: IRasterControlProps) => {
   const {rasterState} = useAppSelector((state) => state.site);
   const [currentRaster, setCurrentRaster] = React.useState(0);
   const [rasterConfig, setRasterConfig] = React.useState(rasterState.config);
+  const [defaultRasterRange, setDefaultRasterRange] = React.useState([0.08, 0.15]);
 
   const colorScaleOptions = ['Spectral', 'Viridis', 'RdYlGn', 'BrBG', 'PiYG', 'PrGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu'];
 
@@ -50,6 +49,15 @@ const RasterControl = (props: IRasterControlProps) => {
         rasterLink: rasters[i],
         open: true,
       }));
+      if (props.rasterFiles[i].max_value) {
+        const minVal = props.rasterFiles[i].min_value;
+        const maxVal = props.rasterFiles[i].max_value;
+        handleRasterConfigChange({
+          rasterMin: minVal,
+          rasterMax: maxVal,
+        });
+        setDefaultRasterRange(minVal, maxVal);
+      }
     }
     setCurrentRaster(i);
     if (props.onRasterChange) {
@@ -84,7 +92,6 @@ const RasterControl = (props: IRasterControlProps) => {
     const newConfig = {...rasterConfig, ...properties};
     debouncedRasterConfigDispatch(properties);
     setRasterConfig(newConfig);
-    ;
   };
 
   useEffect(() => {
@@ -96,7 +103,7 @@ const RasterControl = (props: IRasterControlProps) => {
     const handleVisualQueryCleared = () => {
       dispatch(siteSlice.actions.setRasterVisualQuery([]));
     };
-    window.addEventListener('visual-query-cleared', handleVisualQueryCleared);
+    // window.addEventListener('visual-query-cleared', handleVisualQueryCleared);
     window.addEventListener('visual-query-created', handleVisualQueryCreated);
     return () => {
       window.removeEventListener('visual-query-created', handleVisualQueryCreated);
@@ -107,9 +114,14 @@ const RasterControl = (props: IRasterControlProps) => {
 
   const f = props.rasterFiles[currentRaster];
 
-  const metaToShow = {...f.meta_data};
-  metaToShow['Date'] = (new Date(f.datetime_start)).toISOString().split('T')[0];
-  metaToShow['File Size'] = readableFileSize(f.file_size);
+  const metaToShow = {...(f.meta_data || {})};
+  if (f.datetime_start) {
+    metaToShow['Date'] = (new Date(f.datetime_start)).toISOString().split('T')[0];
+  }
+  if (f.file_size) {
+    metaToShow['File Size'] = readableFileSize(f.file_size);
+  }
+
 
   const scaleColors = chroma.scale(rasterConfig.colorScale).colors(9);
   const colorScaleColors = scaleColors.map((c) => chroma(c).css());
@@ -156,15 +168,15 @@ const RasterControl = (props: IRasterControlProps) => {
           <Grid item xs={7}>
             <DataMetaTable meta={metaToShow}/>
 
-            <Grid container maxWidth={'20rem'}>
+            <Grid container maxWidth={'24rem'}>
               <Grid item xs={5} sx={{p: 1}}>
                 {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Range'].map((one, i) => {
                   return (
                     <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>
                       {one === 'Value Range' && <IconButton onClick={() => {
                         handleRasterConfigChange({
-                          rasterMin: 0.08,
-                          rasterMax: 0.15,
+                          rasterMin: defaultRasterRange[0],
+                          rasterMax: defaultRasterRange[1],
                         });
                         // handleRasterConfigChange('rasterMax', '0.15');
                       }} size={'small'}>

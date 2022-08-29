@@ -8,7 +8,7 @@ services:
     image: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: sklecVIS2022
+      POSTGRES_PASSWORD: 4dmnpoH9TvA3KzQW
     volumes:
       - sklec_vis_db:/var/lib/postgresql/data
     ports:
@@ -19,12 +19,13 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    command: docker/django-start-prod.sh
     environment:
       DJANGO_SETTINGS_MODULE: sklecvis.settings
       DB_HOST: db
       DB_PORT: 5432
       DB_USERNAME: postgres
-      DB_PASSWORD: sklecVIS2022
+      DB_PASSWORD: 4dmnpoH9TvA3KzQW
       DB_NAME: sklecvis
       PYTHONPATH: /app
     expose:
@@ -40,7 +41,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - "8060:80"
+      - "8061:80"
     volumes:
       - ./server/static/:/srv/server_static
       - ./server/media/:/srv/server_media

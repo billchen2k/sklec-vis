@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * RT = Raster files
  * NCF = NetCDF files
@@ -16,7 +17,6 @@ export interface IGroupingResult {
     grouped: IYLableGroupingItem[];
     ungrouped: string[];
 };
-
 
 export type IFileFormat = 'tiff' | 'ncf' | 'rsk' | 'csv' | 'other';
 export interface IVisFile {
@@ -39,25 +39,67 @@ export interface IVisFile {
   datetime_end: string;
 }
 
+export interface INCFContentFile extends IVisFile {
+  min_value:| number;
+  max_value:| number;
+}
+
 export interface IDataset {
   created_at: string;
-  created_by: string;
+  created_by: string | IUser;
   dataset_type: DatasetType;
   datetime_end: Date;
   datetime_start: Date;
   description: string;
   detail: string;
-  is_active: Boolean;
-  is_coordinated: Boolean;
-  is_deleted: Boolean;
-  is_public: Boolean;
+  is_active: boolean;
+  is_coordinated: boolean;
+  is_deleted: boolean;
+  is_public: boolean;
   latitude: number;
   longitude: number;
   name: string;
-  tags: any[];
+  tags: IDatasetTag[];
   updated_at: string;
   vis_files?: IVisFile[];
   raw_files?: any[];
   meta_data: any;
   uuid: string;
+}
+
+export interface Mark {
+  value: number;
+  label?: React.ReactNode;
+}
+
+export interface IDatasetTag {
+  uuid: string;
+  name: string;
+  full_name: string;
+  description: string;
+  parent: | string | IDatasetTag;
+  fa_icon: string;
+  color: string;
+  level?: number; // The level of the tag, starting from 0;
+}
+
+export interface IDatasetTagForRender extends IDatasetTag {
+  level? :number;
+}
+
+export interface IUser {
+  username: string;
+  user_email: string;
+  login_time: string;
+  _state: string;
+  id: number;
+  uuid: string;
+  display_name: string;
+  affiliation: string;
+  country: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  is_deleted: boolean;
 }

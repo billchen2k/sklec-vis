@@ -6,11 +6,9 @@
 if [ "$1" = "--start" ]; then
   echo "Starting production..."
 #  python -m pipreqs.pipreqs ./server --force
-  docker-compose -f docker-compose.prod.yml build --memory='2g'
+  cd client && /usr/local/bin/yarn install && /usr/local/bin/yarn build && cd ..
+  docker-compose -f docker-compose.prod.yml build --memory='3g'
   docker-compose -f docker-compose.prod.yml up -d
-  docker exec -it sklecvis-server python manage.py makemigrations
-  docker exec -it sklecvis-server python manage.py migrate
-  docker exec -it sklecvis-server python manage.py collectstatic --noinput
 elif [ "$1" = "--stop" ]; then
   echo "Stopping production...."
   docker-compose -f docker-compose.dev.yml down
@@ -24,5 +22,6 @@ elif [ "$1" = "--init" ]; then
   docker exec -it sklecvis-server python manage.py migrate
   docker exec -it sklecvis-server python manage.py collectstatic --noinput
 else
-  echo "Usage: ./production.sh [--start|--stop|--init]"
+  echo "Usage: ./production.sh [--start|--stop|--init]."
+  echo "   Production port: 8061 (fixed)"
 fi

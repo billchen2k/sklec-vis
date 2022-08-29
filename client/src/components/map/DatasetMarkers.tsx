@@ -5,13 +5,14 @@ import L, {DivIcon, Icon} from 'leaflet';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {FilePresent} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import {uiSlice} from '@/store/uiSlice';
 import {useEffect} from 'react';
 import {Simulate} from 'react-dom/test-utils';
 import load = Simulate.load;
 import {siteSlice} from '@/store/siteSlice';
 import {IDataset} from '@/types';
+import {endpoints} from '@/config/endpoints';
 
 export interface IDatasetMarkersProps {
 }
@@ -40,6 +41,12 @@ export const markerIcons = {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   }),
+  yellowCircle: new Icon({
+    iconUrl: '/img/markers/marker-yellow.png',
+    iconRetinaUrl: '/img/markers/marker-yellow@2x.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  }),
   crossSymbol: new Icon({
     iconUrl: '/img/anchor.png',
     iconRetinaUrl: '/img/anchor@2x.png',
@@ -49,8 +56,8 @@ export const markerIcons = {
 };
 
 const DatasetMarkers = (props: IDatasetMarkersProps) => {
-  const [{data, loading, error}, refetch] = useAxios('/api/dataset/');
-  const [markers, setMarkers] = React.useState<any[]>([]);
+  // const [markers, setMarkers] = React.useState<any[]>([]);
+  const {datasetListCache} = useAppSelector((state) => state.site);
   const dispatch = useAppDispatch();
   const center = new L.LatLng(31.167777777777778, 122.2182222);
   const ADCPMetaData = {
@@ -69,48 +76,32 @@ const DatasetMarkers = (props: IDatasetMarkersProps) => {
     'Latitude': '31˚04\'4.00"',
   };
 
-  useEffect(() => {
-    if (loading) {
-      dispatch(uiSlice.actions.beginLoading('Loading datasets...'));
-    } else {
-      dispatch(uiSlice.actions.endLoading());
-    }
-    if (error) {
-      dispatch(uiSlice.actions.openSnackbar({
-        message: 'Error fetching dataset list.' + error && error.message || 'Unknown error.',
-        severity: 'error',
-      }));
-    }
-    if (data) {
-      dispatch(siteSlice.actions.setDatasetListCache(data.results));
-    } else {
-      return;
-    }
 
-    setMarkers(data.results.map((one: IDataset) => {
-      const center = new L.LatLng(one.latitude, one.longitude);
-      let icon = markerIcons.redCircle;
-      switch (one.dataset_type) {
-        case 'RT':
-          icon = markerIcons.greenCircle;
-          break;
-        case 'RBR':
-          icon = markerIcons.redCircle;
-          break;
-        case 'TABLE':
-          icon = markerIcons.cyanCircle;
-          break;
-      }
-      console.log(one);
-      return (
-        <Marker position={center} key={one.uuid} icon={icon}>
-          <Popup>
-            <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
-          </Popup>
-        </Marker>
-      );
-    }));
-  }, [loading, error, data]);
+  const markers = datasetListCache?.map((one: IDataset) => {
+    const center = new L.LatLng(one.latitude, one.longitude);
+    let icon = markerIcons.redCircle;
+    switch (one.dataset_type) {
+      case 'RT':
+        icon = markerIcons.greenCircle;
+        break;
+      case 'RBR':
+        icon = markerIcons.redCircle;
+        break;
+      case 'TABLE':
+        icon = markerIcons.cyanCircle;
+        break;
+      case 'NCF':
+        icon = markerIcons.yellowCircle;
+    }
+    // console.log(one);
+    return (
+      <Marker position={center} key={one.uuid} icon={icon}>
+        <Popup>
+          <DataMarkerPopupContent name={one.name} link={`/view/${one.uuid}`} description={one.description} meta={one.meta_data} />
+        </Popup>
+      </Marker>
+    );
+  });
 
 
   return (

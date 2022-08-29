@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
-import {Button, Dialog, DialogActions, DialogContent, DialogTitle} from '@mui/material';
+import {Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography} from '@mui/material';
 import {uiSlice} from '@/store/uiSlice';
 
 export interface IGlobalDialogProps {
@@ -29,8 +29,29 @@ const GlobalDialog = (props: IGlobalDialogProps) => {
         </Dialog>
       </div>);
     case 'confirm':
-      // todo: Confirm dialog
-      return null;
+      return (
+        <Dialog open={dialog.open}
+          scroll={'paper'}
+          onClose={handleCancel}
+        >
+          <DialogTitle>{dialog.title}</DialogTitle>
+          <DialogContent>
+            <Typography>
+              {dialog.content}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              dialog.onCancel && dialog.onCancel();
+              handleCancel();
+            }}>{dialog.cancelText || 'Cancel'}</Button>
+            <Button onClick={() => {
+              dialog.onConfirm && dialog.onConfirm();
+              handleCancel();
+            }}>{dialog.confirmText || 'Confirm'}</Button>
+          </DialogActions>
+        </Dialog>
+      );
     default:
       return null;
   }

@@ -5,8 +5,9 @@ from sklecvis import settings
 from django.utils.translation import gettext_lazy as _
 # Create your models here.
 
-def uuid4_short():
-    return uuid.uuid4().hex[:settings.UUID_SHORT_LENGTH]
+
+def uuid4_short(length=settings.UUID_SHORT_LENGTH):
+    return uuid.uuid4().hex[:length]
 
 class SiteUser(models.Model):
 
@@ -26,6 +27,8 @@ class SiteUser(models.Model):
     city = models.CharField(max_length=50, blank=True, null=True)
     state = models.CharField(max_length=50, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
+    is_activated = models.BooleanField(default=False)  # 用户邮箱地址是否已验证
+    email_token = models.CharField(max_length=100, blank=True, null=True)  # 邮箱验证用token
 
     def __str__(self):
         """
@@ -36,13 +39,26 @@ class SiteUser(models.Model):
 class DatasetTag(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     name = models.CharField(max_length=30, blank=True, null=True)
-    long_name = models.CharField(max_length=100, blank=True, null=True)
+    full_name = models.CharField(max_length=100, blank=True, null=True)
+    parent = models.ForeignKey(to='self', blank=True, null=True, on_delete=models.SET_NULL)
+    description = models.CharField(max_length=200, blank=True, null=True)
     fa_icon = models.CharField(max_length=50, blank=True, null=True)
     color = models.CharField(max_length=20, blank=True, null=True)
-    description = models.CharField(max_length=200, blank=True, null=True)
+
+    def get_tag_chain(self):
+        """
+        Return a list of tags from the root to the current tag.
+        """
+        chain = [self]
+        parent = self.parent
+        while parent:
+            chain.append(parent)
+            parent = parent.parent
+        return reversed(chain)
 
     def __str__(self):
-        return f'{self.id}({self.uuid}): {self.name}'
+        chain = self.get_tag_chain()
+        return ' -> '.join([f'{self.id}({self.uuid}): {tag.name}({tag.full_name})' for tag in chain])
 
 class Dataset(models.Model):
 
@@ -116,14 +132,14 @@ class DataChannel(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, related_name='data_channels')
     shape = models.CharField(max_length=50, blank=True, null=True, default='')
-    name = models.CharField(max_length=50, blank=True, null=True)
-    label = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=50, blank=True, null=True)  # 展示出来的真正的名字
+    label = models.CharField(max_length=50, blank=True, null=True) # 机器名
     description = models.CharField(max_length=200, blank=True, null=True)
     unit = models.CharField(max_length=50, blank=True, null=True)
     unit_symbol = models.CharField(max_length=50, blank=True, null=True)
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
-
+    meta_data = models.JSONField(default=dict, blank = True, null = True)
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.label}'
 
@@ -161,3 +177,25 @@ class PasswordUpdateRecord(models.Model):
     ip = models.GenericIPAddressField()
     previous_password = models.CharField(max_length=200)
     new_password = models.CharField(max_length=200)
+
+class ViewTiffFile(models.Model):
+    is_preview = models.BooleanField(blank=True, null=True)
+    file = models.FileField(upload_to='cache_files/nc_to_tiff/', null=True, blank=True)
+
+    file_size = models.IntegerField(blank = True, null = True)
+    file_name = models.CharField(max_length = 200, blank = True, null = True)
+
+    datetime = models.IntegerField(blank = True, null = True)
+    depth = models.IntegerField(blank = True, null = True)
+    longitude_start = models.IntegerField(blank = True, null = True)
+    longitude_end = models.IntegerField(blank = True, null = True)
+    latitude_start = models.IntegerField(blank = True, null = True)
+    latitude_end = models.IntegerField(blank = True, null = True)
+    label = models.CharField(max_length=100, blank = True, null = True)
+
+    min_value = models.FloatField(blank = True, null = True)
+    max_value = models.FloatField(blank = True, null = True)
+    file = models.CharField(max_length = 256, blank = True, null = True)
+
+    create_time = models.DateTimeField(blank = True, null = True)
+    last_access_time = models.DateTimeField(blank = True, null = True)

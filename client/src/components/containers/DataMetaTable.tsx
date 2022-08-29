@@ -7,11 +7,19 @@ export interface IDataMetaTableProps {
 }
 
 const DataMetaTable = (props: IDataMetaTableProps) => {
-  const flattendMeta = flatten(props.meta) as any;
-  const detailsRows = Object.keys(flattendMeta).map((item) => {
+  console.log(props.meta);
+  const flattendMeta = flatten(props.meta || {}) as any;
+  const excludedFileds = ['variables', 'dimensions'];
+  const detailsRows = Object.keys(flattendMeta || {})?.map((item) => {
     let outputKey: string = item;
+    let rootKey: string = item;
     if (item.includes('.')) {
       outputKey = item.split('.').slice(-1)[0];
+      rootKey = item.split('.')[0];
+    }
+
+    if (excludedFileds.includes(rootKey)) {
+      return null;
     }
     return (<tr key={item}>
       <td>{outputKey}</td>

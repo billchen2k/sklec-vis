@@ -27,3 +27,27 @@ export function readableFileSize(size: number): string {
   }
   return `${size.toFixed(3)} ${units[i]}`;
 }
+
+export function capitalizeFirstLetter(src: string): string {
+  // Don't need this anymore. Use lodash functions instead.
+  if (src && src.length > 0) {
+    return src.charAt(0).toUpperCase + src.slice(-1);
+  } else {
+    return '';
+  }
+}
+
+export function copyToClipboard(text: string) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+  } catch (err) {
+    console.error('Unable to copy to clipboard', err);
+  }
+  document.body.removeChild(textArea);
+}
+

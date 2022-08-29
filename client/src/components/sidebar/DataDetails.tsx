@@ -1,14 +1,13 @@
-import * as React from 'react';
-import {Box, Button, IconButton, Stack} from '@mui/material';
-import {useLocation, useNavigate} from 'react-router-dom';
-import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
-import {ArrowBack, CopyAll, Download, Edit} from '@mui/icons-material';
-import {siteSlice} from '@/store/siteSlice';
-import {useAppDispatch} from '@/app/hooks';
+import {useAppDispatch, useUser} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
-import MDEditor from '@uiw/react-md-editor';
+import config from '@/config';
 import {copyMetaToClipboard} from '@/lib/dataset';
 import {uiSlice} from '@/store/uiSlice';
+import {CopyAll, Download, Edit, Storage} from '@mui/icons-material';
+import {Box, Button, Card, CardContent, Stack} from '@mui/material';
+import MDEditor from '@uiw/react-md-editor';
+import * as React from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
 
 export interface IDataMetaInfoProps {
   datasetName?: string;
@@ -18,50 +17,37 @@ export interface IDataMetaInfoProps {
 }
 
 const DataDetails = (props: IDataMetaInfoProps) => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const user = useUser();
+  const {datasetId} = useParams();
+  const navigate = useNavigate();
 
-  const handleNavigateBack = () => {
-    dispatch(siteSlice.actions.leaveDataInspecting());
-    navigate('/');
-  };
-
-  const detailsRows = Object.keys(props.meta).map((item) => {
+  const detailsRows = Object.keys(props.meta || {}).map((item) => {
     return (<tr key={item}>
       <td>{item}</td>
       <td>{props.meta[item]}</td>
     </tr>);
   });
-  const detailsTable = (<table className={'meta-table'}>
-    <thead>
-      <tr>
-        <th>Attribute</th>
-        <th>Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      {detailsRows}
-    </tbody>
-  </table>);
 
   const demoSource = '## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.';
+
+  const handleDownloadClicked = () => {
+    window.open(props.downloadLink, '_blank');
+  };
+
+  const handleThreddsDownloadClicked = () => {
+    const fileName = props.downloadLink?.substring(props.downloadLink?.lastIndexOf('/') + 1);
+    window.open(`${config.THREDDS_BASE}/${fileName}`, '_blank');
+  };
+
   return (
     <Box>
-
-      <Stack sx={{mb: 2}} spacing={'1'} direction={'row'} alignItems={'center'}>
-        <IconButton onClick={handleNavigateBack}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant={'h5'}>{props.datasetName}</Typography>
-      </Stack>
-
       <Box sx={{my: 1}}>
         <MDEditor.Markdown
           style={{'fontSize': '14px'}}
           source={props.description || demoSource}
         />
       </Box>
-
 
       <Card variant={'outlined'}>
         <CardContent>
@@ -82,19 +68,29 @@ const DataDetails = (props: IDataMetaInfoProps) => {
           Copy Metadata to Clipboard
         </Button>
 
-        <Button variant={'outlined'} size={'small'}
-          startIcon={<Edit />}
-        >
-          Edit description and attachments
-        </Button>
+        {user?.username &&
+          <Button variant={'outlined'} size={'small'}
+            startIcon={<Edit />}
+            onClick={() => {
+              navigate(`/edit/${datasetId}`);
+            }}
+          >
+            Edit description and attachments
+          </Button>
+        }
 
         {props.downloadLink &&
           <Button size={'small'} variant={'outlined'}
             startIcon={<Download />}
-            onClick={() => {
-              window.open(props.downloadLink, '_blank');
-            }}
+            onClick={handleDownloadClicked}
           >Download Original</Button>
+        }
+
+        {props.downloadLink?.endsWith('nc') &&
+          <Button size={'small'} variant={'outlined'}
+            startIcon={<Storage />}
+            onClick={handleThreddsDownloadClicked}
+          >Inspect with THREDDS</Button>
         }
 
       </Stack>

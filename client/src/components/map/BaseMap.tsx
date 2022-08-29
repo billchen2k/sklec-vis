@@ -1,20 +1,15 @@
-import React from 'react';
-import L, {DivIcon, Icon} from 'leaflet';
 import '@mui/material';
+import L from 'leaflet';
+import React from 'react';
 
-import {MapContainer, Marker, Popup, TileLayer, LayersControl, LayerGroup} from 'react-leaflet';
-import {AttachFile, FilePresent, Folder} from '@mui/icons-material';
-import {renderToStaticMarkup} from 'react-dom/server';
-import {common} from '@mui/material/colors';
-import DataDetails from '@/components/sidebar/DataDetails';
-import config from '@/config';
-import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
 import {useAppSelector} from '@/app/hooks';
-import DataMarkerPopupContent from '@/components/map/DataMarkerPopupContent';
-import useAxios from 'axios-hooks';
 import DatasetMarkers from '@/components/map/DatasetMarkers';
-import CoordinateDisplay from '@/components/map/CoordinateDisplay';
 import MapToolbar from '@/components/map/MapToolbar';
+import SKGeoRasterLayer from '@/components/map/SKGeoRasterLayer';
+import config from '@/config';
+import {LayerGroup, LayersControl, MapContainer, TileLayer} from 'react-leaflet';
+import {MapEvents} from './MapEvents';
+import {NCFControlLayer} from './NCFControlLayer';
 
 export interface IMapProps {
   children?: any;
@@ -38,14 +33,18 @@ const MapBoxThemes = [
 
 const BaseMap = (props: IMapProps) => {
   const defaultCenter = new L.LatLng(31.067777777777778, 122.2182222);
-  const {rasterState} = useAppSelector(((state) => state.site));
+  const {rasterState, datasetDetailCache} = useAppSelector(((state) => state.site));
 
-  const icon = new DivIcon({
-    html: renderToStaticMarkup(
-        <FilePresent sx={{color: '#71d0b8'}} />,
-    ),
-  });
+  // const icon = new DivIcon({
+  //   html: renderToStaticMarkup(
+  //       <FilePresent sx={{color: '#71d0b8'}} />,
+  //   ),
+  // });
 
+  React.useEffect(() => {
+    // @ts-ignore
+    document.getElementsByClassName('leaflet-control-attribution')[0].style.display = 'none';
+  }, []);
 
   return (
     <MapContainer id={'map-layer'} center={defaultCenter} zoom={6}
@@ -66,17 +65,15 @@ const BaseMap = (props: IMapProps) => {
             </LayersControl.BaseLayer>
           );
         })}
-        {/* <SKGeoRasterLayer georasterUrl={'dataset/sentinel3/RDI_S3A_20200429.tiff'} />*/}
-
         <DatasetMarkers />
         <MapToolbar />
-        <LayerGroup>
-          {rasterState &&
+        <MapEvents />
+        <NCFControlLayer />
+        {rasterState &&
           <SKGeoRasterLayer/>
-          }
-        </LayerGroup>
-      </LayersControl>
+        }
 
+      </LayersControl>
     </MapContainer>
   );
 };

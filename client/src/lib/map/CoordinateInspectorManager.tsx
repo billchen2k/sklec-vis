@@ -5,6 +5,9 @@ import ReactDOMServer from 'react-dom/server';
 import {Button, Card, CardContent, Typography} from '@mui/material';
 import {ContentPaste} from '@mui/icons-material';
 import * as React from 'react';
+import consts from '../consts';
+import {copyToClipboard} from '../utils';
+import * as d3 from 'd3';
 
 export class CoordinateInspectorManager extends LayerManager {
   private marker: any;
@@ -17,9 +20,19 @@ export class CoordinateInspectorManager extends LayerManager {
     const setDisplayLatLng = (latlng: L.LatLng) => {
       const latitudeDisplay = document.getElementById('latitude-display');
       const longitudeDisplay = document.getElementById('longitude-display');
+      const copyButton = document.getElementById('button-copy-coordinates');
       latitudeDisplay.innerHTML = latlng.lat.toFixed(6);
       longitudeDisplay.innerHTML = latlng.lng.toFixed(6);
+      // Trigger global events for data editor to listen
+      document.dispatchEvent(new CustomEvent(consts.EVENT.COORDINATE_SELECTED, {
+        detail: {
+          lat: latlng.lat,
+          lng: latlng.lng,
+        },
+      }));
     };
+
+    // copyButton.onclick
 
     this.map.on('click', (e: LeafletMouseEvent) => {
       if (this.marker) {
@@ -52,7 +65,7 @@ export class CoordinateInspectorManager extends LayerManager {
               <Typography variant={'body1'}>Selected Coordinate:</Typography>
               <Typography variant={'body2'}><b>Latitude</b>: <span id={'latitude-display'}>(Not Selected)</span></Typography>
               <Typography variant={'body2'}><b>Longitude</b>: <span id={'longitude-display'}>(Not Selected)</span></Typography>
-              <Button id={'copy-latitude-icon'} startIcon={<ContentPaste />} variant={'outlined'} color={'inherit'}
+              <Button id={'button-copy-coordinates'} startIcon={<ContentPaste />} variant={'outlined'} color={'inherit'}
                 size={'small'} sx={{mt: 1}}
               >COPY</Button>
             </CardContent>

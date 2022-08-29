@@ -89,3 +89,115 @@ class PostVQDataStreamResponseSerializer(SuccessResponseSerializer):
             ref_name = 'VQDataStreamResponseData'
 
     data = DataSerializer()
+
+class GetNcfContentRequestSerializer(serializers.Serializer):
+
+    # class IntegerListField(serializers.ListField):
+    #     child = serializers.CharField()
+    datetime_start = serializers.IntegerField(required=False, default=-1, help_text="时间起点下标，-1表示无限制")
+    datetime_end = serializers.IntegerField(required=False, default=-1, help_text="时间终点下标，-1表示无限制")
+    # datetime = IntegerListField(required=False, help_text="长度为2的列表，表示时间两端的下标，用-1表示某端无限制，可留空")
+    longitude_start = serializers.IntegerField(required=False, default=-1, help_text="经度起点下标，-1表示无限制")
+    longitude_end = serializers.IntegerField(required=False, default=-1, help_text="经度终点下标，-1表示无限制")
+
+    latitude_start = serializers.IntegerField(required=False, default=-1, help_text="纬度起点下标，-1表示无限制")
+    latitude_end = serializers.IntegerField(required=False, default=-1, help_text="纬度终点下标，-1表示无限制")
+
+    depth_start = serializers.IntegerField(required=False, default=-1, help_text="深度起点下标，-1表示无限制")
+    depth_end = serializers.IntegerField(required=False, default=-1, help_text="深度终点下标，-1表示无限制")
+
+    res_limit = serializers.IntegerField(required=False, default=-1, help_text="生成的每个 tiff 像素大小上界。留空或-1表示无限制")
+    filenum_limit = serializers.IntegerField(required=False, default=-1, help_text="生成 tiff 文件的数量上界。留空或-1表示无限制")
+    return_type = serializers.CharField(required=False, help_text="留空则默认为tiff。")
+    channel_label = serializers.CharField(help_text="表示所请求的channel，应与dataset.variables.variable_name一致")
+    scalar_format = serializers.IntegerField(required=False, help_text="array标量数据的format规则")
+
+
+class GetNcfContentResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+        files = serializers.ListField(required=True)
+
+        class Meta:
+            ref_name = 'NcfContentResponseData'
+
+    data = DataSerializer()
+
+
+class POSTLoginRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    password = serializers.CharField(required=False, help_text="密码")
+
+
+class RegisterRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    password = serializers.CharField(required=False, help_text="密码")
+    email = serializers.CharField(required=False, help_text="邮箱")
+    display_name = serializers.CharField(required=False, help_text="显示名称")
+    affiliation = serializers.CharField(required=False, help_text="所属机构")
+    country = serializers.CharField(required=False, help_text="国家")
+    phone = serializers.CharField(required=False, help_text="电话")
+    address = serializers.CharField(required=False, help_text="地址")
+    city = serializers.CharField(required=False, help_text="所在市")
+    state = serializers.CharField(required=False, help_text="所在省")
+
+
+class UserAuthenticateRequestSerializer(serializers.Serializer):
+
+    username = serializers.CharField(required=False, help_text="用户名")
+    token = serializers.CharField(required=False, help_text="用户token")
+
+
+class GetUserProfileResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+
+        username = serializers.CharField(required=False, help_text="用户名")
+        email = serializers.CharField(required=False, help_text="邮箱")
+        display_name = serializers.CharField(required=False, help_text="显示名称")
+        affiliation = serializers.CharField(required=False, help_text="所属机构")
+        country = serializers.CharField(required=False, help_text="国家")
+        phone = serializers.CharField(required=False, help_text="电话")
+        address = serializers.CharField(required=False, help_text="地址")
+        city = serializers.CharField(required=False, help_text="所在市")
+        state = serializers.CharField(required=False, help_text="所在省")
+        class Meta:
+            ref_name = 'VisContentResponseData'
+
+    data = DataSerializer()
+
+class CreateDatasetResponseSerializer(SuccessResponseSerializer):
+
+    class DataSerializer(serializers.Serializer):
+        uuid = serializers.CharField(required = False)
+        class Meta:
+            ref_name = 'CreateDatasetResponseData'
+
+    data = DataSerializer()
+
+class FileUploadSerializer(serializers.Serializer):
+
+    file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
+    format = serializers.CharField(max_length=256, allow_blank=True, required=False)
+
+class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
+
+    lat = serializers.FloatField(required=True)
+    lng = serializers.FloatField(required=True)
+    dpt = serializers.FloatField(required=False, default=0)
+    label = serializers.CharField(max_length=256, required=True)
+    # radius = serializers.IntegerField(required=False, help_text="")
+
+
+class GetNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
+
+    class DataSerializer(serializers.Serializer):
+        date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
+        stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
+        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        class Meta:
+            ref_name = 'GetNcfContentVQDatastreamData'
+
+    data = DataSerializer()

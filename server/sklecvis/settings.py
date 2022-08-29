@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import datetime
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -94,10 +94,38 @@ DATABASES = {
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    # 'DEFAULT_AUTHENTICATION_CLASSES': (
-    #     'rest_framework.authentication.BasicAuthentication',
-    # ),
-    'PAGE_SIZE': 100
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # 'rest_framework.authentication.BasicAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'PAGE_SIZE': 100,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # AllowAny 允许所有用户
+        # 'rest_framework.permissions.IsAuthenticated',  # IsAuthenticated 仅通过认证的用户
+        # 'rest_framework.permissions.IsAdminUser',  # IsAdminUser 仅管理员用户
+        # 'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # IsAuthenticatedOrReadOnly 认证的用户可以完全操作，否则只能get读取
+    ],
+}
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
+
+SIMPLE_JWT = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_ALLOW_REFRESH': True,
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
 }
 
 # Password validation
@@ -153,3 +181,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # SKLECVIS Settings
 UUID_SHORT_LENGTH = 9
+
+# Email Send Settings
+EMAIL_HOST = 'smtp.163.com'
+EMAIL_PORT = 25
+EMAIL_HOST_USER = 'sklecvis@163.com'
+EMAIL_HOST_PASSWORD = 'FTPWFVTVERPCERTI'
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_FROM = 'sklec-vis-verify-robot<sklecvis@163.com>'
