@@ -9,6 +9,8 @@ from sklecvis import settings
 import subprocess
 import re
 import uuid
+import time
+import datetime
 from collections import defaultdict
 from api.models import *
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
@@ -179,10 +181,19 @@ class NcfCoreClass(SKLECBaseCore):
             if value < v:
                 return i
 
+    def get_date_data_trans(self):
+        dt = self.datetime[:]
+        start_time = time.mktime(time.strptime('1990-01-01', '%Y-%m-%d'))
+        timestamps = start_time + dt * (24 * 60 * 60)
+        date_time = []
+        for ts in timestamps:
+            date_time.append(datetime.datetime.fromtimestamp(ts))
+        return date_time
+
     def get_vq_datastream(self, params):
         lat_value = float(params['lat'])
         lng_value = float(params['lng'])
-        dpt_value = float(params['dpt'])
+        dpt_value = float(params['dep'])
         lat = self._get_idx_from_list(lat_value, self.latitude[:].tolist())
         lng = self._get_idx_from_list(lng_value, self.longitude[:].tolist())
         if lat == -1:
@@ -195,7 +206,8 @@ class NcfCoreClass(SKLECBaseCore):
             dpt = 0
         label = params['label']
         ret = {}
-
+        # if not hasattr(self.file.variables, label):
+        #     raise Exception(f'Label {label} does not exist.')
         channel_dimensions = self.file[label].dimensions
         variable: netCDF4.Variable = self.file.variables[label]
 
@@ -221,8 +233,8 @@ class NcfCoreClass(SKLECBaseCore):
             raise Exception('Latitude dimension does not exist.')
         if (longitude_idx == -1):
             raise Exception('Longitude dimension does not exist.')
-
-        ret['date_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
+        # datetime: netCDF4.Variable = self.file[datetime_field]
+        # ret['date_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
 
         idx_params = [0] * 4
         for i in range(3):
@@ -252,11 +264,9 @@ class NcfCoreClass(SKLECBaseCore):
         stream_data[np.where(stream_data == fill_value)] = 0
         ret['stream_data'] = stream_data.tolist()
 
-        ret['lat_idx'] = lat
-        ret['lng_idx'] = lng
         # ret['dim_lat'] = self.latitude[:].tolist()
         # ret['dim_lng'] = self.longitude[:].tolist()
-        return ret
+        return stream_data.tolist()
 
     def get_channel_data_split(self, params):
         # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)

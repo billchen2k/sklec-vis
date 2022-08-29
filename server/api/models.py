@@ -105,7 +105,7 @@ class VisFile(models.Model):
         NONE = 'none'          # 无地理坐标信息
 
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
-    dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='vis_files')
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='vis_files')
     file_name = models.CharField(max_length=200)
     file_size = models.IntegerField(default=0)
     file = models.FileField(upload_to='datasets/vis/', blank=True, null=True)
@@ -145,7 +145,7 @@ class DataChannel(models.Model):
 
 class RawFile(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
-    dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='raw_files')
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='raw_files')
     file_name = models.CharField(max_length=200)
     file_size = models.IntegerField(default=0)
     file = models.FileField(upload_to='datasets/raw/', null=True, blank=True)
@@ -154,7 +154,7 @@ class RawFile(models.Model):
 
     # If the same as visualization file, then the raw file is not needed
     file_same_as_vis = models.BooleanField(default=False)
-    visfile = models.ForeignKey(VisFile, on_delete=models.SET_NULL, null=True, blank=True)
+    visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.file_name}'

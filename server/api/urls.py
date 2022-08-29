@@ -23,6 +23,7 @@ schema_view = get_schema_view(
     permission_classes=[permissions.AllowAny],
 )
 
+
 urlpatterns = [
     path('dataset/', views.DatasetList.as_view()),
     path('dataset/create/', views.DatasetCreate.as_view()),
@@ -37,8 +38,8 @@ urlpatterns = [
     path('visfile/destroy/<str:uuid>/', views.VisfileDestroyView.as_view()),
     path('viscontent/vqdatastream/', views.PostVQDataStream.as_view(), name='vq-datastream'),
     path('viscontent/<str:uuid>/', views.GetRskContent.as_view(), name='rsk-content'),
+    path('ncfcontent/vqdatastream/', views.PostNcfContentVQDatastream.as_view(), name='ncf-content-vq-datastream'),
     path('ncfcontent/<str:uuid>/', views.GetNcfContent.as_view(), name='ncf-content'),
-    path('ncfcontent/vqdatastream/<str:uuid>/', views.GetNcfContentVQDatastream.as_view(), name='ncf-content-vq-datastream'),
     path('tags/', views.TagList.as_view()),
     path('user/token/', views.token, name='get-token'),
     path('user/login/', TokenObtainPairView.as_view(), name='user-login'),
