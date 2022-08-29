@@ -1,5 +1,4 @@
 import consts from '@/lib/consts';
-import {useLeafletContext} from '@react-leaflet/core';
 import * as React from 'react';
 import {useMap} from 'react-leaflet';
 
@@ -13,7 +12,7 @@ export function MapEvents(props: IMapEventsProps): any {
   React.useEffect(() => {
     document.addEventListener(consts.EVENT.MAP_FLY_TO, (e: CustomEvent) => {
       console.log(e);
-      map.flyTo(e.detail, 6);
+      map.flyTo(e.detail.latlng, e.detail.zoom || 6);
     });
   }, [map]);
 

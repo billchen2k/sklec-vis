@@ -1,10 +1,12 @@
-import {useAppSelector, useUser} from '@/app/hooks';
+import {useAppDispatch, useAppSelector, useUser} from '@/app/hooks';
+import ToolbarAboutAction from '@/components/elements/ToolbarActions/ToolbarAboutAction';
+import ToolbarManageAction from '@/components/elements/ToolbarActions/ToolbarManageAction';
 import config from '@/config';
+import {siteSlice} from '@/store/siteSlice';
 import {Menu as MenuIcon} from '@mui/icons-material';
 import {Box, IconButton, Stack, Toolbar, Typography} from '@mui/material';
 import * as React from 'react';
-import ToolbarAboutAction from '@/components/elements/ToolbarActions/ToolbarAboutAction';
-import ToolbarManageAction from '@/components/elements/ToolbarActions/ToolbarManageAction';
+import {useNavigate} from 'react-router-dom';
 import {ToolbarUserAction} from './ToolbarActions/ToolbarUserAction';
 
 export interface ISKToolbarProps {
@@ -16,6 +18,13 @@ const SKToolbar = (props: ISKToolbarProps) => {
   const loadingText = useAppSelector((state) => state.ui.loadingText);
   const {globalState} = useAppSelector((state) => state.site);
   const user = useUser();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  const handleNavigateBack = () => {
+    dispatch(siteSlice.actions.enterDataListing());
+    navigate('/');
+  };
 
 
   return (
@@ -32,8 +41,8 @@ const SKToolbar = (props: ISKToolbarProps) => {
       >
         <MenuIcon />
       </IconButton>
-      <Typography variant={'h6'}>
-        SKLEC Spatial-temporal Data Visualization
+      <Typography variant={'h6'} onClick={() => handleNavigateBack()} sx={{cursor: 'pointer'}}>
+          SKLEC Spatial-temporal Data Visualization
         {globalState == 'managing' && ' - Management Mode'}
       </Typography>
       <Typography variant={'caption'} sx={{m: 2}}>

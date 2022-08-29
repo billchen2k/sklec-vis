@@ -7,6 +7,7 @@ import {IDataset} from '@/types';
 import {Box, Button, Checkbox, CircularProgress, FormControlLabel, Stack, TextField, Typography} from '@mui/material';
 import {DateTimePicker, LocalizationProvider} from '@mui/x-date-pickers';
 import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns';
+import MDEditor, {commands} from '@uiw/react-md-editor';
 import useAxios from 'axios-hooks';
 import {useFormik} from 'formik';
 import * as React from 'react';
@@ -122,14 +123,22 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         />
       </Box>
       <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-        <FormItemLabel label={'Description:'} />
-        <TextField size={'small'} variant={'standard'} sx={{width: '70%'}}
+        <FormItemLabel label={'Description:'} tooltip={'The description of the dataset. Supports markdown syntax.'}/>
+        {/* <TextField size={'small'} variant={'standard'} sx={{width: '70%'}}
           multiline minRows={3} maxRows={10}
           name={'description'}
           value={formikDataset.values.description}
           onChange={formikDataset.handleChange}
           helperText={formikDataset.errors.description}
           error={Boolean(formikDataset.errors.description)}
+        /> */}
+        <MDEditor
+          style={{'fontSize': '14px', 'width': '70%'}}
+          value={formikDataset.values.description}
+          preview={'edit'}
+          commands={[commands.bold, commands.italic, commands.strikethrough, commands.title, commands.divider, commands.link, commands.quote, commands.codeBlock]}
+          fullscreen={false}
+          onChange={(value) => formikDataset.setFieldValue('description', value)}
         />
       </Box>
       <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>

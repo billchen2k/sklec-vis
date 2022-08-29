@@ -135,7 +135,10 @@ export function NCFViewer(props: INCFViewerProps) {
       const targetLatLng: LatLng = new LatLng(lat, lng);
       // map.flyTo(targetLatLng);
       document.dispatchEvent(new CustomEvent(consts.EVENT.MAP_FLY_TO, {
-        detail: targetLatLng,
+        detail: {
+          latlng: targetLatLng,
+          zoom: 3,
+        },
       }));
     }
 
