@@ -186,29 +186,51 @@ class TagList(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-class GetNcfContentVQDatastream(views.APIView):
+class PostNcfContentVQDatastream(views.APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication,)
 
     @swagger_auto_schema(operation_description="从指定 VisFile 中根据经纬度和深度获取所有变量的时域特征。",
-                         query_serializer=GetNcfContentVQDatastreamRequestSerializer,
-                         responses= {
-                             200: GetNcfContentVQDatastreamResponseSerializer,
+                         operation_id='ncfcontent_vqdatastream',
+                         request_body=PostNcfContentVQDatastreamRequestSerializer,
+                         responses={
+                             200: PostVQDataStreamResponseSerializer,
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    def get(self, request: HttpRequest, *args, **kwargs):
-        validation = GetNcfContentVQDatastreamRequestSerializer(data=request.query_params)
+    def post(self, request: HttpRequest, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        validation = PostNcfContentVQDatastreamRequestSerializer(data=jdata)
         if not validation.is_valid():
             return JsonResponseError(validation.errors)
         params = validation.data
-        uuid = kwargs['uuid']
+        lat_lngs = params['lat_lngs']
+        visfile_uuid = params['visfile_uuid'][0]
         try:
-            visfile = VisFile.objects.get(uuid=uuid)
+            visfile = VisFile.objects.get(uuid=visfile_uuid)
+            core = NcfCoreClass(visfile.file.path)
         except VisFile.DoesNotExist as e:
-            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
-
-        core = NcfCoreClass(visfile.file.path)
-        vq_data = core.get_vq_datastream(params)
-        return JsonResponseOK(data = vq_data)
+            return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
+        if core.datetime_dim == -1:
+            return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
+        vqdata = {}
+        date_data = core.get_date_data_trans()
+        vqdata['date_data'] = date_data
+        stream_data = []
+        for lat_lng in lat_lngs:
+            this_params = {}
+            this_params['lat'] = lat_lng['lat']
+            this_params['lng'] = lat_lng['lng']
+            this_params['dep'] = params['dep']
+            this_params['label'] = params['channel_label']
+            vq_data = core.get_vq_datastream(this_params)
+            stream_data.append(vq_data)
+        vqdata['stream_data'] = stream_data
+        vqdata['lat_lngs'] = lat_lngs
+        return JsonResponseOK(data = vqdata)
 
 class GetRskContent(views.APIView):
 
@@ -389,7 +411,7 @@ class RawfileDestroyView(generics.DestroyAPIView):
         try:
             instance = self.get_object()
         except Exception as e:
-            return JsonResponseError(f'visfile with uuid {kwargs["uuid"]} not found.')
+            return JsonResponseError(f'rawfile with uuid {kwargs["uuid"]} not found.')
         self.perform_destroy(instance)
         return JsonResponseOK()
 
@@ -689,17 +711,19 @@ class FileUploadView(views.APIView):
                              400: ErrorResponseSerializer,
                          })
     def post(self, request: HttpRequest, format=None):
-        # try:
-            file = request.FILES['file']
-            if (file.name.endswith('.nc')):
-                core = NcfFileUploadClass(file)
+        validation = RawFileUploadSerializer(data=request.POST)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        params = validation.data
 
-            params = request.POST
-            res = core.create(params)
-            if res == 'success':
-                return JsonResponseOK()
-            else:
-                return JsonResponseError()
+        file = request.FILES['file']
+        if (file.name.endswith('.nc')):
+            core = NcfFileUploadClass(file)
+        res = core.create(params)
+        if res == 'success':
+            return JsonResponseOK()
+        else:
+            return JsonResponseError()
         # except Exception as e:
         #     return JsonResponseError(message=e.args)
 

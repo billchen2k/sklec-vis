@@ -83,7 +83,7 @@ class PostVQDataStreamResponseSerializer(SuccessResponseSerializer):
     class DataSerializer(serializers.Serializer):
         date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
         stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
-        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        lat_lngs = serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
 
         class Meta:
             ref_name = 'VQDataStreamResponseData'
@@ -182,22 +182,32 @@ class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     format = serializers.CharField(max_length=256, allow_blank=True, required=False)
 
-class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
+class PostNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
 
-    lat = serializers.FloatField(required=True)
-    lng = serializers.FloatField(required=True)
-    dpt = serializers.FloatField(required=False, default=0)
-    label = serializers.CharField(max_length=256, required=True)
-    # radius = serializers.IntegerField(required=False, help_text="")
+    class NcfContentLatLngItemSerializer(serializers.Serializer):
+        lat = serializers.FloatField(required=False)
+        lng = serializers.FloatField(required=False)
+
+    lat_lngs = serializers.ListField(child=NcfContentLatLngItemSerializer(), required=False, help_text='采样点的经纬度列表。', )
+    # radius = serializers.FloatField(required=False, default=1,
+    #                                 help_text='采样半径。应为大于等于 1，小于等于 100 的整数。默认为 1。')
+    visfile_uuid = serializers.ListField(child=serializers.CharField(), required=False,
+                                         help_text='要获取的 Vis Content。此处必须为 netCDF 形式的 visFile。')
+    # dataset_uuid = serializers.CharField(required=False,
+    #                                      help_text='数据集 UUID。如果指定了 vis_uuid，则该字段将被忽略。' +
+    #                                                '如果没有指定 vis_uuid，则必须指定该字段，且数据的获取范围为该数据集下的全部数据。')
+    dep = serializers.FloatField(required=False, default=0)
+    channel_label = serializers.CharField(max_length=256, required=False)
 
 
-class GetNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
+class PostNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
 
     class DataSerializer(serializers.Serializer):
         date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
         stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
-        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        lat_lngs = serializers.ListField(child=PostNcfContentVQDatastreamRequestSerializer.NcfContentLatLngItemSerializer(), required=False)
+
         class Meta:
-            ref_name = 'GetNcfContentVQDatastreamData'
+            ref_name = 'VQDataStreamResponseData'
 
     data = DataSerializer()

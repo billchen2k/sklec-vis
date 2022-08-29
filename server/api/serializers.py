@@ -117,10 +117,10 @@ class RawFileOfDatasetSerializer(serializers.ModelSerializer):
 
 class RawfileUpdateSerializer(serializers.ModelSerializer):
     file_name = serializers.CharField(max_length=200, required=False)
-
+    # file_same_as_vis = serializers.BooleanField(required=False, default=True)
     class Meta:
         model = RawFile
-        fields = ['file_name', 'folder_hierarchy', 'file_same_as_vis']
+        fields = ['file_name', 'folder_hierarchy']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -204,6 +204,7 @@ class RawFileUploadSerializer(serializers.ModelSerializer):
 
     # file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     uuid = serializers.CharField(max_length=256, required=True, allow_blank=True)
+    file_same_as_vis = serializers.BooleanField(default=True, allow_null=True)
     class Meta:
         model = RawFile
         exclude = ['dataset', 'visfile', 'file_name', 'file_size']
