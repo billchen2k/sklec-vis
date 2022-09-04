@@ -211,3 +211,12 @@ class PostNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
             ref_name = 'VQDataStreamResponseData'
 
     data = DataSerializer()
+
+
+class PostSetDatasetTagsSerializer(serializers.Serializer):
+
+    tags = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text='新的标签列表。如果为空或不存在，则会清空数据集的所有标签。'
+    )

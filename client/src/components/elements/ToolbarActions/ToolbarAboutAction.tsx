@@ -24,6 +24,7 @@ export default function ToolbarAboutAction(props: IToolbarAboutActionProps) {
       <Typography variant={'body1'}>
         <br /> Version: {config.version}
       </Typography>
+      <Typography variant={'body1'}>Build time: {__BUILD_TIME}</Typography>
       <Typography variant={'body1'}>
         <b>East China Normal University</b> <br />
                 State Key Laboratory of Estuarine and Coastal Research <br />

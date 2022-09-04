@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import '@/styles/index.scss';
 import {ThemeProvider} from '@mui/material';
 import config from '@/config';
@@ -15,6 +15,10 @@ export interface IAppProps {
 }
 
 const App = (props: IAppProps) => {
+  // On app load
+  useEffect(() => {
+    localStorage.removeItem('selectedTags');
+  }, []);
   return (
     <ThemeProvider theme={config.theme}>
       <Provider store={store}>

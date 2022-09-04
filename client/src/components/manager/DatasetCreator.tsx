@@ -109,6 +109,7 @@ export default function DatasetCreator(props: IDatasetCreatorProps) {
   React.useEffect(() => {
     const {loading, data, error} = createDatasetAxiosResult;
     if (!loading && data) {
+      dispatch(siteSlice.actions.refreshDatasetList());
       dispatch(uiSlice.actions.openDialog({
         type: 'confirm',
         title: 'Dataset Created',
