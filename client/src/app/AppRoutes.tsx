@@ -5,8 +5,8 @@ import DataViewer from '@/layout/DataViewer';
 import DataEditor from '@/layout/DataEditor';
 import DefaultPage from '@/layout/DefaultPage';
 import DataCreator from '@/layout/DataCreator';
-import TagManager from '@/layout/TagManager';
-import UserManager from '@/layout/UserManager';
+import TagManagerBox from '@/layout/TagManagerBox';
+import UserManagerBox from '@/layout/UserManagerBox';
 
 export interface IAppRoutesProps {
 
@@ -20,8 +20,8 @@ const AppRoutes = (props: IAppRoutesProps) => {
         <Route path={'/view/:datasetId'} element={<DataViewer />}/>
         <Route path={'/edit/:datasetId'} element={<DataEditor />} />
         <Route path={'/manage/create'} element={<DataCreator />} />
-        <Route path={'/manage/tag'} element={<TagManager />} />
-        <Route path={'/manage/user'} element={<UserManager />} />
+        <Route path={'/manage/tag'} element={<TagManagerBox />} />
+        <Route path={'/manage/user'} element={<UserManagerBox />} />
         <Route path={'*'} element={<DefaultPage type={'404'} showHome />}/>
       </Route>
     </Routes>
