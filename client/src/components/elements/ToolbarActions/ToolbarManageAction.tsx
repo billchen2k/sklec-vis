@@ -44,20 +44,19 @@ export default function ToolbarManageAction(props: IToolbarManageActionProps) {
       >
         <Paper sx={{mt: 2}}>
           <MenuList sx={{zIndex: 9999}}>
-            <MenuItem onClick={() => navigate('/manage/create')}
-            >
+            <MenuItem onClick={() => navigate('/manage/create')}>
               <ListItemIcon>
                 <Add fontSize="small" />
               </ListItemIcon>
               <ListItemText>Create Dataset</ListItemText>
             </MenuItem>
-            <MenuItem>
+            <MenuItem onClick={() => navigate('/manage/tag')}>
               <ListItemIcon>
                 <Tag fontSize="small" />
               </ListItemIcon>
               <ListItemText>Tag Management</ListItemText>
             </MenuItem>
-            <MenuItem>
+            <MenuItem onClick={() => navigate('/manage/user')}>
               <ListItemIcon>
                 <SupervisedUserCircle fontSize="small" />
               </ListItemIcon>

@@ -38,14 +38,13 @@ const DatasetEditorPanel = (props: IDatasetEditorPanelProps) => {
         </IconButton>
       </Stack>
       <Grid container spacing={2} sx={{
-        maxHeight: '70vh',
+        maxHeight: '75vh',
         overflowY: 'scroll',
       }}>
         {/* Dataset Editor */}
         <Grid item xs={6}>
           <DatasetEditor datasetDetail={props.datasetDetail} onDatasetUpdated={props.onDatasetUpdated} />
         </Grid>
-
         {/* VisFile Editor */}
         <Grid item xs={6}>
           <DatasetFileEditor datasetDetail={props.datasetDetail} onVisFileUpdate={props.onDatasetUpdated} />

@@ -175,6 +175,36 @@ class DatasetTagsRemove(views.APIView):
             return JsonResponseError(message=e.args)
         return JsonResponseOK()
 
+class PostSetDatasetTags(views.APIView):
+
+    @swagger_auto_schema(operation_description='为指定数据集设置标签，会覆盖原有标签。',
+                         request_body=PostSetDatasetTagsSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        uuid_dataset = kwargs['uuid']
+        uuids_tag = jdata['tags']
+        ids_tag = []
+        for uuid_tag in uuids_tag:
+            try:
+                tag = DatasetTag.objects.get(uuid=uuid_tag)
+                ids_tag.append(tag.id)
+            except Exception as e:
+                return JsonResponseError(message=f'Fail to set tags: Tag {uuid_tag} not found.')
+        try:
+            dataset = Dataset.objects.get(uuid=uuid_dataset)
+        except Exception as e:
+            return JsonResponseError(message='Fail to set dataset tags.')
+        dataset.tags.set(ids_tag)
+        return JsonResponseOK()
+
 class TagList(generics.ListAPIView):
 
     serializer_class = SimpleDatasetTagSerializer

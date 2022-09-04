@@ -5,7 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WorkboxWebpackPlugin = require('workbox-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const {truncateSync} = require('fs');
+const webpack = require('webpack');
 
 const isProduction = process.env.NODE_ENV == 'production';
 
@@ -44,6 +44,9 @@ const config = {
           to: './',
         },
       ],
+    }),
+    new webpack.DefinePlugin({
+      __BUILD_TIME: JSON.stringify(new Date().toISOString().substring(0, 19)),
     }),
   ],
   module: {

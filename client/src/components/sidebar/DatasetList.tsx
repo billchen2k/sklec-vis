@@ -287,9 +287,11 @@ const DatasetList = (props: IDatasetListProps) => {
             onClose={() => setTagFilterStatus({...tagFilterStatus, open: false})}
           >
             <ListSubheader>Filter dataset tags</ListSubheader>
-            <TagSelector onTagSelected={(tags: string[], displayText? : string) => {
-              setTagFilterStatus({...tagFilterStatus, tags, displayText});
-            }} />
+            <TagSelector onTagSelected={(tags: IDatasetTag[], displayText? : string) => {
+              setTagFilterStatus({...tagFilterStatus, tags: tags.map((one) => one.uuid), displayText});
+            }}
+            alreadySelectedTags={tagFilterStatus.tags}
+            />
           </Popover>
 
           <Popover open={sortingStatus.open}

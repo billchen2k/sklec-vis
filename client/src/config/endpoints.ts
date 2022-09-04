@@ -151,4 +151,13 @@ export const endpoints = {
       method: 'DELETE',
     });
   },
+  postSetDatasetTags(uuid: string, tags: string[]): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/tags/set/${uuid}/`,
+      method: 'POST',
+      data: {
+        tags,
+      },
+    });
+  },
 };

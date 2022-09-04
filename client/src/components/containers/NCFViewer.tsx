@@ -124,6 +124,7 @@ export function NCFViewer(props: INCFViewerProps) {
     return valueRange;
   };
 
+
   const handleExecute = (manualRange?: RangeState) => {
     const requestRange = manualRange || ranges;
     console.log('Request Range:', requestRange);
