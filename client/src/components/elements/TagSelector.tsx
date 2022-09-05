@@ -27,7 +27,6 @@ export default function TagSelector(props: ITagSelectorProps) {
   //   };
   // }
   const [selectedTags, setSelectedTags] = React.useState<string[]>(currentSelectedTags);
-  const [selectedTagsObj, setSelectedTagsObj] = React.useState<IDatasetTag[]>([]);
   const tagStore = React.useRef<TagStore>(undefined);
   const [allTags, setAllTags] = React.useState<IDatasetTag[]>([]);
 

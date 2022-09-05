@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Box, Card, IconButton, LinearProgress, Typography} from '@mui/material';
+import {Box, IconButton, LinearProgress, Typography} from '@mui/material';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import LayerBox from '@/layout/LayerBox';
 import {useEffect} from 'react';
@@ -15,7 +15,7 @@ export interface IVisualQueryResultProps {
 
 const VisualQueryResult = (props: IVisualQueryResultProps) => {
   const dispatch = useAppDispatch();
-  const {currentType, currentData, rasterState} = useAppSelector((state) => state.site);
+  const {currentType, currentData, rasterState, inspectState, datasetDetailCache} = useAppSelector((state) => state.site);
   const [localVQLatLngs, setLocalVQLatLngs] = React.useState<any[]>([]);
 
   const [{data, loading, error}, executeRequest] = useAxios<IResponse<IVQDataStreamResData>>({}, {manual: true});
@@ -30,12 +30,22 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
   useEffect(() => {
     if (rasterState.visualQueryLatLngs.length > 0) {
       setLocalVQLatLngs(rasterState.visualQueryLatLngs);
-      executeRequest(endpoints.postVQDataStream(
-          rasterState.visualQueryLatLngs,
-          3,
+      if (currentType == 'RT') {
+        executeRequest(endpoints.postVQDataStream(
+            rasterState.visualQueryLatLngs,
+            3,
           currentData as string));
+      }
+      if (currentType == 'NCF') {
+        executeRequest(endpoints.postNcfDataStream(
+            rasterState.visualQueryLatLngs,
+            [datasetDetailCache.vis_files[inspectState.selectedVisFile].uuid],
+            datasetDetailCache.vis_files[inspectState.selectedVisFile].meta_data.variables[inspectState.selectedChannel].variable_name,
+            1,
+        ));
+      }
     }
-  }, [rasterState.visualQueryLatLngs]);
+  }, [rasterState.visualQueryLatLngs, currentData, inspectState, currentType]);
 
   // d3 magic
   useEffect(() => {
@@ -65,7 +75,7 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
     return null;
   }
 
-  console.log(data.data);
+  console.log(data?.data);
 
   return (
     <LayerBox key={'queryresult'} mode={'lb'} opacity={0.95}>

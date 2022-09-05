@@ -65,6 +65,20 @@ export const endpoints = {
       },
     };
   },
+  postNcfDataStream: (latLngs: L.LatLng[], visFileUUID: string[], label: string, depth: number): AxiosRequestConfig<any> => {
+    return withAuthorization(
+        {
+          url: `${API_ROOT}/ncfcontent/vqdatastream/`,
+          method: 'POST',
+          data: {
+            lat_lngs: latLngs,
+            channel_label: label,
+            visfile_uuid: visFileUUID,
+            dep: depth,
+          },
+        },
+    );
+  },
   getNcfContent: (uuid: string,
       channel_label: string,
       xparams?: Partial<Record<NCFContentRangeParams, string | number>>): AxiosRequestConfig<any> => {
