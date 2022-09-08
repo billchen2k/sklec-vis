@@ -5,8 +5,8 @@ import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import DataMetaTable from '@/components/containers/DataMetaTable';
 import {readableFileSize} from '@/lib/utils';
 import {IRasterState, siteSlice} from '@/store/siteSlice';
-import {INCFContentFile, IVisFile} from '@/types';
-import {PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
+import {INCFContentFile} from '@/types';
+import {Pause, PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -39,6 +39,10 @@ const RasterControl = (props: IRasterControlProps) => {
   const [rasterConfig, setRasterConfig] = React.useState(rasterState.config);
   const [defaultRasterRange, setDefaultRasterRange] = React.useState([0.08, 0.15]);
 
+  const [isPlaying, setIsPlaying] = React.useState<boolean>(false);
+  const timer = React.useRef(null);
+  const currentRasterRef = React.useRef(0);
+
   const colorScaleOptions = ['Spectral', 'Viridis', 'RdYlGn', 'BrBG', 'PiYG', 'PrGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu'];
 
   const rasters = props.rasterFiles.map((one) => one.file);
@@ -60,6 +64,7 @@ const RasterControl = (props: IRasterControlProps) => {
       }
     }
     setCurrentRaster(i);
+    currentRasterRef.current = i;
     if (props.onRasterChange) {
       props.onRasterChange(props.rasterFiles[i]);
     }
@@ -126,10 +131,27 @@ const RasterControl = (props: IRasterControlProps) => {
   const scaleColors = chroma.scale(rasterConfig.colorScale).colors(9);
   const colorScaleColors = scaleColors.map((c) => chroma(c).css());
 
+  const handlePlayClicked = () => {
+    if (isPlaying) {
+      clearInterval(timer.current);
+      setIsPlaying(false);
+    } else {
+      timer.current = setInterval(() => {
+        if (currentRasterRef.current < rasters.length - 1) {
+          handleRasterChange(currentRasterRef.current + 1);
+        } else {
+          clearInterval(timer.current);
+          setIsPlaying(false);
+        }
+      }, 1500);
+      setIsPlaying(true);
+    }
+  };
+
   // @ts-ignore
   return (
     <Box>
-      <Stack spacing={1} sx={{maxWidth: '40rem'}}>
+      <Stack spacing={1} sx={{maxWidth: '30rem'}}>
         <Typography variant={'body2'}><b>Raster Layer Control</b></Typography>
         <LinearProgress variant={'determinate'} value={(currentRaster + 1) / rasters.length * 100}/>
         <ButtonGroup>
@@ -137,19 +159,19 @@ const RasterControl = (props: IRasterControlProps) => {
             handleRasterChange(currentRaster - 1);
           }}
           startIcon={<SkipPrevious />}>
-              Last Frame
+              Last
           </Button>
           <Button sx={{flexGrow: 1}}>
             {props.rasterFiles[currentRaster].file_name}
           </Button>
-          <Button>
-            <PlayArrow />
+          <Button onClick={() => handlePlayClicked()}>
+            {isPlaying ? <Pause /> : <PlayArrow />}
           </Button>
           <Button disabled={currentRaster === rasters.length - 1} onClick={() => {
             handleRasterChange(currentRaster + 1);
           }}
           startIcon={<SkipNext />}>
-              Next Frame
+              Next
           </Button>
         </ButtonGroup>
 

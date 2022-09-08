@@ -245,17 +245,21 @@ export class VisualQueryResultPainter {
     console.log(this.dateData);
     if (this.dateData.length <= 12) {
       xDateAxis.ticks(d3.timeHours);
-    } else if (this.dateData.length > 12 && this.dateData.length < 305) {
-      xDateAxis.tickFormat(d3.timeFormat('%y-%m-%d'));
     } else {
-      xDateAxis.ticks(d3.timeWeeks);
+      xDateAxis.tickFormat(d3.timeFormat('%y-%m-%d'));
     }
+    // } else {
+    //   xDateAxis.ticks(d3.timeWeeks);
+    // }
 
     xDate.domain(d3.extent(this.dateData, (d) => d.date));
+    xDateAxis.tickValues(this.dateData.map((d) => d.date)
+        .filter((one, index) => index % Math.round(this.dateData.length / 10) == 0),
+    );
 
     const colors = this.getColorsOfFlows();
 
-    // 在宽度上和right_content一致,在高度上使用margin
+    // 在宽度上和 right_content 一致,在高度上使用margin
     const svg = this.container_d3.append('svg')
         .attr('width', this.widthContainer)
         .attr('height', heightContent)
@@ -344,7 +348,7 @@ export class VisualQueryResultPainter {
         .attr('class', 'tooltip')
         .style('visibility', 'hidden');
 
-    // 先 生成并添加一次以获得tooltip需要的高度
+    // 先生成并添加一次以获得tooltip需要的高度
     // TODO: 相对父元素计算tooltip的偏移; 直接计算tooltip高度; 改进tooltip样式
     let tooltipText = '<div class="tooltipID">1</div>' + this.dataStream[0][0].toString();
     for (let i = 1; i < this.dataStream.length; i++) {
@@ -374,6 +378,7 @@ export class VisualQueryResultPainter {
           for (let i = 1; i < this.dataStream.length; i++) {
             tooltipText += (`</br><div class="tooltipID">${i + 1}</div>` + ds[i][chartX].toString());
           }
+          tooltipText += '</br>Date: ' + this.dateData[chartX].date.toISOString().slice(0, 19);
 
           hoverLine.attr('x1', mouseX + 'px')
               .attr('x2', mouseX + 'px');

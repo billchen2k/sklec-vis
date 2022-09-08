@@ -26,8 +26,8 @@ export class CoordinateInspectorManager extends LayerManager {
       // Trigger global events for data editor to listen
       document.dispatchEvent(new CustomEvent(consts.EVENT.COORDINATE_SELECTED, {
         detail: {
-          lat: latlng.lat,
-          lng: latlng.lng,
+          lat: latlng.lat % 90,
+          lng: latlng.lng % 180,
         },
       }));
     };
