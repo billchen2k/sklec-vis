@@ -122,7 +122,7 @@ class DatasetDestroy(generics.DestroyAPIView):
 
         return JsonResponseOK(data={'message': 'success'})
 
-class DatasetTagsAdd(views.APIView):
+class DatasetTagsAddToDataset(views.APIView):
 
     lookup_field = 'uuid'
     serializer_class = DatasetTagsAddSerializer
@@ -150,7 +150,71 @@ class DatasetTagsAdd(views.APIView):
             return JsonResponseError(message=e.args)
         return JsonResponseOK()
 
-class DatasetTagsRemove(views.APIView):
+class DatasetTags(generics.ListCreateAPIView):
+
+    serializer_class_get = SimpleDatasetTagSerializer
+    serializer_class_post = DatasetTagCreateSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return self.serializer_class_post
+        elif self.request.method == 'GET':
+            return self.serializer_class_get
+
+    def get_queryset(self):
+        return DatasetTag.objects.all()
+
+    @swagger_auto_schema(operation_description='获取系统中的所有标签。如果标签含有 parent 属性，则表明该标签为某个父标签的子标签。' +
+                                               '使用这种方式来表达标签的层级关系，从而来实现标签的嵌套关系。', )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='创建 DatasetTag。返回被创建 DatasetTag 的 UUID。', )
+    def post(self, request, *args, **kwargs):
+        validation = self.get_serializer(data=request.data)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        datasettag = DatasetTag(**validation.validated_data)
+        datasettag.save()
+        return JsonResponseOK(data={'uuid': datasettag.uuid})
+
+
+class DatasetTagUUID(generics.RetrieveUpdateDestroyAPIView):
+
+    lookup_field = 'uuid'
+    serializer_class = DatasetTagCreateSerializer
+
+    def get_queryset(self):
+        return DatasetTag.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+
+        return JsonResponseOK(data={'message': 'success'})
+
+    @swagger_auto_schema(operation_description='删除指定数据集标签。',
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='部分修改指定数据集标签。',
+                         responses={
+                             204: SuccessResponseSerializer,
+                             404: ErrorResponseSerializer,
+                         })
+    def patch(self, request, *args, **kwargs):
+        if ('parent' in request.data) and (request.data['parent'] == kwargs['uuid']):
+            return JsonResponseError(message='Parent uuid can not be the same with itself.')
+        return self.partial_update(request, *args, **kwargs)
+
+class DatasetTagsRemoveFromDataset(views.APIView):
 
     def get_queryset(self):
         return Dataset.objects.all()
@@ -174,6 +238,63 @@ class DatasetTagsRemove(views.APIView):
         except Exception as e:
             return JsonResponseError(message=e.args)
         return JsonResponseOK()
+
+# class DatasetTagCreate(views.APIView):
+#     serializer_class = DatasetTagCreateSerializer
+#
+#     def post(self, request, *args, **kwargs):
+#         validation = DatasetTagCreateSerializer(data = request.data)
+#         if not validation.is_valid():
+#             return JsonResponseError(validation.errors)
+#         datasettag = DatasetTag(**validation.validated_data)
+#         datasettag.save()
+#         return JsonResponseOK(data = {'uuid': datasettag.uuid})
+#
+# class DatasetTagDestroy(generics.DestroyAPIView):
+#     lookup_field = 'uuid'
+#     def get_queryset(self):
+#         return DatasetTag.objects.all()
+#
+#     @swagger_auto_schema(operation_description='删除指定数据集标签。',
+#                          responses={
+#                              204: SuccessResponseSerializer,
+#                              404: ErrorResponseSerializer,
+#                          })
+#     def delete(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
+#
+#     def destroy(self, request, *args, **kwargs):
+#         try:
+#             instance = self.get_object()
+#             self.perform_destroy(instance)
+#         except Exception as e:
+#             return JsonResponseError(message=e.args)
+#
+#         return JsonResponseOK(data={'message': 'success'})
+#
+# class DatasetTagPatch(views.APIView):
+#
+#     def partial_update(self, request, *args, **kwargs):
+#         try:
+#             instance = DatasetTag.objects.get(uuid = kwargs['uuid'])
+#         except Exception as e:
+#             return JsonResponseError(f'DatasetTag with uuid {kwargs["uuid"]} not found.')
+#         serializer = DatasetTagCreateSerializer(instance, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         if (not serializer.is_valid):
+#             return JsonResponseError(serializer.errors)
+#         serializer.save()
+#         return JsonResponseOK(data=serializer.validated_data)
+#
+#     @swagger_auto_schema(operation_description='更新指定 DatasetTag 信息。',
+#                          request_body=DatasetTagCreateSerializer,
+#                          responses={
+#                              200: ResponseSerializer,
+#                              400: ErrorResponseSerializer,
+#                              500: ErrorResponseSerializer,
+#                          })
+#     def patch(self, request, *args, **kwargs):
+#         return self.partial_update(request, *args, **kwargs)
 
 class PostSetDatasetTags(views.APIView):
 
@@ -238,26 +359,52 @@ class PostNcfContentVQDatastream(views.APIView):
             return JsonResponseError(validation.errors)
         params = validation.data
         lat_lngs = params['lat_lngs']
-        visfile_uuid = params['visfile_uuid'][0]
-        try:
-            visfile = VisFile.objects.get(uuid=visfile_uuid)
-            core = NcfCoreClass(visfile.file.path)
-        except VisFile.DoesNotExist as e:
-            return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
-        if core.datetime_dim == -1:
-            return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
+        visfile_uuids = params['visfile_uuid']
+
+        if (len(lat_lngs) == len(visfile_uuids)):
+            stream_data = []
+            date_data = []
+            for lat_lng, visfile_uuid in zip(lat_lngs, visfile_uuids):
+                try:
+                    visfile = VisFile.objects.get(uuid=visfile_uuid)
+                    core = NcfCoreClass(visfile.file.path)
+                except VisFile.DoesNotExist as e:
+                    return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
+                if core.datetime_dim == -1:
+                    return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
+
+                date_data = core.get_date_data_trans()
+                this_params = {}
+                this_params['lat'] = lat_lng['lat']
+                this_params['lng'] = lat_lng['lng']
+                this_params['dep'] = params['dep']
+                this_params['label'] = params['channel_label']
+                vq_data = core.get_vq_datastream(this_params)
+                stream_data.append(vq_data)
+        else:
+            visfile_uuid = visfile_uuids[0]
+            try:
+                visfile = VisFile.objects.get(uuid=visfile_uuid)
+                core = NcfCoreClass(visfile.file.path)
+            except VisFile.DoesNotExist as e:
+                return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
+            if core.datetime_dim == -1:
+                return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
+
+            date_data = core.get_date_data_trans()
+
+            stream_data = []
+            for lat_lng in lat_lngs:
+                this_params = {}
+                this_params['lat'] = lat_lng['lat']
+                this_params['lng'] = lat_lng['lng']
+                this_params['dep'] = params['dep']
+                this_params['label'] = params['channel_label']
+                vq_data = core.get_vq_datastream(this_params)
+                stream_data.append(vq_data)
+
         vqdata = {}
-        date_data = core.get_date_data_trans()
         vqdata['date_data'] = date_data
-        stream_data = []
-        for lat_lng in lat_lngs:
-            this_params = {}
-            this_params['lat'] = lat_lng['lat']
-            this_params['lng'] = lat_lng['lng']
-            this_params['dep'] = params['dep']
-            this_params['label'] = params['channel_label']
-            vq_data = core.get_vq_datastream(this_params)
-            stream_data.append(vq_data)
         vqdata['stream_data'] = stream_data
         vqdata['lat_lngs'] = lat_lngs
         return JsonResponseOK(data = vqdata)
