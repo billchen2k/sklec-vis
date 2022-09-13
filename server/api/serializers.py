@@ -202,9 +202,9 @@ class ViewTiffFileSerializer(serializers.ModelSerializer):
 
 class RawFileUploadSerializer(serializers.ModelSerializer):
 
-    # file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     uuid = serializers.CharField(max_length=256, required=True, allow_blank=True)
     file_same_as_vis = serializers.BooleanField(default=True, allow_null=True)
+
     class Meta:
         model = RawFile
         exclude = ['dataset', 'visfile', 'file_name', 'file_size']

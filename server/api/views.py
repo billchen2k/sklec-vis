@@ -6,6 +6,8 @@ import urllib
 from json import JSONDecodeError
 from typing import Dict, List
 
+
+from django.core.files.uploadedfile import UploadedFile
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
@@ -24,6 +26,7 @@ from rest_framework.parsers import MultiPartParser
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
+from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
 from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass
 from api.sklec.VisualQueryManager import VisualQueryManager
@@ -887,22 +890,26 @@ class FileUploadView(views.APIView):
                              200: SuccessResponseSerializer,
                              400: ErrorResponseSerializer,
                          })
-    def post(self, request: HttpRequest, format=None):
-        validation = RawFileUploadSerializer(data=request.POST)
+    def post(self, request: HttpRequest, *args, **kwargs):
+        validation = RawFileUploadSerializer(data=request.data)
         if not validation.is_valid():
             return JsonResponseError(validation.errors)
-        params = validation.data
-
-        file = request.FILES['file']
-        if (file.name.endswith('.nc')):
-            core = NcfFileUploadClass(file)
-        res = core.create(params)
-        if res == 'success':
-            return JsonResponseOK()
+        validated_data = validation.validated_data
+        rawfile: UploadedFile = request.FILES['file']
+        # 判断 rawfile 类型，此处暂时根据后缀名判断
+        if (rawfile.name.endswith('.nc')):
+            core = NcfRawFileUploadCore()
         else:
-            return JsonResponseError()
-        # except Exception as e:
-        #     return JsonResponseError(message=e.args)
+            core = GenericRawFileUploadCore()
+
+        # return JsonResponseOK(data=validated_data['uuid'])
+        try:
+            core.save_from_uploaded_file(rawfile)
+            core.generate_rawfile_and_visfile(validated_data.get('uuid'))
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+
+        return JsonResponseOK()
 
 
 class SendVerificationEmail(views.APIView):
