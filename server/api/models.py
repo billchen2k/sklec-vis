@@ -107,7 +107,7 @@ class VisFile(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='vis_files')
     file_name = models.CharField(max_length=200)
-    file_size = models.IntegerField(default=0)
+    file_size = models.BigIntegerField(default=0)
     file = models.FileField(upload_to='datasets/vis/', blank=True, null=True)
     format = models.CharField(choices=FileFormat.choices, max_length=20, default=FileFormat.OTHER)
     default_sample_count = models.IntegerField(default=1)
@@ -147,7 +147,7 @@ class RawFile(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='raw_files')
     file_name = models.CharField(max_length=200)
-    file_size = models.IntegerField(default=0)
+    file_size = models.BigIntegerField(default=0)
     file = models.FileField(upload_to='datasets/raw/', null=True, blank=True)
     meta_data = models.JSONField(default=dict)
     folder_hierarchy = models.CharField(max_length=200, blank=True, null=True, default='/') # 用于模拟一个数据集下的多个文件的文件夹层级结构。todo。
@@ -182,7 +182,7 @@ class ViewTiffFile(models.Model):
     is_preview = models.BooleanField(blank=True, null=True)
     file = models.FileField(upload_to='cache_files/nc_to_tiff/', null=True, blank=True)
 
-    file_size = models.IntegerField(blank = True, null = True)
+    file_size = models.BigIntegerField(blank = True, null = True)
     file_name = models.CharField(max_length = 200, blank = True, null = True)
 
     datetime = models.IntegerField(blank = True, null = True)

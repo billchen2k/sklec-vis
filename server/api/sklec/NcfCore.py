@@ -4,6 +4,7 @@ import numpy as np
 import netCDF4
 from api.sklec.SKLECBaseCore import SKLECBaseCore
 from django.core.files import File
+from django.core.files.storage import default_storage
 from osgeo import gdal, osr
 from sklecvis import settings
 import subprocess
@@ -11,7 +12,7 @@ import re
 import uuid
 import time
 import datetime
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from api.models import *
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
@@ -24,6 +25,130 @@ PREVIEW_FOLDER_DIR = os.path.join(
 class NcfCoreException:
     pass
 
+class NcfCore(SKLECBaseCore):
+    """ 重构 NcfCoreClass，将逐步迁移方法至该类 """
+    class Dim:
+        """
+        分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名
+        """
+        def __init__(self, fields, index, name):
+            self.fields = fields
+            self.index = index
+            self.name = name
+
+    def __init__(self, filepath):
+        self.filepath = os.path.join(settings.MEDIA_ROOT, filepath)
+        self.filename = os.path.split(self.filepath)[-1]
+        self.dataset = netCDF4.Dataset(self.filepath)
+        self.dimensions = self.dataset.dimensions
+        self.variables = self.dataset.variables
+        self.dimension_field = {
+            'datetime': self.Dim(['datetime', 'time'], None, None),
+            'depth': self.Dim(['depth', 'level'], None, None),
+            'longitude': self.Dim(['lon', 'longitude'], None, None),
+            'latitude': self.Dim(['lat', 'latitude'], None, None),
+        }
+        for i, ds_dim in enumerate(self.dimensions):
+
+            for dim in self.dimension_field:
+                # print('asd', ds_dim.lower(), self.dimension_field[dim].fields)
+                if ds_dim.lower() in self.dimension_field[dim].fields:
+                    self.dimension_field[dim].index = i
+                    self.dimension_field[dim].name = ds_dim
+                    break
+            if self.dimension_field[dim].index == None:
+                raise Exception(f'Initialize failed. Dimension {ds_dim} is invalid.')
+
+            # print(self.dimension_field['longitude'].index)
+            # print(self.dimension_field['latitude'].index)
+
+    def check_latlng(self):
+        """
+        检查文件的维度中是否包含经纬度
+        """
+        return (self.dimension_field['longitude'].index is not None) and (self.dimension_field['latitude'].index is not None)
+
+    def generate_split_tiff(self, label, lon_st, lon_ed, lat_st, lat_ed, ):
+        pass
+
+    def generate_thumbnail_for_label(self):
+        pass
+
+    def save_visfile_and_rawfile_to_dataset(self, dataset_uuid):
+        """
+        为指定 dataset 生成 visfile 和 rawfile
+        """
+        # remain to be reconstructed...
+        dataset = Dataset.objects.get(uuid = dataset_uuid)
+        fobj = open(self.filepath, 'rb')
+        meta = {}
+        dimensions = []
+        variables = []
+        core_ncf = NcfCoreClass(self.filepath)
+
+        for ds_dim in self.dimensions.keys():
+            # 某些字段需要特殊处理，如 'level'
+            if not (ds_dim in self.variables.keys()):
+                continue
+
+            dimension_type = None
+            for dim in self.dimension_field:
+                if ds_dim in self.dimension_field[dim].fields:
+                    dimension_type = dim
+            dim_dict = {
+                'dimension_name': ds_dim,
+                'dimension_length': self.dimensions[ds_dim].size,
+                'dimension_type': dimension_type,
+                'dimension_values': np.asarray(self.dataset[ds_dim][:], dtype=np.float32).tolist()
+            }
+            dimensions.append(dim_dict)
+
+        for variable in self.variables.keys():
+            if (variable in self.dataset.dimensions.keys()): continue
+            var_dict = {}
+            var_dict['variable_name'] = variable
+            if hasattr(self.dataset[variable], 'units'):
+                var_dict['variable_units'] = self.dataset[variable].units
+            else:
+                var_dict['variable_units'] = ''
+            if hasattr(self.dataset[variable], 'long_name'):
+                var_dict['variable_longname'] = self.dataset[variable].long_name
+            else:
+                var_dict['variable_longname'] = ''
+            var_dict['variable_dimensions'] = []
+            for var_dim in self.dataset[variable].dimensions:
+                dimension_type = None
+                for dim in self.dimension_field:
+                    if var_dim in self.dimension_field[dim].fields:
+                        dimension_type = dim
+                var_dict['variable_dimensions'].append(dimension_type)
+            preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
+            url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
+            preview_info['file'] = url
+            del preview_info['filepath']
+            var_dict['preview_info'] = preview_info
+            # print(preview_info)
+            variables.append(var_dict)
+
+        meta['dimensions'] = dimensions
+        meta['variables'] = variables
+        visfile = VisFile(dataset=dataset,
+                          format=VisFile.FileFormat.NCF,
+                          file=File(fobj, name=self.filename),
+                          file_name=os.path.basename(self.filepath),
+                          file_size=os.path.getsize(self.filepath),
+                          meta_data=meta,)
+
+        rawfile = RawFile(dataset=dataset,
+                          file_name=os.path.basename(self.filepath),
+                          file_size=os.path.getsize(self.filepath),
+                          file=None,
+                          file_same_as_vis=True,
+                          visfile=visfile, )
+
+        visfile.save()
+        rawfile.save()
+        return rawfile.uuid, visfile.uuid
 class NcfCoreClass(SKLECBaseCore):
 
     # TARGET_VIS_LENGTH = 2000
@@ -252,7 +377,7 @@ class NcfCoreClass(SKLECBaseCore):
         elif (len(channel_dimensions) == 4):
             stream_data = variable[idx_params[0], idx_params[1], idx_params[2], idx_params[3]]
         else:
-            raise 'Length of channel dimensions must be [3, 4].'
+            raise Exception('Length of channel dimensions must be [3, 4].')
 
         if hasattr(self.file.variables[label], '_FillValue'):
             fill_value = self.file.variables[label]._FillValue
@@ -804,8 +929,11 @@ class NcfCoreClass(SKLECBaseCore):
         self.file.close()
 
 class NcfFileUploadClass():
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, params, file_content, file_name):
+        self.params = params
+        self.file_content = file_content
+        self.file_name = file_name
+
         self.dataset = None
         self.save_path = None
         self.nc = None
@@ -878,7 +1006,7 @@ class NcfFileUploadClass():
         meta['variables'] = variables
         visfile = VisFile(dataset=self.dataset,
                           format=VisFile.FileFormat.NCF,
-                          file=File(fobj, name=self.file.name),
+                          file=File(fobj, name=self.file_name),
                           file_name=os.path.basename(self.save_path),
                           file_size=os.path.getsize(self.save_path) // 1024,
                           meta_data=meta,
@@ -924,11 +1052,11 @@ class NcfFileUploadClass():
                 has_lat = 1
         return (has_lat and has_lon)
 
-    def create(self, params):
+    def create(self, ):
         self.file_same_as_vis = params['file_same_as_vis']
-        path = os.path.join(settings.MEDIA_ROOT, 'datasets', 'uploads', self.file.name)
+        path = os.path.join(settings.MEDIA_ROOT, 'datasets', 'uploads', self.file_name)
         with open(path, 'wb') as f:
-            f.write(self.file.read())
+            f.write(self.file_content)
             f.close()
         self.save_path = path
         self.nc = netCDF4.Dataset(path)

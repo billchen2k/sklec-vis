@@ -202,9 +202,9 @@ class ViewTiffFileSerializer(serializers.ModelSerializer):
 
 class RawFileUploadSerializer(serializers.ModelSerializer):
 
-    # file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     uuid = serializers.CharField(max_length=256, required=True, allow_blank=True)
     file_same_as_vis = serializers.BooleanField(default=True, allow_null=True)
+
     class Meta:
         model = RawFile
         exclude = ['dataset', 'visfile', 'file_name', 'file_size']
@@ -212,3 +212,33 @@ class RawFileUploadSerializer(serializers.ModelSerializer):
 class DatasetTagsAddSerializer(serializers.Serializer):
 
     uuid_tag = serializers.CharField(max_length=256, required=True, allow_blank=True)
+
+class DatasetTagCreateSerializer(serializers.ModelSerializer):
+    parent = serializers.CharField(max_length=256, required=False, allow_null=True, default=None,
+                                   help_text='传入 parent 的 UUID，默认为 null。\n'
+                                             '对于 post 接口，留空或传 null 都将 parent 置为 null。\n'
+                                             '对于 patch 接口，若留空则不修改 parent，若传 null 则将 parent 修改为 null。\n')
+
+    class Meta:
+        model = DatasetTag
+        exclude = ['id']
+
+    # 构造写入，将 parent 由 uuid 转化为 object
+    def to_internal_value(self, data: dict):
+        if ('parent' in data) and (data['parent'] is not None):
+            parent_uuid = data['parent']
+            if not DatasetTag.objects.filter(uuid = parent_uuid).exists():
+                raise serializers.ValidationError({
+                    'parent': f'Parent uuid {parent_uuid} does not exists.'
+                })
+            data['parent'] = DatasetTag.objects.get(uuid = parent_uuid)
+        # else:
+        #     pass
+        #     # data['parent'] = None
+        return data
+
+class DatasetPatchSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DatasetTag
+        fields = '__all__'
