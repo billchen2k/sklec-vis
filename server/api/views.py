@@ -341,7 +341,7 @@ class TagList(generics.ListAPIView):
         return self.list(request, *args, **kwargs)
 
 class PostNcfContentVQDatastream(views.APIView):
-    authentication_classes = (CsrfExemptSessionAuthentication,)
+    # authentication_classes = (CsrfExemptSessionAuthentication,)
 
     @swagger_auto_schema(operation_description="从指定 VisFile 中根据经纬度和深度获取所有变量的时域特征。",
                          operation_id='ncfcontent_vqdatastream',
@@ -654,7 +654,7 @@ class VisfileDestroyView(generics.DestroyAPIView):
         return self.destroy(request, *args, **kwargs)
 
 class GetNcfContent(views.APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据(仅限NCF)',
                          query_serializer=GetNcfContentRequestSerializer,
