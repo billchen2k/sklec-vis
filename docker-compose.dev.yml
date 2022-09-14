@@ -34,9 +34,11 @@ services:
       - "8000"
     volumes:
       - ./server:/app
-
       # 如果使用生产环境 media：
       - /srv/sklec-vis/server/media:/app/media
+
+      # 监听文件夹
+      - /home/public/sklecvis-autoupload:/data/autoupload
 
 
   client:
