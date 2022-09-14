@@ -9,7 +9,6 @@ export interface ICoordinateControlProps {
 }
 
 const CoordinateDisplay = (props: ICoordinateControlProps) => {
-
   return (
     <div className={'leaflet-left leaflet-bottom'}>
       <Card sx={{m: 2}}>

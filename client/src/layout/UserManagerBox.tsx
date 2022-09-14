@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-export interface IUserManagerProps {
+export interface IUserManagerBoxProps {
 }
 
-export default function UserManager(props: IUserManagerProps) {
+export default function UserManagerBox(props: IUserManagerBoxProps) {
   return (
     <div>
 

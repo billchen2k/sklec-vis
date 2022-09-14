@@ -45,6 +45,8 @@ services:
     volumes:
       - ./server/static/:/srv/server_static
       - ./server/media/:/srv/server_media
+      # 监听文件夹
+      - /home/public/sklecvis-autoupload:/data/autoupload
     depends_on:
       - server
 

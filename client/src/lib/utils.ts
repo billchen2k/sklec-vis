@@ -50,4 +50,3 @@ export function copyToClipboard(text: string) {
   }
   document.body.removeChild(textArea);
 }
-

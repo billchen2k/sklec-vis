@@ -1,0 +1,9 @@
+# SKLEC-VIS config file.
+
+[autoupload]
+watchFolderHost = '/home/public/sklecvis-autoupload'
+watchFolderDocker = '/data/autoupload'   # 监听文件夹（Docker 内目录）
+
+[defaults]
+fileName = 'defaultName'
+override = false
