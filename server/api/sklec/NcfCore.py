@@ -99,7 +99,8 @@ class NcfCore(SKLECBaseCore):
                 'dimension_name': ds_dim,
                 'dimension_length': self.dimensions[ds_dim].size,
                 'dimension_type': dimension_type,
-                'dimension_values': np.asarray(self.dataset[ds_dim][:], dtype=np.float32).tolist()
+                'dimension_values': np.asarray(self.dataset[ds_dim][:], dtype=np.float32).tolist(),
+                # 'dimension_units': self.dimensions[ds_dim].units,
             }
             dimensions.append(dim_dict)
 
@@ -149,6 +150,7 @@ class NcfCore(SKLECBaseCore):
         visfile.save()
         rawfile.save()
         return rawfile.uuid, visfile.uuid
+
 class NcfCoreClass(SKLECBaseCore):
 
     # TARGET_VIS_LENGTH = 2000
@@ -163,7 +165,7 @@ class NcfCoreClass(SKLECBaseCore):
         self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
         self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
         self.dimension_list = ['datetime', 'depth', 'longitude', 'latitude']
-
+        self.base_timestamp = time.mktime(time.strptime('1990-01-01', '%Y-%m-%d'))
         self.datetime_dim, self.depth_dim, self.longitude_dim, self.latitude_dim = -1, -1, -1, -1
         self.datetime, self.depth, self.longitude, self.latitude = None, None, None, None
         for i, dim in enumerate(self.file.dimensions):
@@ -305,6 +307,10 @@ class NcfCoreClass(SKLECBaseCore):
         for i, v in enumerate(lst):
             if value < v:
                 return i
+    def _convert_timestamp_to_date(self, timestamp):
+        # unit of timestamp: second
+        ts = self.base_timestamp + timestamp
+        return datetime.datetime.fromtimestamp(ts)
 
     def get_date_data_trans(self):
         dt = self.datetime[:]
@@ -498,6 +504,14 @@ class NcfCoreClass(SKLECBaseCore):
                     params['longitude_start'], params['longitude_end'],
                     params['latitude_start'], params['latitude_end'],
                     label)
+                display_name = ''
+                if datetime_field != '':
+                    display_name += '时间:' \
+                                    + self._convert_timestamp_to_date(self.file[datetime_field][datetime] * 60 * 60 * 24)\
+                                        .strftime('%Y-%m-%d %T')
+                if (depth_field != ''):
+                    display_name += '深度:' + str(self.file[depth_field][depth])
+
                 full_name = self._find_in_cache_folder(params_str)
                 if 0 and (full_name is not None):
                     full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
@@ -610,7 +624,8 @@ class NcfCoreClass(SKLECBaseCore):
                         'latitude_end': params['latitude_end'],
                         'label': label,
                         'min_value': min_value,
-                        'max_value': max_value
+                        'max_value': max_value,
+                        'display_name': display_name
                     }
                 tiff_meta_list.append(tiff_meta)
         return tiff_meta_list
