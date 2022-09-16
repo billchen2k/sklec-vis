@@ -11,8 +11,8 @@ if [ "$1" = "--start" ]; then
   docker-compose -f docker-compose.prod.yml up -d
 elif [ "$1" = "--stop" ]; then
   echo "Stopping production...."
-  docker-compose -f docker-compose.dev.yml down
-  kill $(ps aux | grep 'node ./bin/develop.js' | awk '{print $2}')
+  docker-compose -f docker-compose.prod.yml down
+  # kill $(ps aux | grep 'node ./bin/develop.js' | awk '{print $2}')
 elif [ "$1" = "--init" ]; then
   echo "Initializing production..."
   # Collect python requirements.

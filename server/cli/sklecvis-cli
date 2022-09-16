@@ -88,6 +88,7 @@ def operation_scan():
                 cmd += ' -o'
             os.system(cmd)
             os.system(f'mv /home/public/sklecvis-autoupload/{one} /home/public/sklecvis-autoupload/processed_{one}')
+    print('Scan complete.')
 
 
 def main():
