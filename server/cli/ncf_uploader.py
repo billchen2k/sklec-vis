@@ -1,6 +1,5 @@
 # This core should run in docker.
 
-from distutils.command.upload import upload
 import os
 import django
 from django.core.files import File
@@ -23,15 +22,13 @@ import parsers
 
 class NcfUploader():
 
-    def __init__(self, file_path: str, dataset_uuid: str, dest_name: str,
-                 username: str, **kwargs) -> None:
+    def __init__(self, file_path: str, dataset_uuid: str, dest_name: str, **kwargs) -> None:
         self.override = True
         if 'override' in kwargs:
             self.override = kwargs['override']
         self.file_path = file_path
         self.dataset_uuid = dataset_uuid
         self.dest_name = dest_name
-        self.username = username
         if not os.path.exists(self.file_path):
             print(f'Fail to upload file: {self.file_path} doesn\'t exists.')
             exit(-1)
@@ -42,10 +39,13 @@ class NcfUploader():
         print('File info: ', ds)
         try:
             if self.override:
-                pass
-                # Todo:
                 # 如果已经有同名的 vis file，则先删除。
-
+                ds = Dataset.objects.get(uuid=self.dataset_uuid)
+                qs_todel = ds.vis_files.filter(file_name=self.dest_name)
+                if len(qs_todel) > 0:
+                    print('Duplicate file found with --override flag enabled. Deleting...')
+                    qs_todel.delete()
+                    print('Successfully deleted.')
 
             core = NcfRawFileUploadCore()
             core.save_from_filesystem_filepath(self.file_path)
@@ -62,11 +62,8 @@ class NcfUploader():
                 rawfile.save()
                 print(f'Raw file name updated to {self.dest_name}.')
 
-            # Todo:
-            # 修改上传用户
-
         except Exception as e:
-            print(f'failed. message = {e.args}')
+            print(f'Failed to upload ncf file: {e.args}')
 
 
 def main():
@@ -75,10 +72,8 @@ def main():
     uploader = NcfUploader(file_path=args.filepath,
                            dataset_uuid=args.dataset,
                            dest_name=args.destname,
-                           username=args.username,
                            override=args.override)
     uploader.upload()
-
 
 
 if __name__ == '__main__':

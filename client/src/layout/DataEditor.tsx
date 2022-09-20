@@ -41,7 +41,7 @@ export default function DataEditor(props: IDataEditorProps) {
     <LayerBox mode={'lt'}>
       <Box sx={{
         overflowY: 'scroll',
-        width: '800px',
+        width: '900px',
       }}
       >
         {data && !error && !loading &&
