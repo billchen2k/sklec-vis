@@ -37,6 +37,7 @@ export interface IVisFile {
   latitude2: number;
   datetime_start: string;
   datetime_end: string;
+  display_name?: string;
 }
 
 export interface INCFContentFile extends IVisFile {

@@ -1,7 +1,7 @@
 #!/opt/anaconda3/envs/sklecvis/bin/python
 
-from ast import arg, parse
-from unicodedata import name
+# This script should be executed outside the docker.
+
 import toml
 import argparse
 import os
@@ -55,7 +55,6 @@ To check help for each command, use sklecvis-cli {upload-ncf,scan} -h.
 
 def operation_upload_ncf():
     parser = parsers.ncf_uploader_parser()
-    print(sys.argv[2:])
     args = parser.parse_args(sys.argv[2:])
     args_to_pass = sys.argv[2:]
     if args.filepath:
@@ -67,7 +66,7 @@ def operation_upload_ncf():
         for i in range(len(args_to_pass)):
             if args_to_pass[i] == args.filepath:
                 args_to_pass[i] = newpath
-    os.system(f'docker exec -it {dockername} python /app/cli/ncf_uploader.py {" ".join(args_to_pass)}')
+    os.system(f'docker exec {dockername} python /app/cli/ncf_uploader.py {" ".join(args_to_pass)}')
 
 def operation_scan():
     parser = parsers.scan_parser()
@@ -83,13 +82,17 @@ def operation_scan():
             print(f'Copied. Docker readable path: {newpath}')
             dataset_uuid = match.group('dataset_uuid')
             dest_name = match.group('file_name')
-            cmd = f'docker exec -it {dockername} python /app/cli/ncf_uploader.py -f {newpath} -d {dataset_uuid} -n {dest_name}'
+            cmd = f'docker exec {dockername} python /app/cli/ncf_uploader.py -f {newpath} -d {dataset_uuid} -n {dest_name}'
             if args.override:
                 cmd += ' -o'
             os.system(cmd)
             os.system(f'mv /home/public/sklecvis-autoupload/{one} /home/public/sklecvis-autoupload/processed_{one}')
     print('Scan complete.')
 
+def operation_test():
+    print('Running test for os.system...')
+    os.system('echo $(date) >> /home/public/__sklecvis_cli_test')
+    # os.system(f'docker exec {dockername} \'echo 123 >> /__sklecvis_cli_test\'')
 
 def main():
     if len(sys.argv) <= 1:
@@ -100,6 +103,8 @@ def main():
         operation_upload_ncf()
     elif operation == 'scan':
         operation_scan()
+    elif operation == '_test':
+        operation_test()
     else:
         usage()
 

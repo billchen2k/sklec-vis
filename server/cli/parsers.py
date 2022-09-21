@@ -6,7 +6,6 @@ def ncf_uploader_parser():
     parser.add_argument('--filepath', '-f', required=True, type=str)
     parser.add_argument('--dataset', '-d', required=True)
     parser.add_argument('--destname', '-n', required=False)
-    parser.add_argument('--username', '-u', default='test_lyf1')
     parser.add_argument(
         '--override',
         '-o',
