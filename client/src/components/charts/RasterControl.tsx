@@ -162,7 +162,7 @@ const RasterControl = (props: IRasterControlProps) => {
               Last
           </Button>
           <Button sx={{flexGrow: 1}}>
-            {props.rasterFiles[currentRaster].file_name}
+            {props.rasterFiles[currentRaster].display_name || props.rasterFiles[currentRaster].file_name }
           </Button>
           <Button onClick={() => handlePlayClicked()}>
             {isPlaying ? <Pause /> : <PlayArrow />}
@@ -182,7 +182,9 @@ const RasterControl = (props: IRasterControlProps) => {
                 <ListItemButton key={i} selected={i === currentRaster} onClick={() => {
                   handleRasterChange(i);
                 }} dense>
-                  <ListItemText>{i === currentRaster ? <b>{one.file_name}</b> : one.file_name}</ListItemText>
+                  <ListItemText>{i === currentRaster ?
+                  <b>{one.display_name || one.file_name}</b> :
+                   one.display_name || one.file_name}</ListItemText>
                 </ListItemButton>
               ))}
             </List>
