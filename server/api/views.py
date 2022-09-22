@@ -28,7 +28,7 @@ from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass
+from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass, NcfCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -683,6 +683,20 @@ class GetNcfContent(views.APIView):
             visfile = VisFile.objects.get(uuid=uuid)
         except VisFile.DoesNotExist as e:
             return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
+
+        core = NcfCore(visfile.file.path)
+        ncf_content = core.generate_ncf_content(
+            label=params['channel_label'],
+            longitude_start=params['longitude_start'], longitude_end=params['longitude_end'],
+            latitude_start=params['latitude_start'], latitude_end=params['latitude_end'],
+            time_start=params['datetime_start'], time_end=params['datetime_end'],
+            depth_start=params['depth_start'], depth_end=params['depth_end'],
+            res_limit=params['res_limit'], filenum_limit=params['filenum_limit'])
+        for f in ncf_content:
+            url = f['file_path'].replace(settings.MEDIA_ROOT, '/media')
+            f['file'] = request.build_absolute_uri(url)
+        return JsonResponseOK(data={'files': ncf_content})
+
         channel_label = params['channel_label']
         channel_label_exists = 0
         for dimension in visfile.meta_data['variables']:

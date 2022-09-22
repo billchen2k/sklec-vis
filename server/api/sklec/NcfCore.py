@@ -14,6 +14,7 @@ import time
 import datetime
 from collections import defaultdict, namedtuple
 from api.models import *
+
 ROOT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
 CACHE_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
@@ -22,19 +23,306 @@ PREVIEW_FOLDER_DIR = os.path.join(
     settings.MEDIA_ROOT, 'previews', 'nc_to_tiff'
 )
 
+
 class NcfCoreException:
     pass
 
-class NcfCore(SKLECBaseCore):
-    """ 重构 NcfCoreClass，将逐步迁移方法至该类 """
+
+class NcfCacheManager:
+    CACHE_FOLDER_DIR = os.path.join(settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
+    GIGABYTE = 1024 ** 3
+
+    @classmethod
+    def _get_dir_size(cls, p_doc):
+        size = 0.0
+        status = []
+        for root, dirs, files in os.walk(p_doc):
+            for file in files:
+                file_size = os.path.getsize(os.path.join(root, file))
+                file_time = os.path.getatime(os.path.join(root, file))
+                size += file_size
+                status.append({'file_atime': file_time,
+                               'file_size': file_size,
+                               'file_name': file})
+        # 按照访问时间从小到大排序
+        status.sort(key=lambda x: x['file_atime'])
+        return size, status
+
+    @classmethod
+    def eliminate_cache(cls):
+        """缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于1GB"""
+        doc_size, status = cls._get_dir_size(cls.CACHE_FOLDER_DIR)
+        doc_counter = 0
+        while doc_size / cls.GIGABYTE > 1 and doc_counter < len(status):
+            oldest_status = status[doc_counter]
+            os.remove(os.path.join(CACHE_FOLDER_DIR, oldest_status['file_name']))
+            doc_size -= oldest_status['file_size']
+            doc_counter += 1
+
+
+class NcfUtils:
+    DIMENSION_MATCH = {
+        'time': ['datetime', 'time'],
+        'depth': ['depth', 'level'],
+        'longitude': ['lon', 'longitude'],
+        'latitude': ['lat', 'latitude'],
+    }
+    TIMEUNITS = {
+        'milliseconds': 1 / 1000,
+        'seconds': 1,
+        'minutes': 60,
+        'hours': 60 * 60,
+        'days': 60 * 60 * 24,
+        'weeks': 60 * 60 * 24 * 7,
+    }
+    AVAILABLE_TIME_FORMAT = [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%dT%H:%M:%SZ',
+        '%Y-%m-%d'
+    ]
+    REPLACE_VALUE = 9.9e36
+
+    class TiffInfo:
+        """
+        分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名、维度长度
+        """
+        def __init__(self,  file=None, file_path=None, file_name=None, file_size=None, label=None,
+                     longitude_start=None, longitude_end=None, latitude_start=None, latitude_end=None,
+                     time_index=None, depth_index=None, fill_value=None, replace_value=None,
+                     min_value=None, max_value=None, display_name=None, res_limit=None):
+            self.file = file
+            self.file_path = file_path
+            self.file_name = file_name
+            self.file_size = file_size
+            self.label = label
+            self.longitude_start = longitude_start
+            self.longitude_end = longitude_end
+            self.latitude_start = latitude_start
+            self.latitude_end = latitude_end
+            self.time_index = time_index
+            self.depth_index = depth_index
+            self.fill_value = fill_value
+            self.replace_value = replace_value
+            self.min_value = min_value
+            self.max_value = max_value
+            self.display_name = display_name
+            self.res_limit = res_limit
+
+        def __str__(self):
+            output = ''
+            for attr in dir(self):
+                if not attr.startswith('__'):
+                    output += attr + ': ' + str(getattr(self, attr)) + '\n'
+            return output
+
+        def to_dict(self):
+            output = {}
+            for attr in dir(self):
+                if not attr == 'to_dict' and not attr.startswith('__'):
+                    output.update({attr: getattr(self, attr)    })
+            return output
+
+
     class Dim:
         """
-        分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名
+        分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名、维度长度
         """
-        def __init__(self, fields, index, name):
-            self.fields = fields
+        def __init__(self, exists=False, index=None, name=None, size=None, value=None, units=None):
+            self.exists = exists
             self.index = index
             self.name = name
+            self.size = size
+            self.value = value
+            self.units = units
+
+    class Var:
+        """
+        记录变量的信息
+        """
+        def __init__(self, index=None, name=None, dimensions=None, normalized_dimensions=None, long_name=None,
+                     units=None, valid_min=None, valid_max=None):
+            self.index = index
+            self.name = name
+            self.dimensions = dimensions
+            self.normalized_dimensions = normalized_dimensions
+            self.long_name = long_name
+            self.units = units
+            self.valid_min = valid_min
+            self.valid_max = valid_max
+
+    @classmethod
+    def get_idx_from_sorted_list(cls, value, lst):
+        # mn, mx = min(lst), max(lst)
+        for i, v in enumerate(lst):
+            if value < v:
+                return i
+        return len(lst)
+
+    @classmethod
+    def try_get_attr(cls, obj, attr):
+        if hasattr(obj, attr):
+            return getattr(obj, attr)
+        return None
+
+    @classmethod
+    def normalized_dimension(cls, dim):
+        if dim is None:
+            return None
+        for key, value in cls.DIMENSION_MATCH.items():
+            if dim.lower() in value:
+                return key
+        raise Exception(f'Invalid dimension {dim}.')
+
+    @classmethod
+    def parse_datetime(cls, str_time):
+        for parse_format in NcfUtils.AVAILABLE_TIME_FORMAT:
+            try:
+                return datetime.datetime.strptime(str_time, parse_format)
+            except ValueError as e:
+                continue
+        raise Exception(f'Invalid time format ({str_time}).')
+        # return datetime.datetime.strptime('1970-01-01', '%Y-%m-%d')
+
+    @classmethod
+    def get_timestamp_and_timeunits(cls, time_since_str):
+        split_time = time_since_str.split(' since ')
+        time_units, since = split_time[0], split_time[-1]
+        assert time_units in cls.TIMEUNITS.keys(), f'time units {time_units} is invalid.'
+        since_datetime = NcfUtils.parse_datetime(since)
+        since_timestamp = since_datetime.timestamp()
+        return since_timestamp, time_units
+
+    @classmethod
+    def convert_timestamp_to_datetime(cls, timestamp):
+        return datetime.datetime.fromtimestamp(timestamp)
+
+    @classmethod
+    def check_lat_lng_exists(cls, dimensions):
+        lat, lng = False, False
+        for dim in dimensions:
+            normalized_dimension = cls.normalized_dimension(dim)
+            if normalized_dimension == 'longitude':
+                lng = True
+            if normalized_dimension == 'latitude':
+                lat = True
+        return lat and lng
+
+    @classmethod
+    def convert_params_start_end_valid(cls, start, end, exists, size, name=None):
+        if not exists:
+            assert (start is None) and (end is None), f"Parameter {name} should not be included."
+            start = end = 0
+
+        else:
+            if start is not None:
+                assert 0 <= start < size, f"{name}_start ({start}) out of range [0, {size})."
+            else:
+                start = 0
+            if end is not None:
+                assert 0 <= end < size, f"{name}_start ({end}) out of range [0, {size})."
+            else:
+                end = size - 1
+
+            assert start <= end, f'{name}_start ({start}) should be less than or equal to {name}_end ({end}).'
+        return start, end
+
+    @classmethod
+    def convert_params_index_valid(cls, index, exists, size, name):
+        if not exists:
+            assert index is None, f'Parameter {name} should not be included.'
+
+        if index is not None:
+            assert 0 <= index < size, f"{name} ({index}) out of range [0, {size})."
+        else:
+            index = 0
+        return index
+
+    @classmethod
+    def get_min_max_value(cls, data_array, replace_value):
+        valid_pos = np.where(data_array != replace_value)
+        valid_value = data_array[valid_pos]
+        min_value, max_value = 0.0, 0.0
+        if len(valid_value) > 0:
+            min_value = valid_value.min()
+            max_value = valid_value.max()
+        return float(min_value), float(max_value)
+
+    @classmethod
+    def get_down_sampling_2d(cls, total_dim1, total_dim2, limit):
+        total = total_dim1 * total_dim2
+        if limit > total:
+            return total_dim1, total_dim2
+
+        ratio = math.sqrt(total / limit)
+        down_sampled_dim1 = max(1, int(total_dim1 / ratio))
+        down_sampled_dim1 = min(down_sampled_dim1, limit)
+        down_sampled_dim2 = max(1, limit // down_sampled_dim1)
+        return down_sampled_dim1, down_sampled_dim2
+
+    @classmethod
+    def get_down_sampling_range(cls, total_dim, down_sampling_dim):
+        if down_sampling_dim == 1:
+            return range(total_dim // 2, total_dim // 2 + 1)
+
+        step = total_dim // (down_sampling_dim - 1)
+        left = total_dim % step
+        return range(left // 2, total_dim, step)
+
+    @classmethod
+    def initialize_tiff(cls, data_array, lon_list, lat_list, tiff_path, driver_name='GTiff'):
+        lon_min, lon_max, lat_min, lat_max = lon_list.min(), lon_list.max(), lat_list.min(), lat_list.max()
+        lon_res = (lon_max - lon_min) / (len(lon_list) - 1)
+        lat_res = (lat_max - lat_min) / (len(lat_list) - 1)
+        driver = gdal.GetDriverByName(driver_name)
+        dest_tiff = driver.Create(tiff_path, len(lon_list), len(lat_list), 1, gdal.GDT_Float32)
+        dest_tiff.SetGeoTransform((lon_min, lon_res, 0, lat_min, 0, lat_res)) # 设置影像的显示范围
+        dest_tiff.GetRasterBand(1).WriteArray(data_array)
+        dest_tiff.FlushCache()  # 将数据写入硬盘
+        return dest_tiff
+
+    @classmethod
+    def warp_tiff(cls, tiff_path=None, src_tiff=None, warp_format='Gtiff', warp_epsg=4326):
+        assert (tiff_path is not None) or (src_tiff is not None), f'Both tiff_path and src_tiff are None.'
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(warp_epsg)
+        warp_options = gdal.WarpOptions(
+            format=warp_format,
+            srcSRS=srs.ExportToWkt()
+        )
+        temperate_tiff_path = tiff_path[:-5] + '_wrap.tiff'
+        dest_tiff = gdal.Warp(temperate_tiff_path, src_tiff if src_tiff is not None else tiff_path,
+                              format='Gtiff', options=warp_options)
+        os.remove(tiff_path)
+        os.rename(temperate_tiff_path, tiff_path)
+        return dest_tiff
+
+    @classmethod
+    def transform_tiff(cls, tiff_path=None, src_tiff=None, tiled=True, trans_format='GTiff',
+                       compress='LZW', width=0, height=0):
+        assert (tiff_path is not None) or (src_tiff is not None), f'Both tiff_path and src_tiff are None.'
+        translate_options = gdal.TranslateOptions(
+            format=trans_format,
+            creationOptions=[
+                'TILED=YES' if tiled else '',
+                f'COMPRESS={compress}' if compress is not None else ''
+            ],
+            width=0,
+            height=0,
+        )
+        temperate_tiff_path = tiff_path[:-5] + '_trans.tiff'
+        dest_tiff = gdal.Translate(temperate_tiff_path, src_tiff if src_tiff is not None else tiff_path,
+                                   options=translate_options)
+        os.remove(tiff_path)
+        os.rename(temperate_tiff_path, tiff_path)
+        return dest_tiff
+
+    @classmethod
+    def uuid4_short(cls, length=settings.UUID_SHORT_LENGTH):
+        return uuid.uuid4().hex[:length]
+
+
+class NcfCore(SKLECBaseCore):
+    """ 重构 NcfCoreClass，将逐步迁移方法至该类 """
 
     def __init__(self, filepath):
         self.filepath = os.path.join(settings.MEDIA_ROOT, filepath)
@@ -42,44 +330,238 @@ class NcfCore(SKLECBaseCore):
         self.dataset = netCDF4.Dataset(self.filepath)
         self.dimensions = self.dataset.dimensions
         self.variables = self.dataset.variables
-        self.dimension_field = {
-            'datetime': self.Dim(['datetime', 'time'], None, None),
-            'depth': self.Dim(['depth', 'level'], None, None),
-            'longitude': self.Dim(['lon', 'longitude'], None, None),
-            'latitude': self.Dim(['lat', 'latitude'], None, None),
+        self.dimension_fields = {
+            'time': NcfUtils.Dim(),
+            'depth': NcfUtils.Dim(),
+            'longitude': NcfUtils.Dim(),
+            'latitude': NcfUtils.Dim(),
         }
+        self.variable_field = dict()
         for i, ds_dim in enumerate(self.dimensions):
-
-            for dim in self.dimension_field:
-                # print('asd', ds_dim.lower(), self.dimension_field[dim].fields)
-                if ds_dim.lower() in self.dimension_field[dim].fields:
-                    self.dimension_field[dim].index = i
-                    self.dimension_field[dim].name = ds_dim
-                    break
-            if self.dimension_field[dim].index == None:
+            # some dimensions do not have data, ignore.
+            if ds_dim not in self.variables.keys():
+                continue
+            normalized_dimension = NcfUtils.normalized_dimension(dim=ds_dim)
+            if normalized_dimension in self.dimension_fields.keys():
+                self.dimension_fields[normalized_dimension] = NcfUtils.Dim(
+                    exists=True, index=i,
+                    name=NcfUtils.try_get_attr(self.dimensions.get(ds_dim), 'name'),
+                    size=NcfUtils.try_get_attr(self.dimensions.get(ds_dim), 'size'),
+                    value=self.variables.get(ds_dim)[:],
+                    units=NcfUtils.try_get_attr(self.variables.get(ds_dim), 'units'),
+                )
+            else:
                 raise Exception(f'Initialize failed. Dimension {ds_dim} is invalid.')
+        if self.dimension_fields.get('time').exists:
+            self.since_timestamp, self.time_units = NcfUtils.get_timestamp_and_timeunits(
+                getattr(self.dimension_fields.get('time'), 'units'))
+        else:
+            self.since_timestamp, self.time_units = None, None
 
-            # print(self.dimension_field['longitude'].index)
-            # print(self.dimension_field['latitude'].index)
+        for i, ds_var in enumerate(self.variables):
+            self.variable_field.update({
+                ds_var: NcfUtils.Var(
+                    index=i, name=ds_var,
+                    dimensions=NcfUtils.try_get_attr(self.variables.get(ds_var), 'dimensions'),
+                    normalized_dimensions=[NcfUtils.normalized_dimension(dim)
+                                           for dim in NcfUtils.try_get_attr(self.variables.get(ds_var), 'dimensions')],
+                    long_name=NcfUtils.try_get_attr(self.variables.get(ds_var), 'long_name'),
+                    units=NcfUtils.try_get_attr(self.variables.get(ds_var), 'units'),
+                    valid_min=NcfUtils.try_get_attr(self.variables.get(ds_var), 'valid_min'),
+                    valid_max=NcfUtils.try_get_attr(self.variables.get(ds_var), 'valid_max'),
+                )
+            })
+
 
     def check_latlng(self):
         """
         检查文件的维度中是否包含经纬度
         """
-        return (self.dimension_field['longitude'].index is not None) and (self.dimension_field['latitude'].index is not None)
+        return self.dimension_fields['longitude'].exists and self.dimension_fields['latitude'].exists
 
-    def generate_split_tiff(self, label, lon_st, lon_ed, lat_st, lat_ed, ):
+    def get_2d_area_data(self, label, longitude_start=None, longitude_end=None, latitude_start=None, latitude_end=None,
+                         time_index=None, depth_index=None, fill_value=None, replace_value=None):
+        """[start, end] 左闭右闭"""
+        slice_dict = {
+            'longitude': slice(longitude_start, longitude_end + 1),
+            'latitude': slice(latitude_start, latitude_end + 1),
+            'time': time_index,
+            'depth': depth_index,
+        }
+
+        slices = []
+        for dimension in self.variables.get(label).dimensions:
+            normalized_dimension = NcfUtils.normalized_dimension(dimension)
+            slices.append(slice_dict.get(normalized_dimension))
+        data_array = np.asarray(self.variables.get(label)[slices]).astype(np.float)
+
+        # adjust to [latitude, longitude]
+        if self.variable_field.get(label).normalized_dimensions.index('latitude') > \
+           self.variable_field.get(label).normalized_dimensions.index('longitude'):
+            data_array = data_array.transpose((1, 0))
+
+        if (fill_value is not None) and (replace_value is not None):
+            fill_pos = np.where(data_array == fill_value)
+            data_array[fill_pos] = replace_value
+        return data_array
+
+    def generate_tiff(self, label,
+                      longitude_start=None, longitude_end=None,
+                      latitude_start=None, latitude_end=None,
+                      time_index=None, depth_index=None,
+                      res_limit=None):
+        fill_value = float(getattr(self.variables.get(label), '_FillValue'))
+        replace_value = NcfUtils.REPLACE_VALUE
+        data_array = self.get_2d_area_data(label=label,
+                                           longitude_start=longitude_start, longitude_end=longitude_end,
+                                           latitude_start=latitude_start, latitude_end=latitude_end,
+                                           time_index=time_index, depth_index=depth_index,
+                                           fill_value=fill_value, replace_value=replace_value)
+        # lon_list = self.variables.get('longitude')[slice(longitude_start, longitude_end + 1)]
+        lon_list = self.dimension_fields.get('longitude').value[slice(longitude_start, longitude_end + 1)]
+        # lat_list = self.variables.get('latitude')[slice(latitude_start, latitude_end + 1)]
+        lat_list = self.dimension_fields.get('latitude').value[slice(latitude_start, latitude_end + 1)]
+        tiff_name = "{}.tiff".format(NcfUtils.uuid4_short())
+        tiff_path = os.path.join(CACHE_FOLDER_DIR, tiff_name)
+        NcfUtils.initialize_tiff(data_array=data_array,
+                                 lon_list=lon_list, lat_list=lat_list,
+                                 tiff_path=tiff_path, driver_name='GTiff')
+
+        NcfUtils.warp_tiff(tiff_path=tiff_path, warp_format='Gtiff', warp_epsg=4326)
+
+        if res_limit is not None:
+            down_sampling_width, down_sampling_height = NcfUtils.get_down_sampling_2d(total_dim1=len(lon_list),
+                                                                                      total_dim2=len(lat_list),
+                                                                                      limit=res_limit)
+        else:
+            down_sampling_width, down_sampling_height = 0, 0
+        NcfUtils.transform_tiff(tiff_path=tiff_path,  tiled=True, trans_format='GTiff', compress='LZW',
+                                width=down_sampling_width, height=down_sampling_height)
+
+        min_value, max_value = NcfUtils.get_min_max_value(data_array=data_array, replace_value=replace_value)
+
+        if (self.since_timestamp is not None) and (self.time_units is not None):
+            display_name = 'TIME: ' + NcfUtils.convert_timestamp_to_datetime(
+                self.since_timestamp +
+                NcfUtils.TIMEUNITS.get(self.time_units) * self.dimension_fields.get('time').value[time_index]
+            ).strftime('%Y-%m-%d %T')
+        else:
+            display_name = 'GenericDisplayName'
+        # tiff_meta = NcfUtils.TiffInfo(
+        #     file=tiff_path,
+        #     file_path=tiff_path,
+        #     file_name=tiff_name,
+        #     file_size=os.path.getsize(tiff_path),
+        #     label=label,
+        #     longitude_start=longitude_start,
+        #     longitude_end=longitude_end,
+        #     latitude_start=latitude_start,
+        #     latitude_end=latitude_end,
+        #     time_index=time_index,
+        #     depth_index=depth_index,
+        #     fill_value=fill_value,
+        #     replace_value=replace_value,
+        #     min_value=min_value,
+        #     max_value=max_value,
+        #     display_name=display_name,
+        #     res_limit=res_limit,
+        # )
+        tiff_meta = {
+            'file': tiff_path,
+            'file_path': tiff_path,
+            'file_name': tiff_name,
+            'file_size': os.path.getsize(tiff_path),
+            'label': label,
+            'longitude_start': longitude_start,
+            'longitude_end': longitude_end,
+            'latitude_start': latitude_start,
+            'latitude_end': latitude_end,
+            'time_index': time_index,
+            'depth_index': depth_index,
+            'fill_value': fill_value,
+            'replace_value': replace_value,
+            'min_value': min_value,
+            'max_value': max_value,
+            'display_name': display_name,
+            'res_limit': res_limit,
+        }
+        return tiff_meta
+
+    def generate_ncf_content(self, label,
+                             longitude_start=None, longitude_end=None,
+                             latitude_start=None, latitude_end=None,
+                             time_start=None, time_end=None,
+                             depth_start=None, depth_end=None,
+                             res_limit=None, filenum_limit=None,
+                             *args, **kwargs):
+        assert label in self.variables.keys(), f'Label {label} is not included in file.'
+        assert NcfUtils.check_lat_lng_exists(self.variables.get(label).dimensions), \
+            f'Dimensions of label {label} are invalid.'
+        if res_limit is not None:
+            assert res_limit > 0, f'res_limit ({res_limit}) invalid.'
+        if filenum_limit is not None:
+            assert filenum_limit > 0, f'filenum_limit ({filenum_limit}) invalid.'
+
+        longitude_start, longitude_end = \
+            NcfUtils.convert_params_start_end_valid(start=longitude_start,
+                                                    end=longitude_end,
+                                                    exists=self.dimension_fields.get('longitude').exists,
+                                                    size=self.dimension_fields.get('longitude').size,
+                                                    name='longitude')
+        latitude_start, latitude_end = \
+            NcfUtils.convert_params_start_end_valid(start=latitude_start,
+                                                    end=latitude_end,
+                                                    exists=self.dimension_fields.get('latitude').exists,
+                                                    size=self.dimension_fields.get('latitude').size,
+                                                    name='latitude')
+        time_start, time_end = \
+            NcfUtils.convert_params_start_end_valid(start=time_start,
+                                                    end=time_end,
+                                                    exists=self.dimension_fields.get('time').exists,
+                                                    size=self.dimension_fields.get('time').size,
+                                                    name='time')
+        depth_start, depth_end = \
+            NcfUtils.convert_params_start_end_valid(start=depth_start,
+                                                    end=depth_end,
+                                                    exists=self.dimension_fields.get('depth').exists,
+                                                    size=self.dimension_fields.get('depth').size,
+                                                    name='depth')
+
+        time_length = time_end - time_start + 1
+        depth_length = depth_end - depth_start + 1
+        if filenum_limit is not None:
+            down_sampling_time, down_sampling_depth = NcfUtils.get_down_sampling_2d(total_dim1=time_length,
+                                                                                    total_dim2=depth_length,
+                                                                                    limit=filenum_limit)
+        else:
+            down_sampling_time, down_sampling_depth = time_length, depth_length
+
+        NcfCacheManager.eliminate_cache()
+        ncf_content = []
+        for time_index in NcfUtils.get_down_sampling_range(time_length, down_sampling_time):
+            for depth_index in NcfUtils.get_down_sampling_range(depth_length, down_sampling_depth):
+                tiff_info = self.generate_tiff(
+                    label=label,
+                    longitude_start=longitude_start, longitude_end=longitude_end,
+                    latitude_start=latitude_start, latitude_end=latitude_end,
+                    time_index=time_index if self.dimension_fields.get('time').exists else None,
+                    depth_index=depth_index if self.dimension_fields.get('depth').exists else None,
+                    res_limit=res_limit
+                )
+                ncf_content.append(tiff_info)
+        return ncf_content
+
+    def generate_thumbnail_for_label(self, label):
         pass
 
-    def generate_thumbnail_for_label(self):
-        pass
-
-    def save_visfile_and_rawfile_to_dataset(self, dataset_uuid):
+    def save_visfile_and_rawfile_to_dataset(self, dataset_uuid) -> (str, str):
         """
         为指定 dataset 生成 visfile 和 rawfile
+        :param dataset_uuid: 指定 dataset 的 uuid
+        :return: (rawfile.uuid, visfile.uuid)
         """
         # remain to be reconstructed...
-        dataset = Dataset.objects.get(uuid = dataset_uuid)
+        dataset = Dataset.objects.get(uuid=dataset_uuid)
         fobj = open(self.filepath, 'rb')
         meta = {}
         dimensions = []
@@ -92,8 +574,8 @@ class NcfCore(SKLECBaseCore):
                 continue
 
             dimension_type = None
-            for dim in self.dimension_field:
-                if ds_dim in self.dimension_field[dim].fields:
+            for dim in self.dimension_fields:
+                if ds_dim in NcfUtils.DIMENSION_MATCH[dim]:
                     dimension_type = dim
             dim_dict = {
                 'dimension_name': ds_dim,
@@ -119,8 +601,8 @@ class NcfCore(SKLECBaseCore):
             var_dict['variable_dimensions'] = []
             for var_dim in self.dataset[variable].dimensions:
                 dimension_type = None
-                for dim in self.dimension_field:
-                    if var_dim in self.dimension_field[dim].fields:
+                for dim in self.dimension_fields:
+                    if var_dim in NcfUtils.DIMENSION_MATCH[dim]:
                         dimension_type = dim
                 var_dict['variable_dimensions'].append(dimension_type)
             preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
@@ -128,7 +610,6 @@ class NcfCore(SKLECBaseCore):
             preview_info['file'] = url
             del preview_info['filepath']
             var_dict['preview_info'] = preview_info
-            # print(preview_info)
             variables.append(var_dict)
 
         meta['dimensions'] = dimensions
@@ -138,7 +619,7 @@ class NcfCore(SKLECBaseCore):
                           file=File(fobj, name=self.filename),
                           file_name=os.path.basename(self.filepath),
                           file_size=os.path.getsize(self.filepath),
-                          meta_data=meta,)
+                          meta_data=meta, )
 
         rawfile = RawFile(dataset=dataset,
                           file_name=os.path.basename(self.filepath),
@@ -150,6 +631,7 @@ class NcfCore(SKLECBaseCore):
         visfile.save()
         rawfile.save()
         return rawfile.uuid, visfile.uuid
+
 
 class NcfCoreClass(SKLECBaseCore):
 
@@ -181,7 +663,6 @@ class NcfCoreClass(SKLECBaseCore):
             if dim in self.string_for_latitude:
                 self.latitude_dim = i
                 self.latitude = self.file[dim]
-
 
         # self.processed_data = None
         # self.dimensions = self.file.dimensions
@@ -299,6 +780,7 @@ class NcfCoreClass(SKLECBaseCore):
         transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
         data = np.transpose(data, transpose_list)
         return data
+
     def _get_idx_from_list(self, value, lst):
         mn = min(lst)
         mx = max(lst)
@@ -307,6 +789,7 @@ class NcfCoreClass(SKLECBaseCore):
         for i, v in enumerate(lst):
             if value < v:
                 return i
+
     def _convert_timestamp_to_date(self, timestamp):
         # unit of timestamp: second
         ts = self.base_timestamp + timestamp
@@ -412,7 +895,7 @@ class NcfCoreClass(SKLECBaseCore):
             oldest_status = status[doc_counter]
             try:
                 os.remove(os.path.join(CACHE_FOLDER_DIR,
-                          oldest_status['file_name']))
+                                       oldest_status['file_name']))
                 doc_size -= oldest_status['file_size']
             except Exception as e:
                 print("except:", e)
@@ -470,8 +953,8 @@ class NcfCoreClass(SKLECBaseCore):
         # 分辨率计算
         N_Lat = len(Lat)
         N_Lon = len(Lon)
-        Lon_Res = (LonMax - LonMin) / (float(N_Lon)-1)
-        Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
+        Lon_Res = (LonMax - LonMin) / (float(N_Lon) - 1)
+        Lat_Res = (LatMax - LatMin) / (float(N_Lat) - 1)
 
         tiff_meta_list = []
         total_datetime = params['datetime_end'] - params['datetime_start'] + 1
@@ -507,7 +990,8 @@ class NcfCoreClass(SKLECBaseCore):
                 display_name = ''
                 if datetime_field != '':
                     display_name += '时间:' \
-                                    + self._convert_timestamp_to_date(self.file[datetime_field][datetime] * 60 * 60 * 24)\
+                                    + self._convert_timestamp_to_date(
+                        self.file[datetime_field][datetime] * 60 * 60 * 24) \
                                         .strftime('%Y-%m-%d %T')
                 if (depth_field != ''):
                     display_name += '深度:' + str(self.file[depth_field][depth])
@@ -534,10 +1018,10 @@ class NcfCoreClass(SKLECBaseCore):
                     }
                 else:
                     split_data = data[datetime,
-                                      depth,
-                                      params['latitude_start']: params['latitude_end'] + 1,
-                                      params['longitude_start']: params['longitude_end'] + 1,
-                                      ]
+                                 depth,
+                                 params['latitude_start']: params['latitude_end'] + 1,
+                                 params['longitude_start']: params['longitude_end'] + 1,
+                                 ]
                     tmp_data = split_data.reshape(-1)
                     fill_pos = np.where(tmp_data == fill_value)
                     # fill_pos = np.where(tmp_data= fill_value)
@@ -550,10 +1034,10 @@ class NcfCoreClass(SKLECBaseCore):
                         max_value = 0.0
 
                     out_tif_name = params_str + \
-                        "_mn={:.6f}_mx={:.6f}.tiff".format(
-                            min_value, max_value)
+                                   "_mn={:.6f}_mx={:.6f}.tiff".format(
+                                       min_value, max_value)
                     tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-                    warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
+                    warp_tif_path = tmp_tif_path[:-5] + '_warped.tiff'
                     translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
                     translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
@@ -604,7 +1088,7 @@ class NcfCoreClass(SKLECBaseCore):
                                                                   'TILED=YES', 'COMPRESS=LZW'],
                                                               width=out_width,
                                                               height=out_height,
-                    )
+                                                              )
                     gdal.Translate(translate_tif_path, warp_tif_path,
                                    options=translate_options)
                     # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
@@ -643,7 +1127,7 @@ class NcfCoreClass(SKLECBaseCore):
             oldest_status = status[doc_counter]
             try:
                 os.remove(os.path.join(CACHE_FOLDER_DIR,
-                          oldest_status['file_name']))
+                                       oldest_status['file_name']))
                 doc_size -= oldest_status['file_size']
             except Exception as e:
                 print("except:", e)
@@ -703,8 +1187,8 @@ class NcfCoreClass(SKLECBaseCore):
         # 分辨率计算
         N_Lat = len(Lat)
         N_Lon = len(Lon)
-        Lon_Res = (LonMax - LonMin) / (float(N_Lon)-1)
-        Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
+        Lon_Res = (LonMax - LonMin) / (float(N_Lon) - 1)
+        Lat_Res = (LatMax - LatMin) / (float(N_Lat) - 1)
 
         data_list = []
         for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
@@ -718,10 +1202,10 @@ class NcfCoreClass(SKLECBaseCore):
                     label)
                 print('222')
                 split_data = data[datetime,
-                                  depth,
-                                  params['latitude_start']: params['latitude_end'] + 1,
-                                  params['longitude_start']: params['longitude_end'] + 1,
-                                  ]
+                             depth,
+                             params['latitude_start']: params['latitude_end'] + 1,
+                             params['longitude_start']: params['longitude_end'] + 1,
+                             ]
                 tmp_data = split_data.reshape(-1)
                 fill_pos = np.where(tmp_data == fill_value)
                 processed_data = np.delete(tmp_data, fill_pos)
@@ -818,8 +1302,8 @@ class NcfCoreClass(SKLECBaseCore):
         # 分辨率计算
         N_Lat = len(Lat)
         N_Lon = len(Lon)
-        Lon_Res = (LonMax - LonMin) / (float(N_Lon)-1)
-        Lat_Res = (LatMax - LatMin) / (float(N_Lat)-1)
+        Lon_Res = (LonMax - LonMin) / (float(N_Lon) - 1)
+        Lat_Res = (LatMax - LatMin) / (float(N_Lat) - 1)
 
         tiff_meta_list = []
         total_datetime = params['datetime_end'] - params['datetime_start'] + 1
@@ -851,10 +1335,10 @@ class NcfCoreClass(SKLECBaseCore):
                     label)
                 full_name = self._find_in_cache_folder(params_str)
                 split_data = data[datetime,
-                                    depth,
-                                    params['latitude_start']: params['latitude_end'] + 1,
-                                    params['longitude_start']: params['longitude_end'] + 1,
-                                    ]
+                             depth,
+                             params['latitude_start']: params['latitude_end'] + 1,
+                             params['longitude_start']: params['longitude_end'] + 1,
+                             ]
                 tmp_data = split_data.reshape(-1)
                 fill_pos = np.where(tmp_data == fill_value)
                 # fill_pos = np.where(tmp_data= fill_value)
@@ -867,10 +1351,10 @@ class NcfCoreClass(SKLECBaseCore):
                     max_value = 0.0
 
                 out_tif_name = params_str + \
-                    "_mn={:.6f}_mx={:.6f}.tiff".format(
-                        min_value, max_value)
+                               "_mn={:.6f}_mx={:.6f}.tiff".format(
+                                   min_value, max_value)
                 tmp_tif_path = os.path.join(PREVIEW_FOLDER_DIR, out_tif_name)
-                warp_tif_path = tmp_tif_path[:-5]+'_warped.tiff'
+                warp_tif_path = tmp_tif_path[:-5] + '_warped.tiff'
                 translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
                 translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
 
@@ -902,7 +1386,7 @@ class NcfCoreClass(SKLECBaseCore):
                                                 # srcSRS='EPSG:4326'
                                                 )
                 gdal.Warp(warp_tif_path, tmp_tif_path,
-                            format='Gtiff', options=warp_options)
+                          format='Gtiff', options=warp_options)
                 total_width = params['longitude_end'] - params['longitude_start'] + 1
                 total_height = params['latitude_end'] - params['latitude_start'] + 1
                 total_res = total_width * total_height
@@ -916,13 +1400,13 @@ class NcfCoreClass(SKLECBaseCore):
                     out_width = min(out_width, params['res_limit'])
                     out_height = max(1, params['res_limit'] // out_width)
                 translate_options = gdal.TranslateOptions(format='GTiff',
-                                                            creationOptions=[
-                                                                'TILED=YES', 'COMPRESS=LZW'],
-                                                            width=out_width,
-                                                            height=out_height,
-                )
+                                                          creationOptions=[
+                                                              'TILED=YES', 'COMPRESS=LZW'],
+                                                          width=out_width,
+                                                          height=out_height,
+                                                          )
                 gdal.Translate(translate_tif_path, warp_tif_path,
-                                options=translate_options)
+                               options=translate_options)
                 tiff_meta = {
                     'filepath': translate_tif_path,
                     'file_size': os.path.getsize(translate_tif_path),
@@ -942,6 +1426,7 @@ class NcfCoreClass(SKLECBaseCore):
 
     def close(self):
         self.file.close()
+
 
 class NcfFileUploadClass():
     def __init__(self, params, file_content, file_name):
@@ -1088,6 +1573,6 @@ class NcfFileUploadClass():
                               file_name=os.path.basename(self.save_path),
                               file_size=os.path.getsize(self.save_path) // 1024,
                               file=None,
-                              file_same_as_vis=True,)
+                              file_same_as_vis=True, )
             rawfile.save()
             return 'success'

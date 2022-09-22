@@ -85,7 +85,7 @@ class Dataset(models.Model):
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
     dataset_type = models.CharField(choices=DatasetType.choices, max_length=20, default=DatasetType.GENERAL)
-    tags = models.ManyToManyField(DatasetTag, blank=True, null=True)
+    tags = models.ManyToManyField(DatasetTag, blank=True)
 
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.name}'
