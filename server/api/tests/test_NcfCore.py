@@ -11,8 +11,9 @@ from api.models import *
 DATASETS_FOLDER = os.path.join(settings.MEDIA_ROOT, 'tests')
 
 class NCFTest(TestCase):
-    TEST_NCFDATASETS_VALID = ['test_4dim.nc', 'test_global.201801.nc']
 
+    TEST_NCFDATASETS_VALID = ['test_4dim.nc', 'test_global.201801.nc']
+    
     def create_siteuser(self):
         user = User()
         user.save()
