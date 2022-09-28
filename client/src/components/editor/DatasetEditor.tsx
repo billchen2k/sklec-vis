@@ -169,6 +169,7 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         <MDEditor
           style={{'fontSize': '14px', 'width': '70%'}}
           value={formikDataset.values.description}
+
           preview={'edit'}
           height={150}
           commands={[commands.bold, commands.italic, commands.strikethrough, commands.title, commands.divider, commands.link, commands.quote, commands.codeBlock]}

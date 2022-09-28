@@ -16,7 +16,7 @@ export interface IDatasetTagSelectorProps {
 
 export function DatasetTagSelector(props: IDatasetTagSelectorProps) {
   const dispatch = useAppDispatch();
-  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getDatasetTagList());
+  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getTags());
   const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
 
   React.useEffect(() => {

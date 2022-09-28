@@ -257,6 +257,12 @@ export default function VisFileEditor(props: IVisFileEditorProps) {
           />
         </Box>
         <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+          <FormItemLabel label={'UUID:'} />
+          <Typography variant={'body1'} sx={{width: '70%', mt: 1}}>
+            {currentVisFile.uuid}
+          </Typography>
+        </Box>
+        <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
           <FormItemLabel label={'File Size:'} />
           <Typography variant={'body1'} sx={{width: '70%', mt: 1}}>
             {readableFileSize(currentVisFile.file_size)}
