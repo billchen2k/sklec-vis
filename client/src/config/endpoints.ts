@@ -91,12 +91,6 @@ export const endpoints = {
       },
     });
   },
-  getDatasetTagList: (): AxiosRequestConfig<IModelListResponse<IDatasetTag>> => {
-    return {
-      url: `${API_ROOT}/tags/`,
-      method: 'GET',
-    };
-  },
   postLogin: (username: string, password: string): AxiosRequestConfig<any> => {
     return {
       url: `${API_ROOT}/user/login/`,
@@ -172,6 +166,30 @@ export const endpoints = {
       data: {
         tags,
       },
+    });
+  },
+  getTags: (): AxiosRequestConfig<IModelListResponse<IDatasetTag>> => {
+    return {
+      url: `${API_ROOT}/tags/`,
+      method: 'GET',
+    };
+  },
+  patchTags(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/${uuid}/`,
+      method: 'PATCH',
+    });
+  },
+  deleteTags(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/${uuid}/`,
+      method: 'DELETE',
+    });
+  },
+  postCreateTags(): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/`,
+      method: 'POST',
     });
   },
 };

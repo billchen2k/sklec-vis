@@ -13,10 +13,11 @@ export interface ITagSelectorProps {
   onTagSelected?: (tags: IDatasetTag[], displayName?: string) => any;
   maxHeight?: number;
   alreadySelectedTags?: string[];
+  single?: boolean; // Whether its a single choice. Will change some behaviours.
 }
 
 export default function TagSelector(props: ITagSelectorProps) {
-  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getDatasetTagList());
+  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getTags());
   // if (props.alreadySelectedTags) {
   const currentSelectedTags = props.alreadySelectedTags || [];
   // } else {
@@ -83,10 +84,13 @@ export default function TagSelector(props: ITagSelectorProps) {
           <ListItem key={one.uuid} dense
             sx={{padding: 0}}
           >
-            <Checkbox size={'small'}
-              checked={selectedTags.indexOf(one.uuid) != -1}
-              onChange={() => handleSelectTag(one)}
-            />
+            {!props.single &&
+              <Checkbox size={'small'}
+                checked={selectedTags.indexOf(one.uuid) != -1}
+                onChange={() => handleSelectTag(one)}
+              />
+            }
+
             <ListItemButton
               selected={selectedTags.indexOf(one.uuid) != -1}
               onClick={() => handleSelectTag(one)}

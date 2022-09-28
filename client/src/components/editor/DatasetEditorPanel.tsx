@@ -1,5 +1,5 @@
 import {IDataset} from '@/types';
-import {Close} from '@mui/icons-material';
+import {Close, OpenInNew} from '@mui/icons-material';
 import {Box, Grid, IconButton, Stack, Typography} from '@mui/material';
 import * as React from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -30,6 +30,11 @@ const DatasetEditorPanel = (props: IDatasetEditorPanelProps) => {
       <Stack direction={'row'} sx={{alignItems: 'flex-start', mb: 1}}>
         <Typography variant={'h4'} sx={{'mr': 2}}>{props.datasetDetail.name}</Typography>
         <DatasetTypeBadge type={props.datasetDetail.dataset_type}></DatasetTypeBadge>
+        <IconButton sx={{ml: 1}} onClick={() => {
+          navigate(`/view/${props.datasetDetail.uuid}`);
+        }}>
+          <OpenInNew />
+        </IconButton>
         <Box sx={{flex: 1, flexGrow: 1}} />
         <IconButton onClick={() => {
           navigate('/');
