@@ -308,7 +308,7 @@ class NcfUtils:
 
     @classmethod
     def warp_tiff(cls, tiff_path, src_tiff=None, warp_epsg=4326,
-                  tiled=True, compress='LZW', predictor=2, width=0, height=0):
+                  tiled=True, compress='LZW', predictor=1, width=0, height=0):
         """ compress = 'LZW'(predictor) / 'Deflate'(predictor, currently best) / 'Packbits' """
         # srs = osr.SpatialReference()
         # srs.ImportFromEPSG(warp_epsg)
@@ -457,9 +457,6 @@ class NcfCore(SKLECBaseCore):
         lat_list = self.dimension_fields.get('latitude').value[slice(latitude_start, latitude_end + 1)]
         tiff_name = "{}.tiff".format(NcfUtils.uuid4_short())
         tiff_path = os.path.join(NcfUtils.CACHE_FOLDER_DIR, tiff_name)
-        # NcfUtils.create_tiff(data_array=data_array,
-        #                      lon_list=lon_list, lat_list=lat_list,
-        #                      tiff_path=tiff_path)
         NcfUtils.initialize_tiff(data_array=data_array,
                                  lon_list=lon_list, lat_list=lat_list,
                                  tiff_path=tiff_path, driver_name='GTiff', flush=True)
@@ -486,25 +483,6 @@ class NcfCore(SKLECBaseCore):
             ).strftime('%Y-%m-%d %T')
         else:
             display_name = 'GenericDisplayName'
-        # tiff_meta = NcfUtils.TiffInfo(
-        #     file=tiff_path,
-        #     file_path=tiff_path,
-        #     file_name=tiff_name,
-        #     file_size=os.path.getsize(tiff_path),
-        #     label=label,
-        #     longitude_start=longitude_start,
-        #     longitude_end=longitude_end,
-        #     latitude_start=latitude_start,
-        #     latitude_end=latitude_end,
-        #     time_index=time_index,
-        #     depth_index=depth_index,
-        #     fill_value=fill_value,
-        #     replace_value=replace_value,
-        #     min_value=min_value,
-        #     max_value=max_value,
-        #     display_name=display_name,
-        #     res_limit=res_limit,
-        # )
         tiff_meta = {
             'file': tiff_path,
             'file_path': tiff_path,
@@ -626,7 +604,7 @@ class NcfCore(SKLECBaseCore):
             dimensions.append(dim_dict)
 
         for variable in self.variables.keys():
-            if (variable in self.dataset.dimensions.keys()): continue
+            if variable in self.dataset.dimensions.keys(): continue
             var_dict = {}
             var_dict['variable_name'] = variable
             if hasattr(self.dataset[variable], 'units'):
