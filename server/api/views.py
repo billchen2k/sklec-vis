@@ -28,7 +28,7 @@ from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass
+from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass, NcfCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -683,67 +683,81 @@ class GetNcfContent(views.APIView):
             visfile = VisFile.objects.get(uuid=uuid)
         except VisFile.DoesNotExist as e:
             return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
-        channel_label = params['channel_label']
-        channel_label_exists = 0
-        for dimension in visfile.meta_data['variables']:
-            if (channel_label == dimension['variable_name']):
-                channel_label_exists = 1
-        if (not channel_label_exists):
-            return JsonResponseError(f'Channel label with label {channel_label} does not exist.')
 
-        for dimension in visfile.meta_data['dimensions']:
-            name = dimension['dimension_name']
-            length = dimension['dimension_length']
-            typ = dimension['dimension_type']
-            for dim in dimension_list:
-                if (dim == typ):
-                    if (params[dim + '_start'] == -1):
-                        params[dim + '_start'] = 0
-                    if (params[dim + '_end'] == -1):
-                        params[dim + '_end'] = length - 1
+        core = NcfCore(visfile.file.path)
+        ncf_content = core.generate_ncf_content(
+            label=params['channel_label'],
+            longitude_start=params['longitude_start'], longitude_end=params['longitude_end'],
+            latitude_start=params['latitude_start'], latitude_end=params['latitude_end'],
+            time_start=params['datetime_start'], time_end=params['datetime_end'],
+            depth_start=params['depth_start'], depth_end=params['depth_end'],
+            res_limit=params['res_limit'], filenum_limit=params['filenum_limit'])
+        for f in ncf_content:
+            url = f['file_path'].replace(settings.MEDIA_ROOT, '/media')
+            f['file'] = request.build_absolute_uri(url)
+        return JsonResponseOK(data={'files': ncf_content})
 
-                    if params[dim + '_start'] > params[dim + '_end']:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
-                    if params[dim + '_start'] < 0:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is out of range.')
-                    if params[dim + '_end'] > length - 1:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
-                    break
-
-        if params['res_limit'] == -1:
-            params['res_limit'] = 100000000
-        if params['filenum_limit'] == -1:
-            params['filenum_limit'] = 100000000
-        if params['res_limit'] < 1:
-            return JsonResponseError(f'Resolution limit is invalid. Should greater than 0.')
-        if params['filenum_limit'] < 1:
-            return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
-
-        return_type = 'tiff' # default is tiff
-        if params.__contains__('return_type'):
-            return_type = params['return_type']
-
-        scalar_format = 6
-        if params.__contains__('scalar_format'):
-            scalar_format = params['scalar_format']
-            # scalar_format = urllib.parse.unquote(params['scalar_format'])
-        # URLDecoder.decode(params['return_scalar_format'], "utf-8")
-        core = NcfCoreClass(visfile.file.path)
-        data = {}
-        if return_type == 'array':
-            channel_data_array_list = core.get_channel_data_array(params)
-            data['arrays'] = channel_data_array_list
-        elif return_type == 'tiff':
-            file_meta_list: List[Dict] = core.get_channel_data_split(params)
-            files = []
-            for f in file_meta_list:
-                url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
-                f['file'] = request.build_absolute_uri(url)
-                del f['filepath']
-            data['files'] = file_meta_list
-        else:
-            return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
-        return JsonResponseOK(data=data)
+        # channel_label = params['channel_label']
+        # channel_label_exists = 0
+        # for dimension in visfile.meta_data['variables']:
+        #     if (channel_label == dimension['variable_name']):
+        #         channel_label_exists = 1
+        # if (not channel_label_exists):
+        #     return JsonResponseError(f'Channel label with label {channel_label} does not exist.')
+        #
+        # for dimension in visfile.meta_data['dimensions']:
+        #     name = dimension['dimension_name']
+        #     length = dimension['dimension_length']
+        #     typ = dimension['dimension_type']
+        #     for dim in dimension_list:
+        #         if (dim == typ):
+        #             if (params[dim + '_start'] == -1):
+        #                 params[dim + '_start'] = 0
+        #             if (params[dim + '_end'] == -1):
+        #                 params[dim + '_end'] = length - 1
+        #
+        #             if params[dim + '_start'] > params[dim + '_end']:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
+        #             if params[dim + '_start'] < 0:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is out of range.')
+        #             if params[dim + '_end'] > length - 1:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
+        #             break
+        #
+        # if params['res_limit'] == -1:
+        #     params['res_limit'] = 100000000
+        # if params['filenum_limit'] == -1:
+        #     params['filenum_limit'] = 100000000
+        # if params['res_limit'] < 1:
+        #     return JsonResponseError(f'Resolution limit is invalid. Should greater than 0.')
+        # if params['filenum_limit'] < 1:
+        #     return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
+        #
+        # return_type = 'tiff' # default is tiff
+        # if params.__contains__('return_type'):
+        #     return_type = params['return_type']
+        #
+        # scalar_format = 6
+        # if params.__contains__('scalar_format'):
+        #     scalar_format = params['scalar_format']
+        #     # scalar_format = urllib.parse.unquote(params['scalar_format'])
+        # # URLDecoder.decode(params['return_scalar_format'], "utf-8")
+        # core = NcfCoreClass(visfile.file.path)
+        # data = {}
+        # if return_type == 'array':
+        #     channel_data_array_list = core.get_channel_data_array(params)
+        #     data['arrays'] = channel_data_array_list
+        # elif return_type == 'tiff':
+        #     file_meta_list: List[Dict] = core.get_channel_data_split(params)
+        #     files = []
+        #     for f in file_meta_list:
+        #         url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
+        #         f['file'] = request.build_absolute_uri(url)
+        #         del f['filepath']
+        #     data['files'] = file_meta_list
+        # else:
+        #     return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
+        # return JsonResponseOK(data=data)
 
 
 class Login(views.APIView):

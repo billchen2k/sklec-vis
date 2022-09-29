@@ -7,13 +7,11 @@ from sklecvis import settings
 class RawFileUploadBaseCore:
 
     """用于上传 RawFile 的基类，其派生类对应不同的 RawFile 类型，如 nc 文件。"""
-    @abstractmethod
     def __init__(self):
         self.rawfile_path = None
 
     def save_from_uploaded_file(self, file: UploadedFile):
         self.rawfile_path = default_storage.save(os.path.join('datasets', 'raw', file.name), file)
-
 
     def save_from_filesystem_filepath(self, filepath):
         with open(filepath, "rb", ) as f:
@@ -29,6 +27,7 @@ class RawFileUploadBaseCore:
     @abstractmethod
     def generate_rawfile_and_visfile(self, dataset_uuid):
         pass
+
 
 class NcfRawFileUploadCore(RawFileUploadBaseCore):
     def generate_rawfile_and_visfile(self, dataset_uuid):
