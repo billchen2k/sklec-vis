@@ -26,8 +26,9 @@ class SuccessResponseSerializer(ResponseSerializer):
 
 class GetVisContentRequestSerializer(serializers.Serializer):
 
-    datetime_start = serializers.DateTimeField(required=False, help_text='开始时间。')
-    datetime_end = serializers.DateTimeField(required=False, help_text='结束时间。')
+    datetime_start = serializers.DateTimeField(
+        required=False, help_text='开始时间。应当为 ISO 格式，如 2020-09-30T16:08:58.000Z。')
+    datetime_end = serializers.DateTimeField(required=False, help_text='结束时间。应当为 ISO 格式，如 2020-09-30T16:08:58.000Z。')
     channels = serializers.ListField(child=serializers.CharField(), required=False, help_text='要获取的数据通道。如果指定了 all_channel，请留空。')
     all_channels = serializers.BooleanField(required=False, help_text='是否获取所有通道。如果为 true，则 channels 字段将被忽略。', default=False)
     target_samples = serializers.IntegerField(required=False, help_text='要获取的样本数。默认为 1000，不一定精确。')

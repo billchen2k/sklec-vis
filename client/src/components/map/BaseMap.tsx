@@ -48,8 +48,8 @@ const BaseMap = (props: IMapProps) => {
 
   return (
     <MapContainer id={'map-layer'} center={defaultCenter} zoom={6}
-      // maxBounds={new L.LatLngBounds(new L.LatLng(90, 180), new L.LatLng(-90, -180))}
-      // maxBoundsViscosity={0.9} // Disables dragging out of bounds entirely.
+      maxBounds={new L.LatLngBounds(new L.LatLng(90, 180), new L.LatLng(-90, -180))}
+      maxBoundsViscosity={1} // Disables dragging out of bounds entirely.
       className={'layer-basemap'}>
       <LayersControl>
         {MapBoxThemes.map((theme, index) => {
