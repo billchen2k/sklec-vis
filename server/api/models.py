@@ -199,3 +199,56 @@ class ViewTiffFile(models.Model):
 
     create_time = models.DateTimeField(blank = True, null = True)
     last_access_time = models.DateTimeField(blank = True, null = True)
+
+
+class FormDataTableType(models.Model):
+    class TableTypes(models.TextChoices):
+        BENTHOS = 'benthos'
+        SURFACE_SEDIMENT = 'surface_sediment'
+        VEGETATION = 'vegetation'
+        DEFAULT = 'default'
+
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    type = models.CharField(choices=TableTypes.choices, max_length=20, default=TableTypes.DEFAULT)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataFieldType(models.Model):
+    class AttributeTypes(models.TextChoices):
+        NUMERICAL = 'numerical'
+        TEMPORAL = 'temporal'
+        SPACIAL = 'spacial'
+        CATEGORICAL = 'categorical'
+        DEFAULT = 'default'
+
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    table_type = models.ForeignKey(FormDataTableType, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='field_types')
+    name = models.CharField(max_length=30, blank=True, null=True)
+    attribute_type = models.CharField(choices=AttributeTypes.choices, max_length=20, default=TableTypes.DEFAULT)
+    unit = models.CharField(max_length=30, blank=True, null=True)
+    index = models.IntegerField(blank=True, null=True)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataTable(models.Model):
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True,
+                                related_name='tables')
+    table_type = models.ForeignKey(FormDataTableType, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='tables')
+    name = models.CharField(max_length=30, blank=True, null=True)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataFieldValue(models.Model):
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    table = models.ForeignKey(FormDataTable, on_delete=models.CASCADE, null=True, blank=True,
+                              related_name='field_values')
+    field_type = models.ForeignKey(FormDataFieldType, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='field_values')
+    index_row = models.IntegerField(blank=True, null=True)
+    value_numerical = models.FloatField(blank=True, null=True)
+    value_temporal = models.FloatField(blank=True, null=True)
+    value_spacial = models.DateTimeField(blank=True, null=True)
+    value_categorical = models.CharField(max_length=256, blank=True, null=True)
