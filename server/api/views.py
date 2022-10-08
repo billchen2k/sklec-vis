@@ -20,6 +20,7 @@ from drf_yasg.utils import swagger_auto_schema
 from requests import delete
 from rest_framework import status, generics
 from rest_framework import views
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
 
@@ -996,6 +997,18 @@ class VerifyEmailToken(views.APIView):
         except User.DoesNotExist:
             return JsonResponseError('User does not exist.')
         return JsonResponseOK(data={'result': 'Successfully verified your email address.'})
+
+
+class FormDataTableTypeViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableTypeSerializer
+    queryset = FormDataTableType.objects.all()
+    lookup_field = 'uuid'
+
+
+class FormDataFieldTypeViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataFieldTypeSerializer
+    queryset = FormDataFieldType.objects.all()
+    lookup_field = 'uuid'
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
