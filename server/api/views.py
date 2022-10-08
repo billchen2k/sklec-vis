@@ -364,54 +364,37 @@ class PostNcfContentVQDatastream(views.APIView):
         params = validation.data
         lat_lngs = params['lat_lngs']
         visfile_uuids = params['visfile_uuid']
-
+        # 兼容前端，后续要求 assert(len(lat_lngs) == len(visfile_uuids))
         if (len(lat_lngs) == len(visfile_uuids)):
             stream_data = []
             date_data = []
             for lat_lng, visfile_uuid in zip(lat_lngs, visfile_uuids):
                 try:
                     visfile = VisFile.objects.get(uuid=visfile_uuid)
-                    core = NcfCoreClass(visfile.file.path)
+                    core = NcfCore(visfile.file.path)
                 except VisFile.DoesNotExist as e:
                     return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
-                if core.datetime_dim == -1:
-                    return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
 
-                date_data = core.get_date_data_trans()
-                this_params = {}
-                this_params['lat'] = lat_lng['lat']
-                this_params['lng'] = lat_lng['lng']
-                this_params['dep'] = params['dep']
-                this_params['label'] = params['channel_label']
-                vq_data = core.get_vq_datastream(this_params)
-                stream_data.append(vq_data)
+                vq_data = core.get_vqdata_content(label=params['channel_label'], longitude_value=lat_lng['lng'],
+                                                  latitude_value=lat_lng['lat'], depth_value = params['dep'])
+                stream_data.append(vq_data.get('stream_data'))
+                date_data.extend(vq_data.get('date_data'))
         else:
             visfile_uuid = visfile_uuids[0]
             try:
                 visfile = VisFile.objects.get(uuid=visfile_uuid)
-                core = NcfCoreClass(visfile.file.path)
+                core = NcfCore(visfile.file.path)
             except VisFile.DoesNotExist as e:
                 return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
-            if core.datetime_dim == -1:
-                return JsonResponseError(f'VisFile doesn\'t have dimension datetime.')
-
-            date_data = core.get_date_data_trans()
-
             stream_data = []
             for lat_lng in lat_lngs:
-                this_params = {}
-                this_params['lat'] = lat_lng['lat']
-                this_params['lng'] = lat_lng['lng']
-                this_params['dep'] = params['dep']
-                this_params['label'] = params['channel_label']
-                vq_data = core.get_vq_datastream(this_params)
-                stream_data.append(vq_data)
+                vq_data = core.get_vqdata_content(label=params['channel_label'], longitude_value=lat_lng['lng'],
+                                                  latitude_value=lat_lng['lat'], depth_value=params['dep'])
+                stream_data.append(vq_data['stream_data'])
+                date_data = vq_data['date_data']
+        vqdata_response = {'date_data': date_data, 'stream_data': stream_data, 'lat_lngs': lat_lngs}
+        return JsonResponseOK(data = vqdata_response)
 
-        vqdata = {}
-        vqdata['date_data'] = date_data
-        vqdata['stream_data'] = stream_data
-        vqdata['lat_lngs'] = lat_lngs
-        return JsonResponseOK(data = vqdata)
 
 class GetRskContent(views.APIView):
 

@@ -51,7 +51,7 @@ class NcfCacheManager:
 
     @classmethod
     def eliminate_cache(cls):
-        """缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于3GB"""
+        """缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于2GB"""
         doc_size, status = cls.get_dir_size(NcfUtils.CACHE_FOLDER_DIR)
         if doc_size < cls.CACHE_SIZE:
             return
@@ -116,7 +116,8 @@ class NcfUtils:
 
     @classmethod
     def get_idx_from_sorted_list(cls, value, lst):
-        # mn, mx = min(lst), max(lst)
+        mn, mx = min(lst), max(lst)
+        assert mn <= value <= mx, f'Value {value} out of range [{mn}, {mx}].'
         for i, v in enumerate(lst):
             if value < v:
                 return i
@@ -334,7 +335,50 @@ class NcfCore(SKLECBaseCore):
         """
         return self.dimension_fields['longitude'].exists and self.dimension_fields['latitude'].exists
 
-    def get_2d_area_data(self, label, longitude_start=None, longitude_end=None, latitude_start=None, latitude_end=None,
+    def get_1d_vq_data(self, label=None, longitude_index=None, latitude_index=None, time_index=None, depth_index=None,
+                       fill_value=None, replace_value=None):
+        slice_dict = {
+            'longitude': longitude_index,
+            'latitude': latitude_index,
+            'time': time_index if time_index is not None else Ellipsis,
+            'depth': depth_index if depth_index is not None else Ellipsis,
+        }
+
+        slices = []
+        for dimension in self.variables.get(label).dimensions:
+            normalized_dimension = NcfUtils.normalized_dimension(dimension)
+            slices.append(slice_dict.get(normalized_dimension))
+        data_array = np.asarray(self.variables.get(label)[slices]).astype(np.float)
+
+        if (fill_value is not None) and (replace_value is not None):
+            fill_pos = np.where(data_array == fill_value)
+            data_array[fill_pos] = replace_value
+        return data_array
+
+    def get_date_data_list(self):
+        date_data = [NcfUtils.convert_timestamp_to_datetime(self.since_timestamp +
+                                                            value * NcfUtils.TIMEUNITS.get(self.time_units))
+                     for value in self.dimension_fields.get('time').value[:]]
+        return date_data
+
+    def get_vqdata_content(self, label=None, longitude_value=None, latitude_value=None, depth_value=None):
+        # 深度参数暂时弃用，固定为最浅层
+        longitude_index = NcfUtils.get_idx_from_sorted_list(longitude_value,
+                                                            self.dimension_fields.get('longitude').value[:].tolist())
+        latitude_index = NcfUtils.get_idx_from_sorted_list(latitude_value,
+                                                           self.dimension_fields.get('latitude').value[:].tolist())
+        fill_value = float(getattr(self.variables.get(label), '_FillValue'))
+        replace_value = 0
+        data_array = self.get_1d_vq_data(label, longitude_index=longitude_index, latitude_index=latitude_index,
+                                         time_index=None, depth_index=0,
+                                         fill_value=fill_value, replace_value=replace_value)
+        return {
+            'date_data': self.get_date_data_list(),
+            'stream_data': data_array.tolist(),
+        }
+
+    def get_2d_area_data(self, label=None, longitude_start=None, longitude_end=None,
+                         latitude_start=None, latitude_end=None,
                          time_index=None, depth_index=None, fill_value=None, replace_value=None):
         """[start, end] 左闭右闭"""
         slice_dict = {
@@ -389,9 +433,6 @@ class NcfCore(SKLECBaseCore):
         NcfUtils.warp_tiff(tiff_path=tiff_path, warp_epsg=4326,
                            tiled=True, compress='Deflate', predictor=1,
                            width=down_sampling_width, height=down_sampling_height)
-
-        # NcfUtils.transform_tiff(tiff_path=tiff_path,  tiled=True, trans_format='GTiff'
-                                # width=down_sampling_width, height=down_sampling_height)
 
         min_value, max_value = NcfUtils.get_min_max_value(data_array=data_array, replace_value=replace_value)
 
@@ -615,38 +656,6 @@ class NcfCoreClass(SKLECBaseCore):
     def get_channels(self):
         return self.channels
 
-    # def get_all_channel_data(self, **kwargs):
-    #     res = {}
-    #     # res = {'Time': []}
-    #     # channel_label_to_output_name = {'timestamp': 'Time'}
-    #     for channel in self.channels:
-    #         # channel_label_to_output_name[channel] = f'{self.channel_name[channel]} ({channel})'
-    #         # res[channel_label_to_output_name[channel]] = []
-    #         channel_data = self.file[channel][:]
-    #         np_1d_data = np.asarray(channel_data).tolist()
-    #         res[channel] = np_1d_data
-    #     return res
-
-    '''
-
-    '''
-
-    def _exec_gdal_inplace(self, cmd: str, file: str):
-        full_cmd = f'{cmd.strip()} {file} {file}.tmp.tiff'
-        print(f'Running {full_cmd}')
-        subprocess.run(full_cmd, shell=True)
-        os.remove(file)
-        os.rename(f'{file}.tmp.tiff', file)
-
-    def _get_min_max_value_from_full_name(self, full_name):
-        idx_mn = int(full_name.find('_mn'))
-        idx_mx = full_name.find('_mx')
-        idx_trans = full_name.find('_trans')
-        partial_str = full_name[idx_mn: idx_trans]
-
-        x = re.findall(r'(-?\d+\.\d+)', partial_str)
-        return float(x[0]), float(x[1])
-
     def _find_in_cache_folder(self, file_name):
         for root, dirs, files in os.walk(CACHE_FOLDER_DIR):
             for file in files:
@@ -659,164 +668,6 @@ class NcfCoreClass(SKLECBaseCore):
 
         return None
 
-    def _get_doc_real_size(self, p_doc):
-        size = 0.0
-        status = []
-        for root, dirs, files in os.walk(p_doc):
-            for file in files:
-                file_size = os.path.getsize(os.path.join(root, file))
-                file_time = os.path.getatime(os.path.join(root, file))
-                size += file_size
-                status.append({'file_atime': file_time,
-                               'file_size': file_size,
-                               'file_name': file})
-        # 按照访问时间从小到大排序
-        status.sort(key=lambda x: x['file_atime'])
-        return size, status
-
-    def _del_files(self, dir_path):
-        # os.walk会得到dir_path下各个后代文件夹和其中的文件的三元组列表，顺序自内而外排列，
-        for root, dirs, files in os.walk(dir_path, topdown=False):
-            # 第一步：删除文件
-            for name in files:
-                os.remove(os.path.join(root, name))  # 删除文件
-            # 第二步：删除空文件夹
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))  # 删除一个空目录
-
-    def _preprocess_data(self, label):
-        channel_dimensions = self.file[label].dimensions
-        data = self.file.variables[label]
-        # data = np.asarray(self.file.variables[label]).astype(np.float64)
-        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-        # 找出四个维度对应的index
-        for i, dim in enumerate(channel_dimensions):
-            if dim in self.string_for_datetime:
-                datetime_field = dim
-                datetime_idx = i
-            elif dim in self.string_for_depth:
-                depth_field = dim
-                depth_idx = i
-            elif dim in self.string_for_longitude:
-                longitude_field = dim
-                longitude_idx = i
-            elif dim in self.string_for_latitude:
-                latitude_field = dim
-                latitude_idx = i
-        # 不存在datetime or depth 则进行升维操作
-        if datetime_idx == -1:
-            datetime_idx = len(data.shape)
-            data = np.expand_dims(data, axis=len(data.shape))
-        if depth_idx == -1:
-            depth_idx = len(data.shape)
-            data = np.expand_dims(data, axis=len(data.shape))
-        #
-        # # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
-        transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
-        data = np.transpose(data, transpose_list)
-        return data
-
-    def _get_idx_from_list(self, value, lst):
-        mn = min(lst)
-        mx = max(lst)
-        if (value < mn or value > mx):
-            return -1
-        for i, v in enumerate(lst):
-            if value < v:
-                return i
-
-    def _convert_timestamp_to_date(self, timestamp):
-        # unit of timestamp: second
-        ts = self.base_timestamp + timestamp
-        return datetime.datetime.fromtimestamp(ts)
-
-    def get_date_data_trans(self):
-        dt = self.datetime[:]
-        start_time = time.mktime(time.strptime('1990-01-01', '%Y-%m-%d'))
-        timestamps = start_time + dt * (24 * 60 * 60)
-        date_time = []
-        for ts in timestamps:
-            date_time.append(datetime.datetime.fromtimestamp(ts))
-        return date_time
-
-    def get_vq_datastream(self, params):
-        lat_value = float(params['lat'])
-        lng_value = float(params['lng'])
-        dpt_value = float(params['dep'])
-        lat = self._get_idx_from_list(lat_value, self.latitude[:].tolist())
-        lng = self._get_idx_from_list(lng_value, self.longitude[:].tolist())
-        if lat == -1:
-            raise Exception('lat error(out of range).')
-        if lng == -1:
-            raise Exception('lng error(out of range).')
-        if self.depth is not None:
-            dpt = self._get_idx_from_list(dpt_value, self.depth[:].tolist())
-        else:
-            dpt = 0
-        label = params['label']
-        ret = {}
-        # if not hasattr(self.file.variables, label):
-        #     raise Exception(f'Label {label} does not exist.')
-        channel_dimensions = self.file[label].dimensions
-        variable: netCDF4.Variable = self.file.variables[label]
-
-        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-        for i, dim in enumerate(channel_dimensions):
-            if dim in self.string_for_datetime:
-                datetime_field = dim
-                datetime_idx = i
-            elif dim in self.string_for_depth:
-                depth_field = dim
-                depth_idx = i
-            elif dim in self.string_for_longitude:
-                longitude_field = dim
-                longitude_idx = i
-            elif dim in self.string_for_latitude:
-                latitude_field = dim
-                latitude_idx = i
-
-        if (datetime_idx == -1):
-            raise Exception('Time dimension does not exist.')
-        if (latitude_idx == -1):
-            raise Exception('Latitude dimension does not exist.')
-        if (longitude_idx == -1):
-            raise Exception('Longitude dimension does not exist.')
-        # datetime: netCDF4.Variable = self.file[datetime_field]
-        # ret['date_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
-
-        idx_params = [0] * 4
-        for i in range(3):
-            if (latitude_idx == i):
-                idx_params[i] = lat
-            if (longitude_idx == i):
-                idx_params[i] = lng
-            if (depth_idx == i):
-                idx_params[i] = dpt
-            if (datetime_idx == i):
-                idx_params[i] = Ellipsis
-
-        if (len(channel_dimensions) == 3):
-            stream_data = variable[idx_params[0], idx_params[1], idx_params[2]]
-        elif (len(channel_dimensions) == 4):
-            stream_data = variable[idx_params[0], idx_params[1], idx_params[2], idx_params[3]]
-        else:
-            raise Exception('Length of channel dimensions must be [3, 4].')
-
-        if hasattr(self.file.variables[label], '_FillValue'):
-            fill_value = self.file.variables[label]._FillValue
-        else:
-            fill_value = -10000
-
-        stream_data = np.asarray(stream_data).astype(np.float32)
-
-        stream_data[np.where(stream_data == fill_value)] = 0
-        ret['stream_data'] = stream_data.tolist()
-
-        # ret['dim_lat'] = self.latitude[:].tolist()
-        # ret['dim_lng'] = self.longitude[:].tolist()
-        return stream_data.tolist()
 
     def gen_preview(self, channel_label, uuid):
         params = {}
