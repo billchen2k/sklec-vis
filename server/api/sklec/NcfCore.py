@@ -31,6 +31,8 @@ class NcfCoreException:
 class NcfCacheManager:
     CACHE_FOLDER_DIR = os.path.join(settings.MEDIA_ROOT, 'cache_files', 'nc_to_tiff')
     GIGABYTE = 1024 ** 3
+    CACHE_SIZE = 5 * GIGABYTE
+    ELIMINATE_SIZE = 2 * GIGABYTE
 
     @classmethod
     def get_dir_size(cls, p_doc):
@@ -49,14 +51,13 @@ class NcfCacheManager:
 
     @classmethod
     def eliminate_cache(cls):
-        """缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于3GB"""
+        """缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于2GB"""
         doc_size, status = cls.get_dir_size(NcfUtils.CACHE_FOLDER_DIR)
-
-        if doc_size < 5 * cls.GIGABYTE:
+        if doc_size < cls.CACHE_SIZE:
             return
         doc_counter = 0
         status.sort(key=lambda x: x['file_atime'])
-        while doc_size > 3 * cls.GIGABYTE and doc_counter < len(status):
+        while doc_size > cls.ELIMINATE_SIZE and doc_counter < len(status):
             oldest_status = status[doc_counter]
             os.remove(os.path.join(NcfUtils.CACHE_FOLDER_DIR, oldest_status['file_name']))
             doc_size -= oldest_status['file_size']
@@ -86,52 +87,10 @@ class NcfUtils:
     ]
     REPLACE_VALUE = 9.9e36
 
-    # class TiffInfo:
-    #     """
-    #     分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名、维度长度
-    #     """
-    #
-    #     def __init__(self, file=None, file_path=None, file_name=None, file_size=None, label=None,
-    #                  longitude_start=None, longitude_end=None, latitude_start=None, latitude_end=None,
-    #                  time_index=None, depth_index=None, fill_value=None, replace_value=None,
-    #                  min_value=None, max_value=None, display_name=None, res_limit=None):
-    #         self.file = file
-    #         self.file_path = file_path
-    #         self.file_name = file_name
-    #         self.file_size = file_size
-    #         self.label = label
-    #         self.longitude_start = longitude_start
-    #         self.longitude_end = longitude_end
-    #         self.latitude_start = latitude_start
-    #         self.latitude_end = latitude_end
-    #         self.time_index = time_index
-    #         self.depth_index = depth_index
-    #         self.fill_value = fill_value
-    #         self.replace_value = replace_value
-    #         self.min_value = min_value
-    #         self.max_value = max_value
-    #         self.display_name = display_name
-    #         self.res_limit = res_limit
-    #
-    #     def __str__(self):
-    #         output = ''
-    #         for attr in dir(self):
-    #             if not attr.startswith('__'):
-    #                 output += attr + ': ' + str(getattr(self, attr)) + '\n'
-    #         return output
-    #
-    #     def to_dict(self):
-    #         output = {}
-    #         for attr in dir(self):
-    #             if not attr == 'to_dict' and not attr.startswith('__'):
-    #                 output.update({attr: getattr(self, attr)})
-    #         return output
-
     class Dim:
         """
         分别记录维度的备选列表、维度在文件中的次序、维度在文件中的命名、维度长度
         """
-
         def __init__(self, exists=False, index=None, name=None, size=None, value=None, units=None):
             self.exists = exists
             self.index = index
@@ -144,7 +103,6 @@ class NcfUtils:
         """
         记录变量的信息
         """
-
         def __init__(self, index=None, name=None, dimensions=None, normalized_dimensions=None, long_name=None,
                      units=None, valid_min=None, valid_max=None):
             self.index = index
@@ -158,7 +116,8 @@ class NcfUtils:
 
     @classmethod
     def get_idx_from_sorted_list(cls, value, lst):
-        # mn, mx = min(lst), max(lst)
+        mn, mx = min(lst), max(lst)
+        assert mn <= value <= mx, f'Value {value} out of range [{mn}, {mx}].'
         for i, v in enumerate(lst):
             if value < v:
                 return i
@@ -186,8 +145,8 @@ class NcfUtils:
                 return datetime.datetime.strptime(str_time, parse_format)
             except ValueError as e:
                 continue
-        raise Exception(f'Invalid time format ({str_time}).')
         # return datetime.datetime.strptime('1970-01-01', '%Y-%m-%d')
+        raise Exception(f'Invalid time format ({str_time}).')
 
     @classmethod
     def get_timestamp_and_timeunits(cls, time_since_str):
@@ -275,24 +234,6 @@ class NcfUtils:
         return range(left // 2, total_dim, step)
 
     @classmethod
-    def create_tiff(cls, data_array, lon_list, lat_list, tiff_path):
-        lon_min, lon_max, lat_min, lat_max = lon_list.min(), lon_list.max(), lat_list.min(), lat_list.max()
-        lon_res = (lon_max - lon_min) / (len(lon_list) - 1)
-        lat_res = (lat_max - lat_min) / (len(lat_list) - 1)
-        driver = gdal.GetDriverByName('GTiff')
-        dest_tiff = driver.Create(tiff_path, len(lon_list), len(lat_list), 1, gdal.GDT_Float32,)
-        srs = osr.SpatialReference()
-        srs.ImportFromEPSG(4326)
-        # dest_tiff.SetSpatialRef(srs)
-        dest_tiff.SetGCPs([], srs.ExportToWkt())
-        dest_tiff.SetGeoTransform((lon_min, lon_res, 0, lat_min, 0, lat_res))  # 设置影像的显示范围
-        dest_tiff.GetRasterBand(1).WriteArray(data_array)
-        # if flush:
-        dest_tiff.FlushCache()  # 写入磁盘
-        dest_tiff = None  # 关闭文件（否则不能读取）
-        return dest_tiff
-
-    @classmethod
     def initialize_tiff(cls, data_array, lon_list, lat_list, tiff_path, driver_name='GTiff', flush=True):
         lon_min, lon_max, lat_min, lat_max = lon_list.min(), lon_list.max(), lat_list.min(), lat_list.max()
         lon_res = (lon_max - lon_min) / (len(lon_list) - 1)
@@ -304,7 +245,6 @@ class NcfUtils:
         if flush:
             dest_tiff.FlushCache()  # 写入磁盘
             dest_tiff = None        # 关闭文件（否则不能读取）
-        # return dest_tiff
 
     @classmethod
     def warp_tiff(cls, tiff_path, src_tiff=None, warp_epsg=4326,
@@ -326,26 +266,6 @@ class NcfUtils:
         temperate_tiff_path = tiff_path[:-5] + '_warp.tiff'
         dest_tiff = gdal.Warp(temperate_tiff_path, src_tiff if src_tiff is not None else tiff_path,
                               options=warp_options)
-        os.remove(tiff_path)
-        os.rename(temperate_tiff_path, tiff_path)
-        return dest_tiff
-
-    @classmethod
-    def transform_tiff(cls, tiff_path=None, src_tiff=None, trans_format='GTiff',
-                       ):
-        assert (tiff_path is not None) or (src_tiff is not None), f'Both tiff_path and src_tiff are None.'
-        translate_options = gdal.TranslateOptions(
-            format=trans_format,
-            creationOptions=[
-                'TILED=YES' if tiled else '',
-                f'COMPRESS={compress}' if compress is not None else ''
-            ],
-            width=0,
-            height=0,
-        )
-        temperate_tiff_path = tiff_path[:-5] + '_trans.tiff'
-        dest_tiff = gdal.Translate(temperate_tiff_path, src_tiff if src_tiff is not None else tiff_path,
-                                   options=translate_options)
         os.remove(tiff_path)
         os.rename(temperate_tiff_path, tiff_path)
         return dest_tiff
@@ -415,7 +335,50 @@ class NcfCore(SKLECBaseCore):
         """
         return self.dimension_fields['longitude'].exists and self.dimension_fields['latitude'].exists
 
-    def get_2d_area_data(self, label, longitude_start=None, longitude_end=None, latitude_start=None, latitude_end=None,
+    def get_1d_vq_data(self, label=None, longitude_index=None, latitude_index=None, time_index=None, depth_index=None,
+                       fill_value=None, replace_value=None):
+        slice_dict = {
+            'longitude': longitude_index,
+            'latitude': latitude_index,
+            'time': time_index if time_index is not None else Ellipsis,
+            'depth': depth_index if depth_index is not None else Ellipsis,
+        }
+
+        slices = []
+        for dimension in self.variables.get(label).dimensions:
+            normalized_dimension = NcfUtils.normalized_dimension(dimension)
+            slices.append(slice_dict.get(normalized_dimension))
+        data_array = np.asarray(self.variables.get(label)[slices]).astype(np.float)
+
+        if (fill_value is not None) and (replace_value is not None):
+            fill_pos = np.where(data_array == fill_value)
+            data_array[fill_pos] = replace_value
+        return data_array
+
+    def get_date_data_list(self):
+        date_data = [NcfUtils.convert_timestamp_to_datetime(self.since_timestamp +
+                                                            value * NcfUtils.TIMEUNITS.get(self.time_units))
+                     for value in self.dimension_fields.get('time').value[:]]
+        return date_data
+
+    def get_vqdata_content(self, label=None, longitude_value=None, latitude_value=None, depth_value=None):
+        # 深度参数暂时弃用，固定为最浅层
+        longitude_index = NcfUtils.get_idx_from_sorted_list(longitude_value,
+                                                            self.dimension_fields.get('longitude').value[:].tolist())
+        latitude_index = NcfUtils.get_idx_from_sorted_list(latitude_value,
+                                                           self.dimension_fields.get('latitude').value[:].tolist())
+        fill_value = float(getattr(self.variables.get(label), '_FillValue'))
+        replace_value = 0
+        data_array = self.get_1d_vq_data(label, longitude_index=longitude_index, latitude_index=latitude_index,
+                                         time_index=None, depth_index=0,
+                                         fill_value=fill_value, replace_value=replace_value)
+        return {
+            'date_data': self.get_date_data_list(),
+            'stream_data': data_array.tolist(),
+        }
+
+    def get_2d_area_data(self, label=None, longitude_start=None, longitude_end=None,
+                         latitude_start=None, latitude_end=None,
                          time_index=None, depth_index=None, fill_value=None, replace_value=None):
         """[start, end] 左闭右闭"""
         slice_dict = {
@@ -470,9 +433,6 @@ class NcfCore(SKLECBaseCore):
         NcfUtils.warp_tiff(tiff_path=tiff_path, warp_epsg=4326,
                            tiled=True, compress='Deflate', predictor=1,
                            width=down_sampling_width, height=down_sampling_height)
-
-        # NcfUtils.transform_tiff(tiff_path=tiff_path,  tiled=True, trans_format='GTiff'
-                                # width=down_sampling_width, height=down_sampling_height)
 
         min_value, max_value = NcfUtils.get_min_max_value(data_array=data_array, replace_value=replace_value)
 
@@ -696,38 +656,6 @@ class NcfCoreClass(SKLECBaseCore):
     def get_channels(self):
         return self.channels
 
-    # def get_all_channel_data(self, **kwargs):
-    #     res = {}
-    #     # res = {'Time': []}
-    #     # channel_label_to_output_name = {'timestamp': 'Time'}
-    #     for channel in self.channels:
-    #         # channel_label_to_output_name[channel] = f'{self.channel_name[channel]} ({channel})'
-    #         # res[channel_label_to_output_name[channel]] = []
-    #         channel_data = self.file[channel][:]
-    #         np_1d_data = np.asarray(channel_data).tolist()
-    #         res[channel] = np_1d_data
-    #     return res
-
-    '''
-
-    '''
-
-    def _exec_gdal_inplace(self, cmd: str, file: str):
-        full_cmd = f'{cmd.strip()} {file} {file}.tmp.tiff'
-        print(f'Running {full_cmd}')
-        subprocess.run(full_cmd, shell=True)
-        os.remove(file)
-        os.rename(f'{file}.tmp.tiff', file)
-
-    def _get_min_max_value_from_full_name(self, full_name):
-        idx_mn = int(full_name.find('_mn'))
-        idx_mx = full_name.find('_mx')
-        idx_trans = full_name.find('_trans')
-        partial_str = full_name[idx_mn: idx_trans]
-
-        x = re.findall(r'(-?\d+\.\d+)', partial_str)
-        return float(x[0]), float(x[1])
-
     def _find_in_cache_folder(self, file_name):
         for root, dirs, files in os.walk(CACHE_FOLDER_DIR):
             for file in files:
@@ -740,519 +668,6 @@ class NcfCoreClass(SKLECBaseCore):
 
         return None
 
-    def _get_doc_real_size(self, p_doc):
-        size = 0.0
-        status = []
-        for root, dirs, files in os.walk(p_doc):
-            for file in files:
-                file_size = os.path.getsize(os.path.join(root, file))
-                file_time = os.path.getatime(os.path.join(root, file))
-                size += file_size
-                status.append({'file_atime': file_time,
-                               'file_size': file_size,
-                               'file_name': file})
-        # 按照访问时间从小到大排序
-        status.sort(key=lambda x: x['file_atime'])
-        return size, status
-
-    def _del_files(self, dir_path):
-        # os.walk会得到dir_path下各个后代文件夹和其中的文件的三元组列表，顺序自内而外排列，
-        for root, dirs, files in os.walk(dir_path, topdown=False):
-            # 第一步：删除文件
-            for name in files:
-                os.remove(os.path.join(root, name))  # 删除文件
-            # 第二步：删除空文件夹
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))  # 删除一个空目录
-
-    def _preprocess_data(self, label):
-        channel_dimensions = self.file[label].dimensions
-        data = self.file.variables[label]
-        # data = np.asarray(self.file.variables[label]).astype(np.float64)
-        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-        # 找出四个维度对应的index
-        for i, dim in enumerate(channel_dimensions):
-            if dim in self.string_for_datetime:
-                datetime_field = dim
-                datetime_idx = i
-            elif dim in self.string_for_depth:
-                depth_field = dim
-                depth_idx = i
-            elif dim in self.string_for_longitude:
-                longitude_field = dim
-                longitude_idx = i
-            elif dim in self.string_for_latitude:
-                latitude_field = dim
-                latitude_idx = i
-        # 不存在datetime or depth 则进行升维操作
-        if datetime_idx == -1:
-            datetime_idx = len(data.shape)
-            data = np.expand_dims(data, axis=len(data.shape))
-        if depth_idx == -1:
-            depth_idx = len(data.shape)
-            data = np.expand_dims(data, axis=len(data.shape))
-        #
-        # # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
-        transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
-        data = np.transpose(data, transpose_list)
-        return data
-
-    def _get_idx_from_list(self, value, lst):
-        mn = min(lst)
-        mx = max(lst)
-        if (value < mn or value > mx):
-            return -1
-        for i, v in enumerate(lst):
-            if value < v:
-                return i
-
-    def _convert_timestamp_to_date(self, timestamp):
-        # unit of timestamp: second
-        ts = self.base_timestamp + timestamp
-        return datetime.datetime.fromtimestamp(ts)
-
-    def get_date_data_trans(self):
-        dt = self.datetime[:]
-        start_time = time.mktime(time.strptime('1990-01-01', '%Y-%m-%d'))
-        timestamps = start_time + dt * (24 * 60 * 60)
-        date_time = []
-        for ts in timestamps:
-            date_time.append(datetime.datetime.fromtimestamp(ts))
-        return date_time
-
-    def get_vq_datastream(self, params):
-        lat_value = float(params['lat'])
-        lng_value = float(params['lng'])
-        dpt_value = float(params['dep'])
-        lat = self._get_idx_from_list(lat_value, self.latitude[:].tolist())
-        lng = self._get_idx_from_list(lng_value, self.longitude[:].tolist())
-        if lat == -1:
-            raise Exception('lat error(out of range).')
-        if lng == -1:
-            raise Exception('lng error(out of range).')
-        if self.depth is not None:
-            dpt = self._get_idx_from_list(dpt_value, self.depth[:].tolist())
-        else:
-            dpt = 0
-        label = params['label']
-        ret = {}
-        # if not hasattr(self.file.variables, label):
-        #     raise Exception(f'Label {label} does not exist.')
-        channel_dimensions = self.file[label].dimensions
-        variable: netCDF4.Variable = self.file.variables[label]
-
-        datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-        datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-        for i, dim in enumerate(channel_dimensions):
-            if dim in self.string_for_datetime:
-                datetime_field = dim
-                datetime_idx = i
-            elif dim in self.string_for_depth:
-                depth_field = dim
-                depth_idx = i
-            elif dim in self.string_for_longitude:
-                longitude_field = dim
-                longitude_idx = i
-            elif dim in self.string_for_latitude:
-                latitude_field = dim
-                latitude_idx = i
-
-        if (datetime_idx == -1):
-            raise Exception('Time dimension does not exist.')
-        if (latitude_idx == -1):
-            raise Exception('Latitude dimension does not exist.')
-        if (longitude_idx == -1):
-            raise Exception('Longitude dimension does not exist.')
-        # datetime: netCDF4.Variable = self.file[datetime_field]
-        # ret['date_data'] = np.array(self.file[datetime_field][:]).astype(np.float64).tolist()
-
-        idx_params = [0] * 4
-        for i in range(3):
-            if (latitude_idx == i):
-                idx_params[i] = lat
-            if (longitude_idx == i):
-                idx_params[i] = lng
-            if (depth_idx == i):
-                idx_params[i] = dpt
-            if (datetime_idx == i):
-                idx_params[i] = Ellipsis
-
-        if (len(channel_dimensions) == 3):
-            stream_data = variable[idx_params[0], idx_params[1], idx_params[2]]
-        elif (len(channel_dimensions) == 4):
-            stream_data = variable[idx_params[0], idx_params[1], idx_params[2], idx_params[3]]
-        else:
-            raise Exception('Length of channel dimensions must be [3, 4].')
-
-        if hasattr(self.file.variables[label], '_FillValue'):
-            fill_value = self.file.variables[label]._FillValue
-        else:
-            fill_value = -10000
-
-        stream_data = np.asarray(stream_data).astype(np.float32)
-
-        stream_data[np.where(stream_data == fill_value)] = 0
-        ret['stream_data'] = stream_data.tolist()
-
-        # ret['dim_lat'] = self.latitude[:].tolist()
-        # ret['dim_lng'] = self.longitude[:].tolist()
-        return stream_data.tolist()
-
-    # def get_channel_data_split(self, params):
-    #     # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
-    #     # # 文件夹超过100MB 清空
-    #     # if doc_size / 1024 / 1024 > 100:
-    #     #     del_files(CACHE_FOLDER_DIR)
-    #
-    #     # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
-    #     doc_size, status = self._get_doc_real_size(CACHE_FOLDER_DIR)
-    #     doc_counter = 0
-    #     while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
-    #         oldest_status = status[doc_counter]
-    #         try:
-    #             os.remove(os.path.join(CACHE_FOLDER_DIR,
-    #                                    oldest_status['file_name']))
-    #             doc_size -= oldest_status['file_size']
-    #         except Exception as e:
-    #             print("except:", e)
-    #         doc_counter += 1
-    #
-    #     label = params['channel_label']
-    #     channel_dimensions = self.file[label].dimensions
-    #     data = np.array(self.file.variables[label]).astype(np.float64)
-    #     datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-    #     datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-    #     i = 0
-    #     # 找出四个维度对应的index
-    #     for dim in channel_dimensions:
-    #         if dim in self.string_for_datetime:
-    #             datetime_field = dim
-    #             datetime_idx = i
-    #         elif dim in self.string_for_depth:
-    #             depth_field = dim
-    #             depth_idx = i
-    #         elif dim in self.string_for_longitude:
-    #             longitude_field = dim
-    #             longitude_idx = i
-    #         elif dim in self.string_for_latitude:
-    #             latitude_field = dim
-    #             latitude_idx = i
-    #         i += 1
-    #     # 不存在datetime or depth 则进行升维操作
-    #     if datetime_idx == -1:
-    #         datetime_idx = len(data.shape)
-    #         data = np.expand_dims(data, axis=len(data.shape))
-    #         params['datetime_start'] = params['datetime_end'] = 0
-    #     if depth_idx == -1:
-    #         depth_idx = len(data.shape)
-    #         data = np.expand_dims(data, axis=len(data.shape))
-    #         params['depth_start'] = params['depth_end'] = 0
-    #
-    #     # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
-    #     transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
-    #     data = np.transpose(data, transpose_list)
-    #     # 计算偏置和系数
-    #     # add_offset = self.file.variables[label].add_offset
-    #     # scale_factor = self.file.variables[label].scale_factor
-    #     # data = data * scale_factor + add_offset
-    #     if hasattr(self.file.variables[label], '_FillValue'):
-    #         fill_value = self.file.variables[label]._FillValue
-    #     else:
-    #         fill_value = -10000
-    #     Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
-    #     Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
-    #
-    #     # 影像的左上角和右下角坐标
-    #     LonMin, LatMax, LonMax, LatMin = [
-    #         Lon.min(), Lat.max(), Lon.max(), Lat.min()]
-    #
-    #     # 分辨率计算
-    #     N_Lat = len(Lat)
-    #     N_Lon = len(Lon)
-    #     Lon_Res = (LonMax - LonMin) / (float(N_Lon) - 1)
-    #     Lat_Res = (LatMax - LatMin) / (float(N_Lat) - 1)
-    #
-    #     tiff_meta_list = []
-    #     total_datetime = params['datetime_end'] - params['datetime_start'] + 1
-    #     total_depth = params['depth_end'] - params['depth_start'] + 1
-    #     total_filenum = total_datetime * total_depth
-    #     # 计算降采样后datetime和depth分别多少维
-    #     # params['filenum_limit'] = 10
-    #     if params['filenum_limit'] > total_filenum:
-    #         datetime_num = total_datetime
-    #         depth_num = total_depth
-    #         datetime_step = depth_step = 1
-    #     else:
-    #         ratio = math.sqrt(total_filenum / params['filenum_limit'])
-    #         datetime_num = max(1, int(total_datetime / ratio))
-    #         datetime_num = min(datetime_num, params['filenum_limit'])
-    #         depth_num = max(1, params['filenum_limit'] // datetime_num)
-    #         datetime_step = total_datetime / datetime_num
-    #         depth_step = total_depth / depth_num
-    #
-    #     for datetime_idx in range(datetime_num):
-    #         datetime = params['datetime_start'] + int(datetime_idx * datetime_step)
-    #         # in range(params['datetime_start'], params['datetime_end'] + 1, step_date):
-    #         for depth_idx in range(depth_num):
-    #             # in range(params['depth_start'], params['depth_end'] + 1, step_depth):
-    #             depth = params['depth_start'] + int(depth_idx * depth_step)
-    #             params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
-    #                 params['uuid'],
-    #                 datetime,
-    #                 depth,
-    #                 params['longitude_start'], params['longitude_end'],
-    #                 params['latitude_start'], params['latitude_end'],
-    #                 label)
-    #             display_name = ''
-    #             if datetime_field != '':
-    #                 display_name += '时间:' \
-    #                                 + self._convert_timestamp_to_date(
-    #                     self.file[datetime_field][datetime] * 60 * 60 * 24) \
-    #                                     .strftime('%Y-%m-%d %T')
-    #             if (depth_field != ''):
-    #                 display_name += '深度:' + str(self.file[depth_field][depth])
-    #
-    #             full_name = self._find_in_cache_folder(params_str)
-    #             if 0 and (full_name is not None):
-    #                 full_path = os.path.join(CACHE_FOLDER_DIR, full_name)
-    #                 min_value, max_value = self._get_min_max_value_from_full_name(
-    #                     full_name)
-    #                 tiff_meta = {
-    #                     'filepath': full_path,
-    #                     'file_size': os.path.getsize(full_path),
-    #                     'file_name': full_name,
-    #                     'datetime': datetime,
-    #                     'datetime_start': datetime,
-    #                     'depth': depth,
-    #                     'longitude_start': params['longitude_start'],
-    #                     'longitude_end': params['longitude_end'],
-    #                     'latitude_start': params['latitude_start'],
-    #                     'latitude_end': params['latitude_end'],
-    #                     'label': label,
-    #                     'min_value': min_value,
-    #                     'max_value': max_value
-    #                 }
-    #             else:
-    #                 split_data = data[datetime,
-    #                              depth,
-    #                              params['latitude_start']: params['latitude_end'] + 1,
-    #                              params['longitude_start']: params['longitude_end'] + 1,
-    #                              ]
-    #                 tmp_data = split_data.reshape(-1)
-    #                 fill_pos = np.where(tmp_data == fill_value)
-    #                 # fill_pos = np.where(tmp_data= fill_value)
-    #                 processed_data = np.delete(tmp_data, fill_pos)
-    #                 if len(processed_data) > 0:
-    #                     min_value = processed_data.min()
-    #                     max_value = processed_data.max()
-    #                 else:
-    #                     min_value = 0.0
-    #                     max_value = 0.0
-    #
-    #                 out_tif_name = params_str + \
-    #                                "_mn={:.6f}_mx={:.6f}.tiff".format(
-    #                                    min_value, max_value)
-    #                 tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-    #                 warp_tif_path = tmp_tif_path[:-5] + '_warped.tiff'
-    #                 translate_tif_path = tmp_tif_path[:-5] + '_trans.tiff'
-    #                 translate_tif_name = out_tif_name[:-5] + '_trans.tiff'
-    #
-    #                 split_data[np.where(split_data == fill_value)] = 9.9e36
-    #                 # 创建 .tif 文件
-    #                 # 要在切片之后再翻转
-    #                 # split_data = np.flip(split_data, axis=0)
-    #
-    #                 driver = gdal.GetDriverByName('GTiff')
-    #
-    #                 tmp_tif_path = os.path.join(CACHE_FOLDER_DIR, out_tif_name)
-    #                 out_tif = driver.Create(
-    #                     tmp_tif_path, N_Lon, N_Lat, 1, gdal.GDT_Float32)
-    #                 # 设置影像的显示范围 这样写不用翻转即可
-    #                 geotransform = (LonMin, Lon_Res, 0, LatMin, 0, Lat_Res)
-    #                 out_tif.SetGeoTransform(geotransform)
-    #                 out_tif.GetRasterBand(1).WriteArray(
-    #                     split_data)
-    #                 out_tif.FlushCache()  # 将数据写入硬盘
-    #                 out_tif = None  # 注意必须关闭tif文件
-    #
-    #                 # 获取地理坐标系统信息，用于选取需要的地理坐标系统
-    #                 srs = osr.SpatialReference()
-    #                 # 定义输出的坐标系为"WGS 84"，AUTHORITY["EPSG","4326"]
-    #                 srs.ImportFromEPSG(4326)
-    #
-    #                 warp_options = gdal.WarpOptions(format='Gtiff',
-    #                                                 srcSRS=srs.ExportToWkt(),
-    #                                                 # srcSRS='EPSG:4326'
-    #                                                 )
-    #                 gdal.Warp(warp_tif_path, tmp_tif_path,
-    #                           format='Gtiff', options=warp_options)
-    #                 total_width = params['longitude_end'] - params['longitude_start'] + 1
-    #                 total_height = params['latitude_end'] - params['latitude_start'] + 1
-    #                 total_res = total_width * total_height
-    #
-    #                 # params['res_limit'] = 200
-    #                 if params['res_limit'] > total_res:
-    #                     out_width = total_width
-    #                     out_height = total_height
-    #                 else:
-    #                     ratio = math.sqrt(total_res / params['res_limit'])
-    #                     out_width = max(1, int(total_width / ratio))
-    #                     out_width = min(out_width, params['res_limit'])
-    #                     out_height = max(1, params['res_limit'] // out_width)
-    #                 translate_options = gdal.TranslateOptions(format='GTiff',
-    #                                                           creationOptions=[
-    #                                                               'TILED=YES', 'COMPRESS=LZW'],
-    #                                                           width=out_width,
-    #                                                           height=out_height,
-    #                                                           )
-    #                 gdal.Translate(translate_tif_path, warp_tif_path,
-    #                                options=translate_options)
-    #                 # self._exec_gdal_inplace(f'gdalwarp -t_srs EPSG:4326', out_tif_path)
-    #                 # self._exec_gdal_inplace(f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
-    #                 # self._exec_gdal_inplace(
-    #                 #     f'gdal_translate -co TILED=YES -co COMPRESS=LZW', out_tif_path)
-    #                 tiff_meta = {
-    #                     'filepath': translate_tif_path,
-    #                     'file_size': os.path.getsize(translate_tif_path),
-    #                     'file_name': translate_tif_name,
-    #                     'datetime': datetime,
-    #                     'datetime_start': datetime,
-    #                     'depth': depth,
-    #                     'longitude_start': params['longitude_start'],
-    #                     'longitude_end': params['longitude_end'],
-    #                     'latitude_start': params['latitude_start'],
-    #                     'latitude_end': params['latitude_end'],
-    #                     'label': label,
-    #                     'min_value': min_value,
-    #                     'max_value': max_value,
-    #                     'display_name': display_name
-    #                 }
-    #             tiff_meta_list.append(tiff_meta)
-    #     return tiff_meta_list
-
-    # def get_channel_data_array(self, params):
-    #     # doc_size = get_doc_real_size(CACHE_FOLDER_DIR)
-    #     # # 文件夹超过100MB 清空
-    #     # if doc_size / 1024 / 1024 > 100:
-    #     #     del_files(CACHE_FOLDER_DIR)
-    #
-    #     # 缓存文件夹超过5GB，则根据最后访问时间按LRU规则淘汰，直到文件夹大小小于5GB
-    #     doc_size, status = self._get_doc_real_size(CACHE_FOLDER_DIR)
-    #     doc_counter = 0
-    #     while (doc_size / 1024 / 1024 / 1024 > 5 and doc_counter < len(status)):
-    #         oldest_status = status[doc_counter]
-    #         try:
-    #             os.remove(os.path.join(CACHE_FOLDER_DIR,
-    #                                    oldest_status['file_name']))
-    #             doc_size -= oldest_status['file_size']
-    #         except Exception as e:
-    #             print("except:", e)
-    #         doc_counter += 1
-    #
-    #     label = params['channel_label']
-    #     channel_dimensions = self.file[label].dimensions
-    #     data = np.array(self.file.variables[label]).astype(np.float64)
-    #     datetime_field, depth_field, longitude_field, latitude_field = '', '', '', ''
-    #     datetime_idx, depth_idx, longitude_idx, latitude_idx = -1, -1, -1, -1
-    #     i = 0
-    #     # 找出四个维度对应的index
-    #     for dim in channel_dimensions:
-    #         if dim in self.string_for_datetime:
-    #             datetime_field = dim
-    #             datetime_idx = i
-    #         elif dim in self.string_for_depth:
-    #             depth_field = dim
-    #             depth_idx = i
-    #         elif dim in self.string_for_longitude:
-    #             longitude_field = dim
-    #             longitude_idx = i
-    #         elif dim in self.string_for_latitude:
-    #             latitude_field = dim
-    #             latitude_idx = i
-    #         i += 1
-    #     # 不存在datetime or depth 则进行升维操作
-    #     if datetime_idx == -1:
-    #         datetime_idx = len(data.shape)
-    #         data = np.expand_dims(data, axis=len(data.shape))
-    #         params['datetime_start'] = params['datetime_end'] = 0
-    #     if depth_idx == -1:
-    #         depth_idx = len(data.shape)
-    #         data = np.expand_dims(data, axis=len(data.shape))
-    #         params['depth_start'] = params['depth_end'] = 0
-    #
-    #     # 维度变换 调整顺序为[datetime,depth,latitude,longitude]
-    #     transpose_list = [datetime_idx, depth_idx, latitude_idx, longitude_idx]
-    #     data = np.transpose(data, transpose_list)
-    #     # 反转一下 否则图是反的
-    #     # data = np.flip(data, axis=2)
-    #     # data = np.flip(data, axis = 3)
-    #
-    #     # 计算偏置和系数
-    #     # add_offset = self.file.variables[label].add_offset
-    #     # scale_factor = self.file.variables[label].scale_factor
-    #     # data = data * scale_factor + add_offset
-    #     fill_value = self.file.variables[label]._FillValue
-    #
-    #     Lon = self.file.variables[longitude_field][params['longitude_start']: params['longitude_end'] + 1]
-    #     Lat = self.file.variables[latitude_field][params['latitude_start']: params['latitude_end'] + 1]
-    #
-    #     # 影像的左上角和右下角坐标
-    #     LonMin, LatMax, LonMax, LatMin = [
-    #         Lon.min(), Lat.max(), Lon.max(), Lat.min()]
-    #
-    #     # 分辨率计算
-    #     N_Lat = len(Lat)
-    #     N_Lon = len(Lon)
-    #     Lon_Res = (LonMax - LonMin) / (float(N_Lon) - 1)
-    #     Lat_Res = (LatMax - LatMin) / (float(N_Lat) - 1)
-    #
-    #     data_list = []
-    #     for datetime in range(params['datetime_start'], params['datetime_end'] + 1):
-    #         for depth in range(params['depth_start'], params['depth_end'] + 1):
-    #             params_str = "{}_dt={}_dp={}_lon={}_{}_lat={}_{}_lb={}".format(
-    #                 params['uuid'],
-    #                 datetime,
-    #                 depth,
-    #                 params['longitude_start'], params['longitude_end'],
-    #                 params['latitude_start'], params['latitude_end'],
-    #                 label)
-    #             print('222')
-    #             split_data = data[datetime,
-    #                          depth,
-    #                          params['latitude_start']: params['latitude_end'] + 1,
-    #                          params['longitude_start']: params['longitude_end'] + 1,
-    #                          ]
-    #             tmp_data = split_data.reshape(-1)
-    #             fill_pos = np.where(tmp_data == fill_value)
-    #             processed_data = np.delete(tmp_data, fill_pos)
-    #             if len(processed_data) > 0:
-    #                 min_value = processed_data.min()
-    #                 max_value = processed_data.max()
-    #             else:
-    #                 min_value = 0.0
-    #                 max_value = 0.0
-    #
-    #             split_data[np.where(split_data == fill_value)] = np.NaN
-    #             # split_data = split_data.squeeze()
-    #             # print(split_data.shape)
-    #             # 创建 .tif 文件
-    #             # 要在切片之后再翻转
-    #             split_data = np.flip(split_data, axis=0)
-    #             split_data = np.around(split_data, params['scalar_format'])
-    #             print(split_data)
-    #             array_meta = {
-    #                 'file_data': split_data.tolist(),
-    #                 'datetime': datetime,
-    #                 'depth': depth,
-    #                 'longitude_start': params['longitude_start'],
-    #                 'longitude_end': params['longitude_end'],
-    #                 'latitude_start': params['latitude_start'],
-    #                 'latitude_end': params['latitude_end'],
-    #                 'label': label
-    #             }
-    #             data_list.append(array_meta)
-    #     return data_list
 
     def gen_preview(self, channel_label, uuid):
         params = {}
