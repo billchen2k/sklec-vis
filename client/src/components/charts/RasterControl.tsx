@@ -6,7 +6,7 @@ import DataMetaTable from '@/components/containers/DataMetaTable';
 import {readableFileSize} from '@/lib/utils';
 import {IRasterState, siteSlice} from '@/store/siteSlice';
 import {INCFContentFile} from '@/types';
-import {Pause, PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
+import {Download, Pause, PlayArrow, RotateLeft, SkipNext, SkipPrevious} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -97,6 +97,14 @@ const RasterControl = (props: IRasterControlProps) => {
     const newConfig = {...rasterConfig, ...properties};
     debouncedRasterConfigDispatch(properties);
     setRasterConfig(newConfig);
+  };
+
+  const downloadCurrentRaster = () => {
+    if (currentRaster < 0 || currentRaster > rasters.length - 1) {
+      return;
+    }
+    const url = rasters[currentRaster];
+    window.open(url, '_blank');
   };
 
   useEffect(() => {
@@ -194,7 +202,7 @@ const RasterControl = (props: IRasterControlProps) => {
 
             <Grid container maxWidth={'24rem'}>
               <Grid item xs={5} sx={{p: 1}}>
-                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Range'].map((one, i) => {
+                {['Color Scale', 'Raster Opacity', 'Invert Scale', 'Resolution', 'Value Range', 'Actions'].map((one, i) => {
                   return (
                     <Typography key={i} variant={'body2'} sx={{height: '2rem', lineHeight: '2rem', textAlign: 'right'}}>
                       {one === 'Value Range' && <IconButton onClick={() => {
@@ -265,6 +273,13 @@ const RasterControl = (props: IRasterControlProps) => {
                     onChange={(e) => {
                       handleRasterConfigChange({rasterMax: e.target.value});
                     }}/>
+                </Stack>
+                <Stack direction={'column'} spacing={1} sx={{mt: 1}}>
+                  <Button onClick={() => downloadCurrentRaster()} size={'small'}
+                    startIcon={<Download />} variant={'outlined'}
+                  >
+                    Download
+                  </Button>
                 </Stack>
               </Grid>
             </Grid>

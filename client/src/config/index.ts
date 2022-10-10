@@ -2,7 +2,7 @@ import {createTheme, SnackbarOrigin} from '@mui/material';
 import {blueGrey, cyan} from '@mui/material/colors';
 
 const config = {
-  version: '0.9.0',
+  version: '0.9.1',
   // MuiThemeProvider options
   theme: createTheme({
     palette: {

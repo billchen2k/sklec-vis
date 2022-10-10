@@ -7,6 +7,7 @@ export CONTAINER_SERVER=$(logname)-server
 export CONTAINER_NGINX=$(logname)-nginx
 export COMPOSE_PROJECT_NAME=sklec-vis-$(logname)
 export argc=$#
+
 function usage() {
   echo "Usage: ./develop.sh [--start|--stop|--restart|--migrate] [port]"
 }
@@ -24,10 +25,10 @@ function start() {
   echo "Starting develop..."
   # Collect python requirements.
   # python -m pipreqs.pipreqs ./server --force
-  docker-compose -f docker-compose.dev.yml build $EXTRA_BUILD_FLAG
+  docker compose -f docker-compose.dev.yml --env-file .env  build $EXTRA_BUILD_FLAG
     # --build-arg http_proxy=http://172.20.5.126:7890 \
     # --build-arg https_proxy=http://172.20.5.126:7890
-  docker-compose -f docker-compose.dev.yml up -d
+  docker compose -f docker-compose.dev.yml --env-file .env up -d
 }
 
 function stop() {
@@ -36,12 +37,12 @@ function stop() {
     usage && exit 1
   fi
   echo "Stopping develop...."
-  docker-compose -f docker-compose.dev.yml down
+  docker compose -f docker-compose.dev.yml down
   kill $(ps aux | grep 'node ./bin/develop.js' | awk '{print $2}')
 }
 
 function logs() {
-  docker-compose -f docker-compose.dev.yml logs -f --tail=100
+  docker compose -f docker-compose.dev.yml logs -f --tail=100
 }
 
 function migrate() {
@@ -62,7 +63,7 @@ if [ "$1" = "--start" ]; then
   start
   logs
 elif [ "$1" = "--start-no-cache" ]; then
-  echo '\033[0;31mStarting without build cache. --no-cache flag will be used during docker-compose build\033[0m.'
+  echo '\033[0;31mStarting without build cache. --no-cache flag will be used during docker compose build\033[0m.'
   export EXTRA_BUILD_FLAG=--no-cache
   start
   logs
