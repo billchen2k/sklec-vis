@@ -3,6 +3,7 @@
  */
 
 import * as d3 from 'd3';
+import JSZip from 'jszip';
 
 export interface IVQResultPainterOptions {
   domainBoundLow?: number;
@@ -24,14 +25,16 @@ export class VisualQueryResultPainter {
   private colorGradientAmpFluc: any[];
   private d3containerName: string;
   private options: IVQResultPainterOptions;
+  private latLngs: L.LatLng[];
 
-  constructor(d3container: string, dataStream: number[][], dateData: any[], options: IVQResultPainterOptions) {
+  constructor(d3container: string, dataStream: number[][], dateData: any[], latLngs: L.LatLng[], options: IVQResultPainterOptions) {
     this.container_d3 = d3.select('#' + d3container);
     this.d3containerName = d3container;
     this.widthContainer = document.getElementById(d3container).clientWidth;
     this.heightContainer = document.getElementById(d3container).clientHeight;
     this.container_jq = document.getElementById(d3container);
     this.options = options;
+    this.latLngs = latLngs;
     this.dateData = dateData.map((d) => {
       return {date: new Date(d)};
     });
@@ -261,6 +264,11 @@ export class VisualQueryResultPainter {
 
     // 在宽度上和 right_content 一致,在高度上使用margin
     const svg = this.container_d3.append('svg')
+        .attr('id', 'vqdatastream-svg')
+        // 这些属性使得导出的 svg 文件能够被正常渲染
+        .attr('version', '1.1')
+        .attr('xmlns', 'http://www.w3.org/2000/svg')
+        .attr('xmlns:xlink', 'http://www.w3.org/1999/xlink')
         .attr('width', this.widthContainer)
         .attr('height', heightContent)
         .attr('transform', `translate(0,${margin.top})`)
@@ -407,5 +415,55 @@ export class VisualQueryResultPainter {
           hoverLine.style('stroke-width', '0');
           tooltip.style('visibility', 'hidden');
         });
+  }
+
+  public async exportResult() {
+    const exportSVG = () => {
+      // Step 1: Export image as svg
+      const base64doc = btoa(unescape(encodeURIComponent(document.getElementById('vqdatastream-svg').outerHTML)));
+      // const a = document.createElement('a');
+      // const e = new MouseEvent('click');
+      // a.download = `data_stream_render_${new Date().toISOString().slice(0, 19)}.svg`;
+      // a.href = 'data:text/html;base64,' + base64doc;
+      // a.dispatchEvent(e);
+      return base64doc;
+    };
+
+    // Step 2: Export data stream
+    const exportDataStream = () => {
+      const numberOfCoordinates = this.latLngs.length;
+      let csvContent = '';
+      csvContent += 'Date,';
+      csvContent += Array.from(Array(numberOfCoordinates).keys()).map((i) => `Sample ${i + 1}`).join(',');
+      csvContent += '\n';
+      for (let i = 0; i < this.dataStream[0].length; i++) {
+        csvContent += this.dateData[i].date.toISOString().slice(0, 19) + ',';
+        const row = [];
+        for (let j = 0; j < this.latLngs.length; j++) {
+          row.push(this.dataStream[j][i]);
+        }
+        csvContent += row.join(',');
+        csvContent += '\n';
+      }
+      console.log(csvContent);
+      return csvContent;
+    };
+
+    const exportCoordinatesData = () => {
+      let csvContent = 'Sample,Longitude,Latitude\n';
+      for (let i = 0; i < this.latLngs.length; i++) {
+        csvContent += `${i + 1},${this.latLngs[i].lng},${this.latLngs[i].lat}\n`;
+      }
+      console.log(csvContent);
+      return csvContent;
+    };
+
+    const zip = new JSZip();
+    zip.file('data_stream.csv', exportDataStream());
+    zip.file('coordinates.csv', exportCoordinatesData());
+    zip.file('data_stream_render.svg', exportSVG(), {
+      base64: true,
+    });
+    return zip.generateAsync({type: 'blob'});
   }
 }

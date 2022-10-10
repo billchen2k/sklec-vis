@@ -8,7 +8,7 @@ services:
     image: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: 4dmnpoH9TvA3KzQW
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - sklec_vis_db:/var/lib/postgresql/data
     ports:
@@ -25,7 +25,7 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DB_USERNAME: postgres
-      DB_PASSWORD: 4dmnpoH9TvA3KzQW
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: sklecvis
       PYTHONPATH: /app
     expose:
