@@ -254,13 +254,13 @@ export function NCFViewer(props: INCFViewerProps) {
 
   const handleDimensionsRangeChange = (options: Partial<Record<IDimensionType, number | number[]>>) => {
     const newRanges: RangeState = {...ranges};
-     Object.keys(options).forEach((label: IDimensionType) => {
+    Object.keys(options).forEach((label: IDimensionType) => {
       let newRange = options[label];
       if (typeof newRange != 'object') { // If it is not an array
         newRange = [newRange, newRange];
       }
       newRanges[label] = newRange;
-    }
+    });
     console.log('new ranges:', newRanges);
     setRanges(newRanges);
     dispatch(siteSlice.actions.setInspectingState({
