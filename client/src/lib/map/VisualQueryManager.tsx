@@ -4,8 +4,6 @@
 
 import {LayerManager} from '@/lib/map/LayerManager';
 import L from 'leaflet';
-import {useAppDispatch} from '@/app/hooks';
-import {uiSlice} from '@/store/uiSlice';
 
 require('/public/js/leaflet.pather.js');
 // require('/public/js/leaflet.label.js');

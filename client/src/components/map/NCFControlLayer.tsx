@@ -30,9 +30,15 @@ export function NCFControlLayer(props: INCFControlLayerProps) {
   if (!inspectState.selectedRange || !inspectState.selectedRange.latitude || !inspectState.selectedRange.longitude) {
     return null;
   }
-  const southWest = new LatLng(inspectState.selectedRange.latitude[0], inspectState.selectedRange.longitude[0]);
-  const northEast = new LatLng(inspectState.selectedRange.latitude[1], inspectState.selectedRange.longitude[1]);
-  const rectangle = new LatLngBounds(southWest, northEast);
+  let rectangle = new LatLngBounds([0, 0], [0, 0]);
+  try {
+    const southWest = new LatLng(inspectState.selectedRange.latitude[0], inspectState.selectedRange.longitude[0]);
+    const northEast = new LatLng(inspectState.selectedRange.latitude[1], inspectState.selectedRange.longitude[1]);
+    rectangle = new LatLngBounds(southWest, northEast);
+  } catch {
+    return null;
+  }
+
   const pathOptions: PathOptions = {
     color: '#2b8cc4',
     className: 'map-path',

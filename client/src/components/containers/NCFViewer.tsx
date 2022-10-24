@@ -95,6 +95,26 @@ export function NCFViewer(props: INCFViewerProps) {
     }
   }, [selectedVisFile, selectedChannel]);
 
+  useEffect(() => {
+    const onMapBoxSelected = (event: CustomEvent) => {
+      const {latlng1, latlng2} = event.detail;
+      if (latlng1 && latlng2) {
+        const latValRange = [latlng1.lat, latlng2.lat];
+        const lngValRange = [latlng1.lng, latlng2.lng];
+        latValRange.sort();
+        lngValRange.sort();
+        handleDimensionsRangeChange({
+          'latitude': latValRange.map((lat) => getDimensionIndex('latitude', lat)),
+          'longitude': lngValRange.map((lng) => getDimensionIndex('longitude', lng)),
+        });
+      }
+    };
+    document.addEventListener(consts.EVENT.MAP_BOX_SELECTED, onMapBoxSelected);
+    return () => {
+      document.removeEventListener(consts.EVENT.MAP_BOX_SELECTED, onMapBoxSelected);
+    };
+  });
+
   let rasters: IVisFile[] = [];
   if (data && !error && !loading) {
     rasters = data.data.files.map((one: IVisFile) => {
@@ -116,6 +136,30 @@ export function NCFViewer(props: INCFViewerProps) {
     return 0;
   };
 
+  // Get the closest value in the dimension values
+  const getDimensionIndex = (label: string, value: number): number => {
+    if (selectedChannel != -1 && selectedVisFile >= 0) {
+      const dimension: INCFDimension = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
+        return one.dimension_type == label;
+      })[0];
+      if (!dimension) {
+        console.warn(`Dimension ${label} not found.`);
+        return 0;
+      }
+      if (value < dimension.dimension_values[0]) {
+        return 0;
+      }
+      if (value > dimension.dimension_values.slice(-1)[0]) {
+        return dimension.dimension_values.length - 1;
+      }
+      return dimension.dimension_values.findIndex((one: number) => {
+        return one >= value;
+      });
+    }
+    return 0;
+  };
+
+  // Convert to index-based range into value-based range
   const getValueRange = (range: RangeState) : RangeState => {
     const valueRange = {};
     Object.keys(range).forEach((key) => {
@@ -195,12 +239,29 @@ export function NCFViewer(props: INCFViewerProps) {
     return res;
   };
 
-  const handleDimensionRangeChange = (label: IDimensionType, newRange: number | number[]): void => {
-    if (typeof newRange != 'object') {
-      newRange = [newRange, newRange];
-    }
+  const handleDimensionRangeChange = (label: IDimensionType, newRange: number | number[]) => {
     const newRanges: RangeState = {...ranges};
-    newRanges[label] = newRange;
+      if (typeof newRange != 'object') { // If it is not an array
+        newRange = [newRange, newRange];
+      }
+      newRanges[label] = newRange;
+    console.log('new ranges:', newRanges);
+    setRanges(newRanges);
+    dispatch(siteSlice.actions.setInspectingState({
+      selectedRange: getValueRange(newRanges),
+    }));
+  };
+
+  const handleDimensionsRangeChange = (options: Partial<Record<IDimensionType, number | number[]>>) => {
+    const newRanges: RangeState = {...ranges};
+     Object.keys(options).forEach((label: IDimensionType) => {
+      let newRange = options[label];
+      if (typeof newRange != 'object') { // If it is not an array
+        newRange = [newRange, newRange];
+      }
+      newRanges[label] = newRange;
+    }
+    console.log('new ranges:', newRanges);
     setRanges(newRanges);
     dispatch(siteSlice.actions.setInspectingState({
       selectedRange: getValueRange(newRanges),
@@ -254,7 +315,7 @@ export function NCFViewer(props: INCFViewerProps) {
                           min={sliderConfig.min}
                           disabled={loading}
                           max={sliderConfig.max}
-                          onChange={(e, value) => handleDimensionRangeChange(dim, value)}
+                          onChange={(e, value: number | number[]) => handleDimensionRangeChange(dim, value)}
                           value={sliderRange || 0}
                           step={1}
                           valueLabelDisplay={'auto'}
