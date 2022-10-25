@@ -241,9 +241,35 @@ class DatasetPatchSerializer(serializers.ModelSerializer):
         exclude = ['id']
 
 
-class FormDataFieldTypeSerializer(serializers.ModelSerializer):
+class FormDataTableSerializer(serializers.ModelSerializer):
+    dataset = serializers.CharField(max_length=30, allow_null=False, allow_blank=True, write_only=True)
     table_type = serializers.CharField(max_length=30, allow_null=False, allow_blank=True, write_only=True)
 
+    class Meta:
+        model = FormDataTable
+        exclude = ['id']
+
+    # 构造写入，将 dataset & table_type 由 uuid 转化为 object
+    def to_internal_value(self, data: dict):
+        if ('dataset' in data) and (data['dataset'] is not None):
+            dataset_uuid = data['dataset']
+            if not FormDataTableType.objects.filter(uuid=dataset_uuid).exists():
+                raise serializers.ValidationError({
+                    'dataset': f'Dataset uuid {dataset_uuid} does not exists.'
+                })
+            data['dataset'] = FormDataTableType.objects.get(uuid=dataset_uuid)
+        if ('table_type' in data) and (data['table_type'] is not None):
+            table_type_uuid = data['table_type']
+            if not FormDataTableType.objects.filter(uuid=table_type_uuid).exists():
+                raise serializers.ValidationError({
+                    'table_type': f'Table_type uuid {table_type_uuid} does not exists.'
+                })
+            data['table_type'] = FormDataTableType.objects.get(uuid=table_type_uuid)
+        return data
+
+
+class FormDataFieldTypeSerializer(serializers.ModelSerializer):
+    table_type = serializers.CharField(max_length=30, allow_null=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = FormDataFieldType

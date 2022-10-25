@@ -216,11 +216,11 @@ class FormDataTableType(models.Model):
 
 class FormDataFieldType(models.Model):
     class AttributeTypes(models.TextChoices):
+        DEFAULT = 'default'
         NUMERICAL = 'numerical'
         TEMPORAL = 'temporal'
         SPACIAL = 'spacial'
         CATEGORICAL = 'categorical'
-        DEFAULT = 'default'
 
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     table_type = models.ForeignKey(FormDataTableType, on_delete=models.CASCADE, null=True, blank=True,

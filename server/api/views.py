@@ -994,6 +994,12 @@ class FormDataFieldTypeViewSet(viewsets.ModelViewSet):
     lookup_field = 'uuid'
 
 
+class FormDataTableViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableSerializer
+    queryset = FormDataTable.objects.all()
+    lookup_field = 'uuid'
+
+
 def not_found(request: HttpRequest) -> HttpResponse:
     return JsonResponse({
         'detail': f'{request.method} {request.path} not found. See documents at {request.build_absolute_uri("/api/swagger/")}.'
