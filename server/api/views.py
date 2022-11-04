@@ -982,15 +982,15 @@ class VerifyEmailToken(views.APIView):
         return JsonResponseOK(data={'result': 'Successfully verified your email address.'})
 
 
-class FormDataTableTypeViewSet(viewsets.ModelViewSet):
-    serializer_class = FormDataTableTypeSerializer
-    queryset = FormDataTableType.objects.all()
+class FormDataTableMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableMetaSerializer
+    queryset = FormDataTableMeta.objects.all()
     lookup_field = 'uuid'
 
 
-class FormDataFieldTypeViewSet(viewsets.ModelViewSet):
-    serializer_class = FormDataFieldTypeSerializer
-    queryset = FormDataFieldType.objects.all()
+class FormDataFieldMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataFieldMetaSerializer
+    queryset = FormDataFieldMeta.objects.all()
     lookup_field = 'uuid'
 
 
@@ -998,6 +998,53 @@ class FormDataTableViewSet(viewsets.ModelViewSet):
     serializer_class = FormDataTableSerializer
     queryset = FormDataTable.objects.all()
     lookup_field = 'uuid'
+
+
+class FormDataFieldValueViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataFieldValueSerializer
+    queryset = FormDataFieldValue.objects.all()
+    lookup_field = 'uuid'
+
+
+class GetFormDataTableInfo(views.APIView):
+    # @swagger_auto_schema(operation_description='验证邮箱认证链接',
+    #                      operation_id='verify_email_token',
+    #                      response={
+    #                          200: SuccessResponseSerializer,
+    #                          400: ErrorResponseSerializer,
+    #                          500: ErrorResponseSerializer,
+    #                      })
+    def get(self, request, *args, **kwargs):
+        table_uuid = kwargs['uuid']
+        table = FormDataTable.objects.get(uuid=table_uuid)
+        table_type = table.table_type
+        field_types = FormDataFieldMeta.objects.filter(table_type=table_type).order_by('index')
+        # res = table_uuid + str(table.name) + str(table_type.name)
+        col_tuple = []
+        res = ''
+        for field_type in field_types:
+            row = []
+            res += field_type.name + '\t'
+            field_values = FormDataFieldValue.objects.filter(field_type=field_type)\
+                .filter(table=table).order_by('index_row')
+            for field_value in field_values:
+                if field_type.attribute_type == 'numerical':
+                    row.append(field_value.value_numerical)
+                elif field_type.attribute_type == 'temporal':
+                    row.append(field_value.value_temporal)
+                elif field_type.attribute_type == 'spacial':
+                    row.append(field_value.value_spacial)
+                elif field_type.attribute_type == 'categorical':
+                    row.append(field_value.value_categorical)
+            col_tuple.append(row)
+
+        res += '\n'
+        for i in range(len(col_tuple[0])):
+            for j in range(len(col_tuple)):
+                res += str(col_tuple[j][i]) + '\t'
+            res += '\n'
+
+        return JsonResponseOK(data=res)
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
