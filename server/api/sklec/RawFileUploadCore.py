@@ -2,8 +2,11 @@ from abc import abstractmethod
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import UploadedFile
 from api.sklec.NcfCore import NcfCore
+from api.sklec.FormDataCore import FormDataCore
 import os
 from sklecvis import settings
+
+
 class RawFileUploadBaseCore:
 
     """用于上传 RawFile 的基类，其派生类对应不同的 RawFile 类型，如 nc 文件。"""
@@ -35,6 +38,12 @@ class NcfRawFileUploadCore(RawFileUploadBaseCore):
         if not core.check_latlng():
             raise Exception('NcfFile does not has dimension latitude or longitude.')
         return core.save_visfile_and_rawfile_to_dataset(dataset_uuid)
+
+
+class FormDataRawFileUploadCore(RawFileUploadBaseCore):
+    def generate_rawfile_and_visfile(self, dataset_uuid):
+        core = FormDataCore(self.rawfile_path)
+        return core.save_formdata_to_dataset(dataset_uuid)
 
 
 class GenericRawFileUploadCore(RawFileUploadBaseCore):

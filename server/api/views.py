@@ -29,7 +29,7 @@ from api.serializers import *
 from api.api_serializers import *
 from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass, NcfCore
+from api.sklec.NcfCore import NcfCoreClass, NcfCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -393,7 +393,7 @@ class PostNcfContentVQDatastream(views.APIView):
                 stream_data.append(vq_data['stream_data'])
                 date_data = vq_data['date_data']
         vqdata_response = {'date_data': date_data, 'stream_data': stream_data, 'lat_lngs': lat_lngs}
-        return JsonResponseOK(data = vqdata_response)
+        return JsonResponseOK(data=vqdata_response)
 
 
 class GetRskContent(views.APIView):
@@ -1000,41 +1000,64 @@ class FormDataTableViewSet(viewsets.ModelViewSet):
     lookup_field = 'uuid'
 
 
-class FormDataFieldValueViewSet(viewsets.ModelViewSet):
-    serializer_class = FormDataFieldValueSerializer
-    queryset = FormDataFieldValue.objects.all()
+class FormDataCellViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataCellSerializer
+    queryset = FormDataCell.objects.all()
     lookup_field = 'uuid'
 
 
-class GetFormDataTableInfo(views.APIView):
-    # @swagger_auto_schema(operation_description='验证邮箱认证链接',
-    #                      operation_id='verify_email_token',
-    #                      response={
-    #                          200: SuccessResponseSerializer,
-    #                          400: ErrorResponseSerializer,
-    #                          500: ErrorResponseSerializer,
-    #                      })
+class PostFormDataFieldMetaBatch(views.APIView):
+    serializer_class = FormDataFieldMetaBatchSerializer
+
+    @swagger_auto_schema(operation_description='批量添加 FormDataFieldMeta',
+                         request_body=FormDataFieldMetaBatchSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        field_metas = jdata['field_metas']
+        validation = FormDataFieldMetaBatchSerializer(data=jdata)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation.validated_data
+        field_meta_uuids = []
+        for field_meta in validated_data['field_metas']:
+            file_meta_obj = FormDataFieldMeta(**field_meta)
+            file_meta_obj.save()
+            field_meta_uuids.append(file_meta_obj.uuid)
+        return JsonResponseOK(data={'field_meta_uuids': appended_uuids})
+
+
+class GetFormDataTableCSV(views.APIView):
+
     def get(self, request, *args, **kwargs):
         table_uuid = kwargs['uuid']
         table = FormDataTable.objects.get(uuid=table_uuid)
-        table_type = table.table_type
-        field_types = FormDataFieldMeta.objects.filter(table_type=table_type).order_by('index')
+        table_meta = table.table_meta
+        field_metas = FormDataFieldMeta.objects.filter(table_meta=table_meta).order_by('index')
         # res = table_uuid + str(table.name) + str(table_type.name)
         col_tuple = []
         res = ''
-        for field_type in field_types:
+        for field_meta in field_metas:
             row = []
-            res += field_type.name + '\t'
-            field_values = FormDataFieldValue.objects.filter(field_type=field_type)\
+            res += field_meta.name + '\t'
+            field_values = FormDataCell.objects.filter(field_meta=field_meta)\
                 .filter(table=table).order_by('index_row')
             for field_value in field_values:
-                if field_type.attribute_type == 'numerical':
+                if field_meta.attribute_meta == 'numerical':
                     row.append(field_value.value_numerical)
-                elif field_type.attribute_type == 'temporal':
+                elif field_meta.attribute_meta == 'temporal':
                     row.append(field_value.value_temporal)
-                elif field_type.attribute_type == 'spacial':
+                elif field_meta.attribute_meta == 'spacial':
                     row.append(field_value.value_spacial)
-                elif field_type.attribute_type == 'categorical':
+                elif field_meta.attribute_meta == 'categorical':
                     row.append(field_value.value_categorical)
             col_tuple.append(row)
 
