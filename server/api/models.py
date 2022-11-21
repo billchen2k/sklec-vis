@@ -246,11 +246,13 @@ class FormDataTable(models.Model):
 class FormDataCell(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
     table = models.ForeignKey(FormDataTable, on_delete=models.CASCADE, null=True, blank=True,
-                              related_name='field_values')
+                              related_name='cells')
     field_meta = models.ForeignKey(FormDataFieldMeta, on_delete=models.CASCADE, null=True, blank=True,
-                                   related_name='field_values')
+                                   related_name='cells')
     index_row = models.IntegerField(blank=True, null=True, default=0)
     value_numerical = models.FloatField(blank=True, null=True, default=None)
     value_temporal = models.DateTimeField(blank=True, null=True, default=None)
     value_spacial = models.FloatField(blank=True, null=True, default=None)
     value_categorical = models.CharField(max_length=256, blank=True, null=True, default=None)
+    value_default = models.CharField(max_length=256, blank=True, null=True, default=None)
+

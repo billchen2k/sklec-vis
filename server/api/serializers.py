@@ -274,7 +274,7 @@ class FormDataCellSerializer(serializers.ModelSerializer):
 class FormDataTableSerializer(serializers.ModelSerializer):
     dataset = serializers.CharField(max_length=30, allow_null=False, allow_blank=True, write_only=True)
     table_meta = serializers.CharField(max_length=30, allow_null=False, allow_blank=True, write_only=True)
-    field_values = FormDataCellSerializer(many=True, read_only=True)
+    cells = FormDataCellSerializer(many=True, read_only=True)
 
     class Meta:
         model = FormDataTable
@@ -338,5 +338,4 @@ class FormDataTableMetaSerializer(serializers.ModelSerializer):
         model = FormDataTableMeta
         fields = '__all__'
         depth = 1
-
 

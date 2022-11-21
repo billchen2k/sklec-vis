@@ -14,7 +14,8 @@ class RawFileUploadBaseCore:
         self.rawfile_path = None
 
     def save_from_uploaded_file(self, file: UploadedFile):
-        self.rawfile_path = default_storage.save(os.path.join('datasets', 'raw', file.name), file)
+        rawfile_path = default_storage.save(os.path.join('datasets', 'raw', file.name), file)
+        self.rawfile_path = os.path.join(settings.MEDIA_ROOT, rawfile_path)
 
     def save_from_filesystem_filepath(self, filepath):
         with open(filepath, "rb", ) as f:
@@ -27,7 +28,6 @@ class RawFileUploadBaseCore:
         with open(self.rawfile_path, "wb", ) as f:
             f.write(content)
 
-    @abstractmethod
     def generate_rawfile_and_visfile(self, dataset_uuid):
         pass
 
@@ -41,9 +41,11 @@ class NcfRawFileUploadCore(RawFileUploadBaseCore):
 
 
 class FormDataRawFileUploadCore(RawFileUploadBaseCore):
-    def generate_rawfile_and_visfile(self, dataset_uuid):
-        core = FormDataCore(self.rawfile_path)
-        return core.save_formdata_to_dataset(dataset_uuid)
+    pass
+    # def generate_table(self, dataset_uuid, table_meta_uuid):
+    #     core = FormDataCore()
+    #     table_uuid = core.generate_table_from_csv(self.rawfile_path, dataset_uuid, table_meta_uuid)
+    #     return table_uuid
 
 
 class GenericRawFileUploadCore(RawFileUploadBaseCore):

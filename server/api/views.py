@@ -27,9 +27,10 @@ from rest_framework.parsers import MultiPartParser
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
-from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
+from api.sklec.RawFileUploadCore import NcfRawFileUploadCore, FormDataRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
 from api.sklec.NcfCore import NcfCoreClass, NcfCore
+from api.sklec.FormDataCore import FormDataCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -1042,32 +1043,61 @@ class GetFormDataTableCSV(views.APIView):
         table = FormDataTable.objects.get(uuid=table_uuid)
         table_meta = table.table_meta
         field_metas = FormDataFieldMeta.objects.filter(table_meta=table_meta).order_by('index')
-        # res = table_uuid + str(table.name) + str(table_type.name)
         col_tuple = []
         res = ''
         for field_meta in field_metas:
             row = []
-            res += field_meta.name + '\t'
+            res += field_meta.name + ','
             field_values = FormDataCell.objects.filter(field_meta=field_meta)\
                 .filter(table=table).order_by('index_row')
             for field_value in field_values:
-                if field_meta.attribute_meta == 'numerical':
+                if field_meta.attribute_type == 'numerical':
                     row.append(field_value.value_numerical)
-                elif field_meta.attribute_meta == 'temporal':
+                elif field_meta.attribute_type == 'temporal':
                     row.append(field_value.value_temporal)
-                elif field_meta.attribute_meta == 'spacial':
+                elif field_meta.attribute_type == 'spacial':
                     row.append(field_value.value_spacial)
-                elif field_meta.attribute_meta == 'categorical':
+                elif field_meta.attribute_type == 'categorical':
                     row.append(field_value.value_categorical)
+                else:  # default type
+                    row.append(field_value.value_default)
             col_tuple.append(row)
 
         res += '\n'
         for i in range(len(col_tuple[0])):
             for j in range(len(col_tuple)):
-                res += str(col_tuple[j][i]) + '\t'
+                res += str(col_tuple[j][i]) + ','
             res += '\n'
 
         return JsonResponseOK(data=res)
+
+
+class PostFormDataTableCSV(views.APIView):
+    parser_classes = (MultiPartParser,)
+
+    @swagger_auto_schema(operation_description='将 CSV 文件作为表格数据添加入指定 dataset，需指定对应的 table_meta',
+                         request_body=PostFormDataCSVSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        validation_data = PostFormDataCSVSerializer(data=request.data)
+        if not validation_data.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation_data.validated_data
+        csv_file = validated_data['csv_file']
+        upload_core = FormDataRawFileUploadCore()
+        upload_core.save_from_uploaded_file(csv_file)
+
+        dataset_uuid = validated_data['dataset_uuid']
+        table_meta_uuid = validated_data['table_meta_uuid']
+        formdata_core = FormDataCore()
+        table_uuid = formdata_core.generate_table_from_csv(upload_core.rawfile_path, dataset_uuid, table_meta_uuid)
+        return JsonResponseOK(data={
+            'table_uuid': table_uuid
+        })
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
