@@ -1,23 +1,25 @@
 import * as React from 'react';
-import {Box, Card, IconButton, LinearProgress, Typography} from '@mui/material';
+import {Box, Button, IconButton, LinearProgress, Stack, Typography} from '@mui/material';
 import {useAppDispatch, useAppSelector} from '@/app/hooks';
 import LayerBox from '@/layout/LayerBox';
 import {useEffect} from 'react';
-import {Close} from '@mui/icons-material';
+import {Close, Download} from '@mui/icons-material';
 import useAxios from 'axios-hooks';
 import {endpoints} from '@/config/endpoints';
 import {IResponse, IVQDataStreamResData} from '@/types/api';
 import {uiSlice} from '@/store/uiSlice';
 import {VisualQueryResultPainter} from '@/lib/map/VisualQueryResultPainter';
+import {saveAs} from 'file-saver';
+import {currentDateStringShort} from '@/lib/utils';
 
 export interface IVisualQueryResultProps {
 }
 
 const VisualQueryResult = (props: IVisualQueryResultProps) => {
   const dispatch = useAppDispatch();
-  const {currentType, currentData, rasterState} = useAppSelector((state) => state.site);
+  const {currentType, currentData, rasterState, inspectState, datasetDetailCache} = useAppSelector((state) => state.site);
   const [localVQLatLngs, setLocalVQLatLngs] = React.useState<any[]>([]);
-
+  const painter = React.useRef<VisualQueryResultPainter>(null);
   const [{data, loading, error}, executeRequest] = useAxios<IResponse<IVQDataStreamResData>>({}, {manual: true});
 
   const calcBounds = (rasterMin: number, rasterMax: number) => {
@@ -30,27 +32,37 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
   useEffect(() => {
     if (rasterState.visualQueryLatLngs.length > 0) {
       setLocalVQLatLngs(rasterState.visualQueryLatLngs);
-      executeRequest(endpoints.postVQDataStream(
-          rasterState.visualQueryLatLngs,
-          3,
+      if (currentType == 'RT') {
+        executeRequest(endpoints.postVQDataStream(
+            rasterState.visualQueryLatLngs,
+            3,
           currentData as string));
+      }
+      if (currentType == 'NCF') {
+        executeRequest(endpoints.postNcfDataStream(
+            rasterState.visualQueryLatLngs,
+            [datasetDetailCache.vis_files[inspectState.selectedVisFile].uuid],
+            datasetDetailCache.vis_files[inspectState.selectedVisFile].meta_data.variables[inspectState.selectedChannel].variable_name,
+            1,
+        ));
+      }
     }
-  }, [rasterState.visualQueryLatLngs]);
+  }, [rasterState.visualQueryLatLngs, currentData, inspectState, currentType]);
 
   // d3 magic
   useEffect(() => {
     if (!data || localVQLatLngs.length == 0) return;
     console.log(data);
     const bounds = calcBounds(rasterState.config.rasterMin || 0.8, rasterState.config.rasterMax || 0.15);
-    const painter = new VisualQueryResultPainter('visual-query-container',
-        data.data.stream_data, data.data.date_data, {
+    painter.current = new VisualQueryResultPainter('visual-query-container',
+        data.data.stream_data, data.data.date_data, localVQLatLngs, {
           domainBoundLow: bounds[0],
           domainBoundHigh: bounds[1],
           threshAmplitude: (bounds[1] - bounds[0]) / 10,
           threshFluctuation: (bounds[1] - bounds[0]) / 10,
         });
-    painter.remove();
-    painter.renderDataStream();
+    painter.current.remove();
+    painter.current.renderDataStream();
   }, [data]);
 
   if (!['RT', 'NCF'].includes(currentType) || !rasterState || localVQLatLngs.length == 0) {
@@ -65,12 +77,12 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
     return null;
   }
 
-  console.log(data.data);
+  console.log(data?.data);
 
   return (
     <LayerBox key={'queryresult'} mode={'lb'} opacity={0.95}>
       <Box sx={{width: '36rem', height: '24rem'} }>
-        <Box sx={{position: 'absolute', padding: '2rem', top: 0, right: 0}}>
+        <Box sx={{position: 'absolute', padding: '2rem', top: '1rem', right: '1rem'}}>
           <IconButton size={'small'}
             onClick={() => {
               setLocalVQLatLngs([]);
@@ -80,9 +92,22 @@ const VisualQueryResult = (props: IVisualQueryResultProps) => {
         </Box>
         {loading && <LinearProgress variant={'indeterminate'}/>}
         {!loading &&
-            <div>
+            <Stack direction={'row'} spacing={1} alignItems={'center'}>
               <Typography variant={'body2'}><b>Visual Query Results</b></Typography>
-            </div>
+              <Button variant={'outlined'} size={'small'}
+                startIcon={<Download />}
+                onClick={() => {
+                  painter.current?.exportResult().then((content) => {
+                    saveAs(content, `data_stream_export_${currentDateStringShort()}.zip`);
+                    dispatch(uiSlice.actions.openSnackbar({
+                      severity: 'success',
+                      message: 'Data stream successfully exported.',
+                    }));
+                  });
+                }}>
+                  Export
+              </Button>
+            </Stack>
         }
         <div id={'visual-query-container'}
           style={{height: '95%', width: '100%'}}

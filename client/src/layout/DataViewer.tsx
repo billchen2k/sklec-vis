@@ -157,6 +157,7 @@ const DataViewer = (props: IVisualizerProps) => {
     } else if (data && data.dataset_type == 'NCF') {
       viewerContent = [
         <NCFViewer key={'ncf-viewer'} data={data}/>,
+        <VisualQueryResult key={'vqresult'} />,
       ];
     }
   }

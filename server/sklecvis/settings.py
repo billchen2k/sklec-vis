@@ -117,7 +117,7 @@ SWAGGER_SETTINGS = {
             'name': 'Authorization',
             'in': 'header'
         }
-    }
+    },
 }
 
 SIMPLE_JWT = {

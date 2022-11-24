@@ -29,8 +29,6 @@ const DataDetails = (props: IDataMetaInfoProps) => {
     </tr>);
   });
 
-  const demoSource = '## Ruskin data\nThis is the description of the dataset. This data was collected in **Shanghai**, 2018.';
-
   const handleDownloadClicked = () => {
     window.open(props.downloadLink, '_blank');
   };
@@ -45,7 +43,7 @@ const DataDetails = (props: IDataMetaInfoProps) => {
       <Box sx={{my: 1}}>
         <MDEditor.Markdown
           style={{'fontSize': '14px'}}
-          source={props.description || demoSource}
+          source={props.description || '*No description*'}
         />
       </Box>
 

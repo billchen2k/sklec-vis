@@ -10,18 +10,23 @@ import * as React from 'react';
 import {DatasetTagBadge} from './DatasetTagBatch';
 
 export interface ITagSelectorProps {
-  onTagSelected?: (tags: string[], displayName?: string) => any;
-  mode?: 'single' | 'multiple';
+  onTagSelected?: (tags: IDatasetTag[], displayName?: string) => any;
+  maxHeight?: number;
+  alreadySelectedTags?: string[];
+  single?: boolean; // Whether its a single choice. Will change some behaviours.
 }
 
 export default function TagSelector(props: ITagSelectorProps) {
-  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getDatasetTagList());
-  let currentSelectedTags = [];
-  try {
-    currentSelectedTags = JSON.parse(localStorage.getItem('selectedTags') || '[]');
-  } catch {
-    console.warn('Current selected tags in localStorage is in invalid format.');
-  };
+  const [{data, loading, error}] = useAxios<IModelListResponse<IDatasetTag>>(endpoints.getTags());
+  // if (props.alreadySelectedTags) {
+  const currentSelectedTags = props.alreadySelectedTags || [];
+  // } else {
+  //   try {
+  //     currentSelectedTags = JSON.parse(localStorage.getItem('selectedTags') || '[]');
+  //   } catch {
+  //     console.warn('Current selected tags in localStorage is in invalid format.');
+  //   };
+  // }
   const [selectedTags, setSelectedTags] = React.useState<string[]>(currentSelectedTags);
   const tagStore = React.useRef<TagStore>(undefined);
   const [allTags, setAllTags] = React.useState<IDatasetTag[]>([]);
@@ -36,7 +41,8 @@ export default function TagSelector(props: ITagSelectorProps) {
     }
   }, [data, loading, error]);
 
-  const handleSelectTag = (uuid: string) => {
+  const handleSelectTag = (tag: IDatasetTag) => {
+    const uuid = tag.uuid;
     const alreadySelected = selectedTags.indexOf(uuid) > -1;
     console.log(alreadySelected);
     let newSelectedTags = [];
@@ -54,18 +60,19 @@ export default function TagSelector(props: ITagSelectorProps) {
       newSelectedTags = _.union(tagToSelect, selectedTags);
     }
     setSelectedTags(newSelectedTags);
+    const newSelectedTagsObj = newSelectedTags.map((one) => tagStore.current.getTag(one));
     if (newSelectedTags.length > 0) {
-      props.onTagSelected(newSelectedTags, tagStore.current.tagFullName(newSelectedTags[0]) + (newSelectedTags.length > 1 ? '...' : ''));
-      localStorage.setItem('selectedTags', JSON.stringify(newSelectedTags));
+      props.onTagSelected(newSelectedTagsObj, tagStore.current.tagFullName(newSelectedTags[0]) + (newSelectedTags.length > 1 ? '...' : ''));
+      // !props.alreadySelectedTags && localStorage.setItem('selectedTags', JSON.stringify(newSelectedTags));
     } else {
       props.onTagSelected([], null);
-      localStorage.setItem('selectedTags', JSON.stringify([]));
+      // localStorage.setItem('selectedTags', JSON.stringify([]));
     }
   };
 
 
   return (
-    <Box sx={{width: 250, maxHeight: 500, overflowY: 'scroll'}}>
+    <Box sx={{width: 250, maxHeight: props.maxHeight || 500, overflowY: 'scroll'}}>
       {!tagStore.current &&
         <LinearProgress variant={'indeterminate'} sx={{width: '100%'}} />
       }
@@ -77,13 +84,16 @@ export default function TagSelector(props: ITagSelectorProps) {
           <ListItem key={one.uuid} dense
             sx={{padding: 0}}
           >
-            <Checkbox size={'small'}
-              checked={selectedTags.indexOf(one.uuid) != -1}
-              onChange={() => handleSelectTag(one.uuid)}
-            />
+            {!props.single &&
+              <Checkbox size={'small'}
+                checked={selectedTags.indexOf(one.uuid) != -1}
+                onChange={() => handleSelectTag(one)}
+              />
+            }
+
             <ListItemButton
               selected={selectedTags.indexOf(one.uuid) != -1}
-              onClick={() => handleSelectTag(one.uuid)}
+              onClick={() => handleSelectTag(one)}
             >
               <ListItemText primary={
                 <DatasetTagBadge tag={one} displayName={(one.level > 0 ? '/ ' : '') + one.full_name}/>

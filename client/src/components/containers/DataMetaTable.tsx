@@ -7,7 +7,7 @@ export interface IDataMetaTableProps {
 }
 
 const DataMetaTable = (props: IDataMetaTableProps) => {
-  console.log(props.meta);
+  // console.log(props.meta);
   const flattendMeta = flatten(props.meta || {}) as any;
   const excludedFileds = ['variables', 'dimensions'];
   const detailsRows = Object.keys(flattendMeta || {})?.map((item) => {

@@ -65,6 +65,20 @@ export const endpoints = {
       },
     };
   },
+  postNcfDataStream: (latLngs: L.LatLng[], visFileUUID: string[], label: string, depth: number): AxiosRequestConfig<any> => {
+    return withAuthorization(
+        {
+          url: `${API_ROOT}/ncfcontent/vqdatastream/`,
+          method: 'POST',
+          data: {
+            lat_lngs: latLngs,
+            channel_label: label,
+            visfile_uuid: visFileUUID,
+            dep: depth,
+          },
+        },
+    );
+  },
   getNcfContent: (uuid: string,
       channel_label: string,
       xparams?: Partial<Record<NCFContentRangeParams, string | number>>): AxiosRequestConfig<any> => {
@@ -76,12 +90,6 @@ export const endpoints = {
         ...xparams,
       },
     });
-  },
-  getDatasetTagList: (): AxiosRequestConfig<IModelListResponse<IDatasetTag>> => {
-    return {
-      url: `${API_ROOT}/tags/`,
-      method: 'GET',
-    };
   },
   postLogin: (username: string, password: string): AxiosRequestConfig<any> => {
     return {
@@ -149,6 +157,39 @@ export const endpoints = {
     return withAuthorization({
       url: `${API_ROOT}/dataset/destroy/${uuid}/`,
       method: 'DELETE',
+    });
+  },
+  postSetDatasetTags(uuid: string, tags: string[]): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/dataset/tags/set/${uuid}/`,
+      method: 'POST',
+      data: {
+        tags,
+      },
+    });
+  },
+  getTags: (): AxiosRequestConfig<IModelListResponse<IDatasetTag>> => {
+    return {
+      url: `${API_ROOT}/tags/`,
+      method: 'GET',
+    };
+  },
+  patchTags(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/${uuid}/`,
+      method: 'PATCH',
+    });
+  },
+  deleteTags(uuid: string): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/${uuid}/`,
+      method: 'DELETE',
+    });
+  },
+  postCreateTags(): AxiosRequestConfig<any> {
+    return withAuthorization({
+      url: `${API_ROOT}/tags/`,
+      method: 'POST',
     });
   },
 };

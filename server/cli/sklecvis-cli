@@ -1,0 +1,112 @@
+#!/opt/anaconda3/envs/sklecvis/bin/python
+
+# This script should be executed outside the docker.
+
+import toml
+import argparse
+import os
+import sys
+import getpass
+import pwd
+import re
+import parsers
+
+def get_user():
+    """Try to find the user who called sudo/pkexec."""
+    try:
+        return os.getlogin()
+    except OSError:
+        # failed in some ubuntu installations and in systemd services
+        pass
+
+    try:
+        user = os.environ['USER']
+    except KeyError:
+        # possibly a systemd service. no sudo was used
+        return getpass.getuser()
+
+    if user == 'root':
+        try:
+            return os.environ['SUDO_USER']
+        except KeyError:
+            # no sudo was used
+            pass
+
+        try:
+            pkexec_uid = int(os.environ['PKEXEC_UID'])
+            return pwd.getpwuid(pkexec_uid).pw_name
+        except KeyError:
+            # no pkexec was used
+            pass
+
+    return user
+
+username = get_user()
+dockername = f'{username}-server'
+dockername = 'billc-server' # debug only
+
+def usage():
+    usage = """
+usage: sklecvis-cli {upload-ncf,scan}
+
+To check help for each command, use sklecvis-cli {upload-ncf,scan} -h.
+"""
+    print(usage)
+
+def operation_upload_ncf():
+    parser = parsers.ncf_uploader_parser()
+    args = parser.parse_args(sys.argv[2:])
+    args_to_pass = sys.argv[2:]
+    if args.filepath:
+        print('Copying file to docker readable path...')
+        filename = os.path.basename(args.filepath)
+        os.system(f'cp {args.filepath} /srv/sklec-vis/server/media/tmp')
+        newpath = f'/app/media/tmp/{filename}'
+        print(f'Copied. Docker readable path: {newpath}')
+        for i in range(len(args_to_pass)):
+            if args_to_pass[i] == args.filepath:
+                args_to_pass[i] = newpath
+    os.system(f'docker exec {dockername} python /app/cli/ncf_uploader.py {" ".join(args_to_pass)}')
+
+def operation_scan():
+    parser = parsers.scan_parser()
+    args = parser.parse_args(sys.argv[2:])
+    ncf_template = re.compile(r'^(?!processed_)(?P<dataset_uuid>.+)_(?P<file_name>.+).nc')
+    files = os.listdir('/home/public/sklecvis-autoupload')
+    for one in files:
+        if (match := ncf_template.match(one)):
+            print(f'Scanned new file: {one}')
+            print('Copying file to docker readable path...')
+            os.system(f'cp /home/public/sklecvis-autoupload/{one} /srv/sklec-vis/server/media/tmp')
+            newpath = f'/app/media/tmp/{one}'
+            print(f'Copied. Docker readable path: {newpath}')
+            dataset_uuid = match.group('dataset_uuid')
+            dest_name = match.group('file_name')
+            cmd = f'docker exec {dockername} python /app/cli/ncf_uploader.py -f {newpath} -d {dataset_uuid} -n {dest_name}'
+            if args.override:
+                cmd += ' -o'
+            os.system(cmd)
+            os.system(f'mv /home/public/sklecvis-autoupload/{one} /home/public/sklecvis-autoupload/processed_{one}')
+    print('Scan complete.')
+
+def operation_test():
+    print('Running test for os.system...')
+    os.system('echo $(date) >> /home/public/__sklecvis_cli_test')
+    # os.system(f'docker exec {dockername} \'echo 123 >> /__sklecvis_cli_test\'')
+
+def main():
+    if len(sys.argv) <= 1:
+        usage()
+        exit(-1)
+    operation = sys.argv[1]
+    if operation == 'upload-ncf':
+        operation_upload_ncf()
+    elif operation == 'scan':
+        operation_scan()
+    elif operation == '_test':
+        operation_test()
+    else:
+        usage()
+
+if __name__ == '__main__':
+    main()

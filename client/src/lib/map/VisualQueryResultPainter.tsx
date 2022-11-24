@@ -3,6 +3,7 @@
  */
 
 import * as d3 from 'd3';
+import JSZip from 'jszip';
 
 export interface IVQResultPainterOptions {
   domainBoundLow?: number;
@@ -24,14 +25,16 @@ export class VisualQueryResultPainter {
   private colorGradientAmpFluc: any[];
   private d3containerName: string;
   private options: IVQResultPainterOptions;
+  private latLngs: L.LatLng[];
 
-  constructor(d3container: string, dataStream: number[][], dateData: any[], options: IVQResultPainterOptions) {
+  constructor(d3container: string, dataStream: number[][], dateData: any[], latLngs: L.LatLng[], options: IVQResultPainterOptions) {
     this.container_d3 = d3.select('#' + d3container);
     this.d3containerName = d3container;
     this.widthContainer = document.getElementById(d3container).clientWidth;
     this.heightContainer = document.getElementById(d3container).clientHeight;
     this.container_jq = document.getElementById(d3container);
     this.options = options;
+    this.latLngs = latLngs;
     this.dateData = dateData.map((d) => {
       return {date: new Date(d)};
     });
@@ -245,18 +248,27 @@ export class VisualQueryResultPainter {
     console.log(this.dateData);
     if (this.dateData.length <= 12) {
       xDateAxis.ticks(d3.timeHours);
-    } else if (this.dateData.length > 12 && this.dateData.length < 305) {
-      xDateAxis.tickFormat(d3.timeFormat('%y-%m-%d'));
     } else {
-      xDateAxis.ticks(d3.timeWeeks);
+      xDateAxis.tickFormat(d3.timeFormat('%y-%m-%d'));
     }
+    // } else {
+    //   xDateAxis.ticks(d3.timeWeeks);
+    // }
 
     xDate.domain(d3.extent(this.dateData, (d) => d.date));
+    xDateAxis.tickValues(this.dateData.map((d) => d.date)
+        .filter((one, index) => index % Math.round(this.dateData.length / 10) == 0),
+    );
 
     const colors = this.getColorsOfFlows();
 
-    // 在宽度上和right_content一致,在高度上使用margin
+    // 在宽度上和 right_content 一致,在高度上使用margin
     const svg = this.container_d3.append('svg')
+        .attr('id', 'vqdatastream-svg')
+        // 这些属性使得导出的 svg 文件能够被正常渲染
+        .attr('version', '1.1')
+        .attr('xmlns', 'http://www.w3.org/2000/svg')
+        .attr('xmlns:xlink', 'http://www.w3.org/1999/xlink')
         .attr('width', this.widthContainer)
         .attr('height', heightContent)
         .attr('transform', `translate(0,${margin.top})`)
@@ -344,7 +356,7 @@ export class VisualQueryResultPainter {
         .attr('class', 'tooltip')
         .style('visibility', 'hidden');
 
-    // 先 生成并添加一次以获得tooltip需要的高度
+    // 先生成并添加一次以获得tooltip需要的高度
     // TODO: 相对父元素计算tooltip的偏移; 直接计算tooltip高度; 改进tooltip样式
     let tooltipText = '<div class="tooltipID">1</div>' + this.dataStream[0][0].toString();
     for (let i = 1; i < this.dataStream.length; i++) {
@@ -374,6 +386,7 @@ export class VisualQueryResultPainter {
           for (let i = 1; i < this.dataStream.length; i++) {
             tooltipText += (`</br><div class="tooltipID">${i + 1}</div>` + ds[i][chartX].toString());
           }
+          tooltipText += '</br>Date: ' + this.dateData[chartX].date.toISOString().slice(0, 19);
 
           hoverLine.attr('x1', mouseX + 'px')
               .attr('x2', mouseX + 'px');
@@ -402,5 +415,55 @@ export class VisualQueryResultPainter {
           hoverLine.style('stroke-width', '0');
           tooltip.style('visibility', 'hidden');
         });
+  }
+
+  public async exportResult() {
+    const exportSVG = () => {
+      // Step 1: Export image as svg
+      const base64doc = btoa(unescape(encodeURIComponent(document.getElementById('vqdatastream-svg').outerHTML)));
+      // const a = document.createElement('a');
+      // const e = new MouseEvent('click');
+      // a.download = `data_stream_render_${new Date().toISOString().slice(0, 19)}.svg`;
+      // a.href = 'data:text/html;base64,' + base64doc;
+      // a.dispatchEvent(e);
+      return base64doc;
+    };
+
+    // Step 2: Export data stream
+    const exportDataStream = () => {
+      const numberOfCoordinates = this.latLngs.length;
+      let csvContent = '';
+      csvContent += 'Date,';
+      csvContent += Array.from(Array(numberOfCoordinates).keys()).map((i) => `Sample ${i + 1}`).join(',');
+      csvContent += '\n';
+      for (let i = 0; i < this.dataStream[0].length; i++) {
+        csvContent += this.dateData[i].date.toISOString().slice(0, 19) + ',';
+        const row = [];
+        for (let j = 0; j < this.latLngs.length; j++) {
+          row.push(this.dataStream[j][i]);
+        }
+        csvContent += row.join(',');
+        csvContent += '\n';
+      }
+      console.log(csvContent);
+      return csvContent;
+    };
+
+    const exportCoordinatesData = () => {
+      let csvContent = 'Sample,Longitude,Latitude\n';
+      for (let i = 0; i < this.latLngs.length; i++) {
+        csvContent += `${i + 1},${this.latLngs[i].lng},${this.latLngs[i].lat}\n`;
+      }
+      console.log(csvContent);
+      return csvContent;
+    };
+
+    const zip = new JSZip();
+    zip.file('data_stream.csv', exportDataStream());
+    zip.file('coordinates.csv', exportCoordinatesData());
+    zip.file('data_stream_render.svg', exportSVG(), {
+      base64: true,
+    });
+    return zip.generateAsync({type: 'blob'});
   }
 }

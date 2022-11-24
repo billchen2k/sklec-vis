@@ -3,18 +3,29 @@ import {endpoints} from '@/config/endpoints';
 import consts from '@/lib/consts';
 import {siteSlice} from '@/store/siteSlice';
 import {uiSlice} from '@/store/uiSlice';
-import {IDataset} from '@/types';
-import {Box, Button, Checkbox, CircularProgress, FormControlLabel, Stack, TextField, Typography} from '@mui/material';
+import {IDataset, IDatasetTag} from '@/types';
+import {IResponse} from '@/types/api';
+import {Box, Button, Checkbox, CircularProgress, FormControlLabel, Popover, Stack, TextField, Typography} from '@mui/material';
 import {DateTimePicker, LocalizationProvider} from '@mui/x-date-pickers';
 import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns';
+import MDEditor, {commands} from '@uiw/react-md-editor';
 import useAxios from 'axios-hooks';
 import {useFormik} from 'formik';
 import * as React from 'react';
-import {useParams} from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import * as Yup from 'yup';
 import DataMetaTable from '../containers/DataMetaTable';
+import {DatasetTagBadge} from '../elements/DatasetTagBatch';
+import TagSelector from '../elements/TagSelector';
 import {IDatasetEditFormData} from './DatasetEditorPanel';
 import FormItemLabel from './FormItemLabel';
+
+interface TagEditStatus {
+  open: boolean;
+  newTags?: IDatasetTag[];
+  edited: boolean;
+  loading: boolean;
+}
 
 export interface IDatasetEditorProps {
   datasetDetail: IDataset,
@@ -24,7 +35,24 @@ export interface IDatasetEditorProps {
 export default function DatasetEditor(props: IDatasetEditorProps) {
   const {datasetId} = useParams();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const originalData = props.datasetDetail;
+  const [tagEditStatus, setTagEditStatus] = React.useState<TagEditStatus>({
+    open: false,
+    newTags: null,
+    edited: false,
+    loading: false,
+  });
+
+  const [patchDatasetAxiosResult, patchDatasetExecute] = useAxios<IDataset>({
+    ...endpoints.patchDataset(''),
+  }, {
+    manual: true,
+  });
+
+  const [postSetDatasetTagsResult, postSetDatasetTagsResultExecute] = useAxios<IResponse<any>>({}, {
+    manual: true,
+  });
 
   const formikDataset = useFormik<IDatasetEditFormData>({
     initialValues: {
@@ -42,6 +70,11 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         ...endpoints.patchDataset(datasetId),
         data: values,
       });
+      if (tagEditStatus.edited) {
+        postSetDatasetTagsResultExecute({
+          ...endpoints.postSetDatasetTags(datasetId, tagEditStatus.newTags?.map((tag) => tag.uuid) || []),
+        });
+      }
     },
     validationSchema: Yup.object().shape({
       name: Yup.string().required('This field is required')
@@ -73,18 +106,14 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
     }),
   });
 
-  const [patchDatasetAxiosResult, patchDatasetExecute] = useAxios<IDataset>({
-    ...endpoints.patchDataset(''),
-  }, {
-    manual: true,
-  });
 
   React.useEffect(() => {
     const {data, loading, error} = patchDatasetAxiosResult;
-    if (data && !loading && !error) {
+    const {data: tdata, loading: tloading, error: terror} = postSetDatasetTagsResult;
+    if (data && !loading && !error && !tloading && !terror) {
       dispatch(uiSlice.actions.openSnackbar({
         severity: 'success',
-        message: 'Successfully updated dataset information',
+        message: 'Successfully updated dataset information.',
       }));
       props.onDatasetUpdated();
     }
@@ -94,7 +123,13 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         message: `Fail to update dataset information: ${error.message}.`,
       }));
     }
-  }, [patchDatasetAxiosResult, dispatch]);
+    if (!tloading && terror) {
+      dispatch(uiSlice.actions.openSnackbar({
+        severity: 'error',
+        message: `Fail to update dataset tags: ${terror.message}.`,
+      }));
+    }
+  }, [patchDatasetAxiosResult, postSetDatasetTagsResult, dispatch]);
 
   React.useEffect(() => {
     const onCoordinateSelected = (event: CustomEvent) => {
@@ -122,15 +157,67 @@ export default function DatasetEditor(props: IDatasetEditorProps) {
         />
       </Box>
       <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-        <FormItemLabel label={'Description:'} />
-        <TextField size={'small'} variant={'standard'} sx={{width: '70%'}}
+        <FormItemLabel label={'Description:'} tooltip={'The description of the dataset. Supports markdown syntax.'}/>
+        {/* <TextField size={'small'} variant={'standard'} sx={{width: '70%'}}
           multiline minRows={3} maxRows={10}
           name={'description'}
           value={formikDataset.values.description}
           onChange={formikDataset.handleChange}
           helperText={formikDataset.errors.description}
           error={Boolean(formikDataset.errors.description)}
+        /> */}
+        <MDEditor
+          style={{'fontSize': '14px', 'width': '70%'}}
+          value={formikDataset.values.description}
+
+          preview={'edit'}
+          height={150}
+          commands={[commands.bold, commands.italic, commands.strikethrough, commands.title, commands.divider, commands.link, commands.quote, commands.codeBlock]}
+          fullscreen={false}
+          onChange={(value) => formikDataset.setFieldValue('description', value)}
         />
+      </Box>
+      <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+        <FormItemLabel label={'Tags:'} />
+        <Button onClick={() => setTagEditStatus({...tagEditStatus, open: true})}
+          id={'btn-tag-edit'} variant={'outlined'} sx={{'width': '70%'}}>
+          <Stack direction={'row'} sx={{flexWrap: 'wrap', gap: 1, maxWidth: '100%'}}>
+            {(tagEditStatus.newTags || props.datasetDetail.tags).map((tag: IDatasetTag) => (
+              <DatasetTagBadge key={tag.uuid} tag={tag} />
+            ))}
+            <Typography variant={'body2'} sx={{color: 'text.secondary'}}>Edit</Typography>
+          </Stack>
+        </Button>
+        <Popover open={tagEditStatus.open}
+          anchorEl={document.getElementById('btn-tag-edit')}
+          anchorOrigin={{vertical: 'top', horizontal: 'right'}}
+          onClose={() => setTagEditStatus({...tagEditStatus, open: false})}
+        >
+          <TagSelector maxHeight={300} alreadySelectedTags={
+            (tagEditStatus.newTags || props.datasetDetail.tags).map((one) => one.uuid) || props.datasetDetail.tags.map((one) => one.uuid)
+          }
+          onTagSelected={(tags: IDatasetTag[], displayName: string) => {
+            setTagEditStatus({
+              ...tagEditStatus,
+              newTags: tags,
+              edited: true,
+            });
+          }}
+          />
+          <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, p: 1}}>
+            <Button onClick={() => navigate('/manage/tag')} variant={'text'} size={'small'}>
+              Edit Tags
+            </Button>
+            <Button onClick={() => setTagEditStatus({...tagEditStatus, open: false})} variant={'outlined'} size={'small'}>
+              OK
+            </Button>
+            {/* <Button onClick={() => {
+              setTagEditStatus({...tagEditStatus, open: false});
+            }} variant={'outlined'} size={'small'}>
+              Confirm
+            </Button> */}
+          </Box>
+        </Popover>
       </Box>
       <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
         <FormItemLabel label={'Metadata:'} tooltip={'This field is read only.'} />

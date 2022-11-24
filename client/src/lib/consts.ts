@@ -7,6 +7,7 @@ const consts = {
     TRIGGER_LOGIN_DIALOG: 'event_trigger_login_dialog',
     DATASET_SELECTED_IN_LIST: 'event_dataset_selected_in_list',
     MAP_FLY_TO: 'event_map_fly_to',
+    MAP_BOX_SELECTED: 'event_map_box_selected',
   },
   datasetTypeFullNames: {
     'NCF': 'NetCDF Dataset',

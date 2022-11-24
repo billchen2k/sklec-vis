@@ -51,3 +51,7 @@ export function copyToClipboard(text: string) {
   document.body.removeChild(textArea);
 }
 
+export function currentDateStringShort(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${d.getMonth() + 1}${d.getDate()}${d.getHours()}${d.getMinutes()}${d.getSeconds()}`;
+}

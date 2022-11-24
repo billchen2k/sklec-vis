@@ -85,7 +85,7 @@ class Dataset(models.Model):
     datetime_start = models.DateTimeField(blank=True, null=True)
     datetime_end = models.DateTimeField(blank=True, null=True)
     dataset_type = models.CharField(choices=DatasetType.choices, max_length=20, default=DatasetType.GENERAL)
-    tags = models.ManyToManyField(DatasetTag, blank=True, null=True)
+    tags = models.ManyToManyField(DatasetTag, blank=True)
 
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.name}'
@@ -105,13 +105,14 @@ class VisFile(models.Model):
         NONE = 'none'          # 无地理坐标信息
 
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
-    dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='vis_files')
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='vis_files')
     file_name = models.CharField(max_length=200)
-    file_size = models.IntegerField(default=0)
+    file_size = models.BigIntegerField(default=0)
     file = models.FileField(upload_to='datasets/vis/', blank=True, null=True)
     format = models.CharField(choices=FileFormat.choices, max_length=20, default=FileFormat.OTHER)
     default_sample_count = models.IntegerField(default=1)
     meta_data = models.JSONField(default=dict, blank=True, null=True)
+    info = models.JSONField(default=dict, blank=True, null=True)
     first_dimension_name = models.CharField(max_length=50, blank=True, null=True, default='Time')
     is_georeferenced = models.BooleanField(default=False)
     georeference_type = models.CharField(choices=GeoreferencedType.choices, max_length=20, default=GeoreferencedType.NONE)
@@ -145,16 +146,16 @@ class DataChannel(models.Model):
 
 class RawFile(models.Model):
     uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
-    dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, related_name='raw_files')
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, related_name='raw_files')
     file_name = models.CharField(max_length=200)
-    file_size = models.IntegerField(default=0)
+    file_size = models.BigIntegerField(default=0)
     file = models.FileField(upload_to='datasets/raw/', null=True, blank=True)
     meta_data = models.JSONField(default=dict)
     folder_hierarchy = models.CharField(max_length=200, blank=True, null=True, default='/') # 用于模拟一个数据集下的多个文件的文件夹层级结构。todo。
 
     # If the same as visualization file, then the raw file is not needed
     file_same_as_vis = models.BooleanField(default=False)
-    visfile = models.ForeignKey(VisFile, on_delete=models.SET_NULL, null=True, blank=True)
+    visfile = models.ForeignKey(VisFile, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f'{self.id}({self.uuid}): {self.file_name}'
@@ -182,7 +183,7 @@ class ViewTiffFile(models.Model):
     is_preview = models.BooleanField(blank=True, null=True)
     file = models.FileField(upload_to='cache_files/nc_to_tiff/', null=True, blank=True)
 
-    file_size = models.IntegerField(blank = True, null = True)
+    file_size = models.BigIntegerField(blank = True, null = True)
     file_name = models.CharField(max_length = 200, blank = True, null = True)
 
     datetime = models.IntegerField(blank = True, null = True)
@@ -199,3 +200,59 @@ class ViewTiffFile(models.Model):
 
     create_time = models.DateTimeField(blank = True, null = True)
     last_access_time = models.DateTimeField(blank = True, null = True)
+
+
+class FormDataTableMeta(models.Model):
+    class TableTypes(models.TextChoices):
+        BENTHOS = 'benthos'
+        SURFACE_SEDIMENT = 'surface_sediment'
+        VEGETATION = 'vegetation'
+        DEFAULT = 'default'
+
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    type = models.CharField(choices=TableTypes.choices, max_length=20, default=TableTypes.DEFAULT)
+    name = models.CharField(max_length=256, blank=True, null=True)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataFieldMeta(models.Model):
+    class AttributeTypes(models.TextChoices):
+        DEFAULT = 'default'
+        NUMERICAL = 'numerical'
+        TEMPORAL = 'temporal'
+        SPACIAL = 'spacial'
+        CATEGORICAL = 'categorical'
+
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    table_meta = models.ForeignKey(FormDataTableMeta, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='field_metas')
+    name = models.CharField(max_length=256, blank=True, null=True)
+    attribute_type = models.CharField(choices=AttributeTypes.choices, max_length=20, default=AttributeTypes.DEFAULT)
+    unit = models.CharField(max_length=30, blank=True, null=True)
+    index = models.IntegerField(blank=True, null=True, default=0)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataTable(models.Model):
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True,
+                                related_name='tables')
+    table_meta = models.ForeignKey(FormDataTableMeta, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='tables')
+    name = models.CharField(max_length=30, blank=True, null=True)
+    meta_data = models.JSONField(default=dict)
+
+
+class FormDataCell(models.Model):
+    uuid = models.CharField(default=uuid4_short, editable=False, max_length=20)
+    table = models.ForeignKey(FormDataTable, on_delete=models.CASCADE, null=True, blank=True,
+                              related_name='cells')
+    field_meta = models.ForeignKey(FormDataFieldMeta, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name='cells')
+    index_row = models.IntegerField(blank=True, null=True, default=0)
+    value_numerical = models.FloatField(blank=True, null=True, default=None)
+    value_temporal = models.DateTimeField(blank=True, null=True, default=None)
+    value_spacial = models.FloatField(blank=True, null=True, default=None)
+    value_categorical = models.CharField(max_length=256, blank=True, null=True, default=None)
+    value_default = models.CharField(max_length=256, blank=True, null=True, default=None)
+

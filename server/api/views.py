@@ -6,6 +6,8 @@ import urllib
 from json import JSONDecodeError
 from typing import Dict, List
 
+
+from django.core.files.uploadedfile import UploadedFile
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
@@ -18,14 +20,17 @@ from drf_yasg.utils import swagger_auto_schema
 from requests import delete
 from rest_framework import status, generics
 from rest_framework import views
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
 
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
+from api.sklec.RawFileUploadCore import NcfRawFileUploadCore, FormDataRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass
+from api.sklec.NcfCore import NcfCoreClass, NcfCore
+from api.sklec.FormDataCore import FormDataCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -122,7 +127,7 @@ class DatasetDestroy(generics.DestroyAPIView):
 
         return JsonResponseOK(data={'message': 'success'})
 
-class DatasetTagsAdd(views.APIView):
+class DatasetTagsAddToDataset(views.APIView):
 
     lookup_field = 'uuid'
     serializer_class = DatasetTagsAddSerializer
@@ -150,7 +155,71 @@ class DatasetTagsAdd(views.APIView):
             return JsonResponseError(message=e.args)
         return JsonResponseOK()
 
-class DatasetTagsRemove(views.APIView):
+class DatasetTags(generics.ListCreateAPIView):
+
+    serializer_class_get = SimpleDatasetTagSerializer
+    serializer_class_post = DatasetTagCreateSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return self.serializer_class_post
+        elif self.request.method == 'GET':
+            return self.serializer_class_get
+
+    def get_queryset(self):
+        return DatasetTag.objects.all()
+
+    @swagger_auto_schema(operation_description='获取系统中的所有标签。如果标签含有 parent 属性，则表明该标签为某个父标签的子标签。' +
+                                               '使用这种方式来表达标签的层级关系，从而来实现标签的嵌套关系。', )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='创建 DatasetTag。返回被创建 DatasetTag 的 UUID。', )
+    def post(self, request, *args, **kwargs):
+        validation = self.get_serializer(data=request.data)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        datasettag = DatasetTag(**validation.validated_data)
+        datasettag.save()
+        return JsonResponseOK(data={'uuid': datasettag.uuid})
+
+
+class DatasetTagUUID(generics.RetrieveUpdateDestroyAPIView):
+
+    lookup_field = 'uuid'
+    serializer_class = DatasetTagCreateSerializer
+
+    def get_queryset(self):
+        return DatasetTag.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+
+        return JsonResponseOK(data={'message': 'success'})
+
+    @swagger_auto_schema(operation_description='删除指定数据集标签。',
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_description='部分修改指定数据集标签。',
+                         responses={
+                             204: SuccessResponseSerializer,
+                             404: ErrorResponseSerializer,
+                         })
+    def patch(self, request, *args, **kwargs):
+        if ('parent' in request.data) and (request.data['parent'] == kwargs['uuid']):
+            return JsonResponseError(message='Parent uuid can not be the same with itself.')
+        return self.partial_update(request, *args, **kwargs)
+
+class DatasetTagsRemoveFromDataset(views.APIView):
 
     def get_queryset(self):
         return Dataset.objects.all()
@@ -175,6 +244,93 @@ class DatasetTagsRemove(views.APIView):
             return JsonResponseError(message=e.args)
         return JsonResponseOK()
 
+# class DatasetTagCreate(views.APIView):
+#     serializer_class = DatasetTagCreateSerializer
+#
+#     def post(self, request, *args, **kwargs):
+#         validation = DatasetTagCreateSerializer(data = request.data)
+#         if not validation.is_valid():
+#             return JsonResponseError(validation.errors)
+#         datasettag = DatasetTag(**validation.validated_data)
+#         datasettag.save()
+#         return JsonResponseOK(data = {'uuid': datasettag.uuid})
+#
+# class DatasetTagDestroy(generics.DestroyAPIView):
+#     lookup_field = 'uuid'
+#     def get_queryset(self):
+#         return DatasetTag.objects.all()
+#
+#     @swagger_auto_schema(operation_description='删除指定数据集标签。',
+#                          responses={
+#                              204: SuccessResponseSerializer,
+#                              404: ErrorResponseSerializer,
+#                          })
+#     def delete(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
+#
+#     def destroy(self, request, *args, **kwargs):
+#         try:
+#             instance = self.get_object()
+#             self.perform_destroy(instance)
+#         except Exception as e:
+#             return JsonResponseError(message=e.args)
+#
+#         return JsonResponseOK(data={'message': 'success'})
+#
+# class DatasetTagPatch(views.APIView):
+#
+#     def partial_update(self, request, *args, **kwargs):
+#         try:
+#             instance = DatasetTag.objects.get(uuid = kwargs['uuid'])
+#         except Exception as e:
+#             return JsonResponseError(f'DatasetTag with uuid {kwargs["uuid"]} not found.')
+#         serializer = DatasetTagCreateSerializer(instance, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         if (not serializer.is_valid):
+#             return JsonResponseError(serializer.errors)
+#         serializer.save()
+#         return JsonResponseOK(data=serializer.validated_data)
+#
+#     @swagger_auto_schema(operation_description='更新指定 DatasetTag 信息。',
+#                          request_body=DatasetTagCreateSerializer,
+#                          responses={
+#                              200: ResponseSerializer,
+#                              400: ErrorResponseSerializer,
+#                              500: ErrorResponseSerializer,
+#                          })
+#     def patch(self, request, *args, **kwargs):
+#         return self.partial_update(request, *args, **kwargs)
+
+class PostSetDatasetTags(views.APIView):
+
+    @swagger_auto_schema(operation_description='为指定数据集设置标签，会覆盖原有标签。',
+                         request_body=PostSetDatasetTagsSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        uuid_dataset = kwargs['uuid']
+        uuids_tag = jdata['tags']
+        ids_tag = []
+        for uuid_tag in uuids_tag:
+            try:
+                tag = DatasetTag.objects.get(uuid=uuid_tag)
+                ids_tag.append(tag.id)
+            except Exception as e:
+                return JsonResponseError(message=f'Fail to set tags: Tag {uuid_tag} not found.')
+        try:
+            dataset = Dataset.objects.get(uuid=uuid_dataset)
+        except Exception as e:
+            return JsonResponseError(message='Fail to set dataset tags.')
+        dataset.tags.set(ids_tag)
+        return JsonResponseOK()
+
 class TagList(generics.ListAPIView):
 
     serializer_class = SimpleDatasetTagSerializer
@@ -186,29 +342,60 @@ class TagList(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-class GetNcfContentVQDatastream(views.APIView):
+class PostNcfContentVQDatastream(views.APIView):
+    # authentication_classes = (CsrfExemptSessionAuthentication,)
 
     @swagger_auto_schema(operation_description="从指定 VisFile 中根据经纬度和深度获取所有变量的时域特征。",
-                         query_serializer=GetNcfContentVQDatastreamRequestSerializer,
-                         responses= {
-                             200: GetNcfContentVQDatastreamResponseSerializer,
+                         operation_id='ncfcontent_vqdatastream',
+                         request_body=PostNcfContentVQDatastreamRequestSerializer,
+                         responses={
+                             200: PostVQDataStreamResponseSerializer,
                              400: ErrorResponseSerializer,
                              500: ErrorResponseSerializer,
                          })
-    def get(self, request: HttpRequest, *args, **kwargs):
-        validation = GetNcfContentVQDatastreamRequestSerializer(data=request.query_params)
+    def post(self, request: HttpRequest, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        validation = PostNcfContentVQDatastreamRequestSerializer(data=jdata)
         if not validation.is_valid():
             return JsonResponseError(validation.errors)
         params = validation.data
-        uuid = kwargs['uuid']
-        try:
-            visfile = VisFile.objects.get(uuid=uuid)
-        except VisFile.DoesNotExist as e:
-            return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
+        lat_lngs = params['lat_lngs']
+        visfile_uuids = params['visfile_uuid']
+        # 兼容前端，后续要求 assert(len(lat_lngs) == len(visfile_uuids))
+        if (len(lat_lngs) == len(visfile_uuids)):
+            stream_data = []
+            date_data = []
+            for lat_lng, visfile_uuid in zip(lat_lngs, visfile_uuids):
+                try:
+                    visfile = VisFile.objects.get(uuid=visfile_uuid)
+                    core = NcfCore(visfile.file.path)
+                except VisFile.DoesNotExist as e:
+                    return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
 
-        core = NcfCoreClass(visfile.file.path)
-        vq_data = core.get_vq_datastream(params)
-        return JsonResponseOK(data = vq_data)
+                vq_data = core.get_vqdata_content(label=params['channel_label'], longitude_value=lat_lng['lng'],
+                                                  latitude_value=lat_lng['lat'], depth_value = params['dep'])
+                stream_data.append(vq_data.get('stream_data'))
+                date_data.extend(vq_data.get('date_data'))
+        else:
+            visfile_uuid = visfile_uuids[0]
+            try:
+                visfile = VisFile.objects.get(uuid=visfile_uuid)
+                core = NcfCore(visfile.file.path)
+            except VisFile.DoesNotExist as e:
+                return JsonResponseError(f'VisFile with uuid {visfile_uuid} does not exist.')
+            stream_data = []
+            for lat_lng in lat_lngs:
+                vq_data = core.get_vqdata_content(label=params['channel_label'], longitude_value=lat_lng['lng'],
+                                                  latitude_value=lat_lng['lat'], depth_value=params['dep'])
+                stream_data.append(vq_data['stream_data'])
+                date_data = vq_data['date_data']
+        vqdata_response = {'date_data': date_data, 'stream_data': stream_data, 'lat_lngs': lat_lngs}
+        return JsonResponseOK(data=vqdata_response)
+
 
 class GetRskContent(views.APIView):
 
@@ -389,7 +576,7 @@ class RawfileDestroyView(generics.DestroyAPIView):
         try:
             instance = self.get_object()
         except Exception as e:
-            return JsonResponseError(f'visfile with uuid {kwargs["uuid"]} not found.')
+            return JsonResponseError(f'rawfile with uuid {kwargs["uuid"]} not found.')
         self.perform_destroy(instance)
         return JsonResponseOK()
 
@@ -452,7 +639,7 @@ class VisfileDestroyView(generics.DestroyAPIView):
         return self.destroy(request, *args, **kwargs)
 
 class GetNcfContent(views.APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(operation_description='从指定 VisFile 中获取指定 Channel 的数据(仅限NCF)',
                          query_serializer=GetNcfContentRequestSerializer,
@@ -481,67 +668,81 @@ class GetNcfContent(views.APIView):
             visfile = VisFile.objects.get(uuid=uuid)
         except VisFile.DoesNotExist as e:
             return JsonResponseError(f'VisFile with uuid {uuid} does not exist.')
-        channel_label = params['channel_label']
-        channel_label_exists = 0
-        for dimension in visfile.meta_data['variables']:
-            if (channel_label == dimension['variable_name']):
-                channel_label_exists = 1
-        if (not channel_label_exists):
-            return JsonResponseError(f'Channel label with label {channel_label} does not exist.')
 
-        for dimension in visfile.meta_data['dimensions']:
-            name = dimension['dimension_name']
-            length = dimension['dimension_length']
-            typ = dimension['dimension_type']
-            for dim in dimension_list:
-                if (dim == typ):
-                    if (params[dim + '_start'] == -1):
-                        params[dim + '_start'] = 0
-                    if (params[dim + '_end'] == -1):
-                        params[dim + '_end'] = length - 1
+        core = NcfCore(visfile.file.path)
+        ncf_content = core.generate_ncf_content(
+            label=params['channel_label'],
+            longitude_start=params['longitude_start'], longitude_end=params['longitude_end'],
+            latitude_start=params['latitude_start'], latitude_end=params['latitude_end'],
+            time_start=params['datetime_start'], time_end=params['datetime_end'],
+            depth_start=params['depth_start'], depth_end=params['depth_end'],
+            res_limit=params['res_limit'], filenum_limit=params['filenum_limit'])
+        for f in ncf_content:
+            url = f['file_path'].replace(settings.MEDIA_ROOT, '/media')
+            f['file'] = request.build_absolute_uri(url)
+        return JsonResponseOK(data={'files': ncf_content})
 
-                    if params[dim + '_start'] > params[dim + '_end']:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
-                    if params[dim + '_start'] < 0:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is out of range.')
-                    if params[dim + '_end'] > length - 1:
-                        return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
-                    break
-
-        if params['res_limit'] == -1:
-            params['res_limit'] = 100000000
-        if params['filenum_limit'] == -1:
-            params['filenum_limit'] = 100000000
-        if params['res_limit'] < 1:
-            return JsonResponseError(f'Resolution limit is invalid. Should greater than 0.')
-        if params['filenum_limit'] < 1:
-            return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
-
-        return_type = 'tiff' # default is tiff
-        if params.__contains__('return_type'):
-            return_type = params['return_type']
-
-        scalar_format = 6
-        if params.__contains__('scalar_format'):
-            scalar_format = params['scalar_format']
-            # scalar_format = urllib.parse.unquote(params['scalar_format'])
-        # URLDecoder.decode(params['return_scalar_format'], "utf-8")
-        core = NcfCoreClass(visfile.file.path)
-        data = {}
-        if return_type == 'array':
-            channel_data_array_list = core.get_channel_data_array(params)
-            data['arrays'] = channel_data_array_list
-        elif return_type == 'tiff':
-            file_meta_list: List[Dict] = core.get_channel_data_split(params)
-            files = []
-            for f in file_meta_list:
-                url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
-                f['file'] = request.build_absolute_uri(url)
-                del f['filepath']
-            data['files'] = file_meta_list
-        else:
-            return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
-        return JsonResponseOK(data=data)
+        # channel_label = params['channel_label']
+        # channel_label_exists = 0
+        # for dimension in visfile.meta_data['variables']:
+        #     if (channel_label == dimension['variable_name']):
+        #         channel_label_exists = 1
+        # if (not channel_label_exists):
+        #     return JsonResponseError(f'Channel label with label {channel_label} does not exist.')
+        #
+        # for dimension in visfile.meta_data['dimensions']:
+        #     name = dimension['dimension_name']
+        #     length = dimension['dimension_length']
+        #     typ = dimension['dimension_type']
+        #     for dim in dimension_list:
+        #         if (dim == typ):
+        #             if (params[dim + '_start'] == -1):
+        #                 params[dim + '_start'] = 0
+        #             if (params[dim + '_end'] == -1):
+        #                 params[dim + '_end'] = length - 1
+        #
+        #             if params[dim + '_start'] > params[dim + '_end']:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is larger than end.')
+        #             if params[dim + '_start'] < 0:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. Start is out of range.')
+        #             if params[dim + '_end'] > length - 1:
+        #                 return JsonResponseError(f'Dimention range with dimention {dim} is invalid. End is out of range.')
+        #             break
+        #
+        # if params['res_limit'] == -1:
+        #     params['res_limit'] = 100000000
+        # if params['filenum_limit'] == -1:
+        #     params['filenum_limit'] = 100000000
+        # if params['res_limit'] < 1:
+        #     return JsonResponseError(f'Resolution limit is invalid. Should greater than 0.')
+        # if params['filenum_limit'] < 1:
+        #     return JsonResponseError(f'Filenum limit is invalid. Should greater than 0.')
+        #
+        # return_type = 'tiff' # default is tiff
+        # if params.__contains__('return_type'):
+        #     return_type = params['return_type']
+        #
+        # scalar_format = 6
+        # if params.__contains__('scalar_format'):
+        #     scalar_format = params['scalar_format']
+        #     # scalar_format = urllib.parse.unquote(params['scalar_format'])
+        # # URLDecoder.decode(params['return_scalar_format'], "utf-8")
+        # core = NcfCoreClass(visfile.file.path)
+        # data = {}
+        # if return_type == 'array':
+        #     channel_data_array_list = core.get_channel_data_array(params)
+        #     data['arrays'] = channel_data_array_list
+        # elif return_type == 'tiff':
+        #     file_meta_list: List[Dict] = core.get_channel_data_split(params)
+        #     files = []
+        #     for f in file_meta_list:
+        #         url = f['filepath'].replace(settings.MEDIA_ROOT, '/media')
+        #         f['file'] = request.build_absolute_uri(url)
+        #         del f['filepath']
+        #     data['files'] = file_meta_list
+        # else:
+        #     return JsonResponseError(f'VisFile with return_type {return_type} is not supported.')
+        # return JsonResponseOK(data=data)
 
 
 class Login(views.APIView):
@@ -688,20 +889,26 @@ class FileUploadView(views.APIView):
                              200: SuccessResponseSerializer,
                              400: ErrorResponseSerializer,
                          })
-    def post(self, request: HttpRequest, format=None):
-        # try:
-            file = request.FILES['file']
-            if (file.name.endswith('.nc')):
-                core = NcfFileUploadClass(file)
+    def post(self, request: HttpRequest, *args, **kwargs):
+        validation = RawFileUploadSerializer(data=request.data)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+        validated_data = validation.validated_data
+        rawfile: UploadedFile = request.FILES['file']
+        # 判断 rawfile 类型，此处暂时根据后缀名判断
+        if (rawfile.name.endswith('.nc')):
+            core = NcfRawFileUploadCore()
+        else:
+            core = GenericRawFileUploadCore()
 
-            params = request.POST
-            res = core.create(params)
-            if res == 'success':
-                return JsonResponseOK()
-            else:
-                return JsonResponseError()
-        # except Exception as e:
-        #     return JsonResponseError(message=e.args)
+        # return JsonResponseOK(data=validated_data['uuid'])
+        try:
+            core.save_from_uploaded_file(rawfile)
+            core.generate_rawfile_and_visfile(validated_data.get('uuid'))
+        except Exception as e:
+            return JsonResponseError(message=e.args)
+
+        return JsonResponseOK()
 
 
 class SendVerificationEmail(views.APIView):
@@ -774,6 +981,123 @@ class VerifyEmailToken(views.APIView):
         except User.DoesNotExist:
             return JsonResponseError('User does not exist.')
         return JsonResponseOK(data={'result': 'Successfully verified your email address.'})
+
+
+class FormDataTableMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableMetaSerializer
+    queryset = FormDataTableMeta.objects.all()
+    lookup_field = 'uuid'
+
+
+class FormDataFieldMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataFieldMetaSerializer
+    queryset = FormDataFieldMeta.objects.all()
+    lookup_field = 'uuid'
+
+
+class FormDataTableViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableSerializer
+    queryset = FormDataTable.objects.all()
+    lookup_field = 'uuid'
+
+
+class FormDataCellViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataCellSerializer
+    queryset = FormDataCell.objects.all()
+    lookup_field = 'uuid'
+
+
+class PostFormDataFieldMetaBatch(views.APIView):
+    serializer_class = FormDataFieldMetaBatchSerializer
+
+    @swagger_auto_schema(operation_description='批量添加 FormDataFieldMeta',
+                         request_body=FormDataFieldMetaBatchSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        field_metas = jdata['field_metas']
+        validation = FormDataFieldMetaBatchSerializer(data=jdata)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation.validated_data
+        field_meta_uuids = []
+        for field_meta in validated_data['field_metas']:
+            file_meta_obj = FormDataFieldMeta(**field_meta)
+            file_meta_obj.save()
+            field_meta_uuids.append(file_meta_obj.uuid)
+        return JsonResponseOK(data={'field_meta_uuids': appended_uuids})
+
+
+class GetFormDataTableCSV(views.APIView):
+
+    def get(self, request, *args, **kwargs):
+        table_uuid = kwargs['uuid']
+        table = FormDataTable.objects.get(uuid=table_uuid)
+        table_meta = table.table_meta
+        field_metas = FormDataFieldMeta.objects.filter(table_meta=table_meta).order_by('index')
+        col_tuple = []
+        res = ''
+        for field_meta in field_metas:
+            row = []
+            res += field_meta.name + ','
+            field_values = FormDataCell.objects.filter(field_meta=field_meta)\
+                .filter(table=table).order_by('index_row')
+            for field_value in field_values:
+                if field_meta.attribute_type == 'numerical':
+                    row.append(field_value.value_numerical)
+                elif field_meta.attribute_type == 'temporal':
+                    row.append(field_value.value_temporal)
+                elif field_meta.attribute_type == 'spacial':
+                    row.append(field_value.value_spacial)
+                elif field_meta.attribute_type == 'categorical':
+                    row.append(field_value.value_categorical)
+                else:  # default type
+                    row.append(field_value.value_default)
+            col_tuple.append(row)
+
+        res += '\n'
+        for i in range(len(col_tuple[0])):
+            for j in range(len(col_tuple)):
+                res += str(col_tuple[j][i]) + ','
+            res += '\n'
+
+        return JsonResponseOK(data=res)
+
+
+class PostFormDataTableCSV(views.APIView):
+    parser_classes = (MultiPartParser,)
+
+    @swagger_auto_schema(operation_description='将 CSV 文件作为表格数据添加入指定 dataset，需指定对应的 table_meta',
+                         request_body=PostFormDataCSVSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        validation_data = PostFormDataCSVSerializer(data=request.data)
+        if not validation_data.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation_data.validated_data
+        csv_file = validated_data['csv_file']
+        upload_core = FormDataRawFileUploadCore()
+        upload_core.save_from_uploaded_file(csv_file)
+
+        dataset_uuid = validated_data['dataset_uuid']
+        table_meta_uuid = validated_data['table_meta_uuid']
+        formdata_core = FormDataCore()
+        table_uuid = formdata_core.generate_table_from_csv(upload_core.rawfile_path, dataset_uuid, table_meta_uuid)
+        return JsonResponseOK(data={
+            'table_uuid': table_uuid
+        })
 
 
 def not_found(request: HttpRequest) -> HttpResponse:

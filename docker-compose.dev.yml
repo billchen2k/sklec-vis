@@ -3,14 +3,14 @@
 version: "3"
 services:
 
-  # Make sure that production db is working
-  #
+  # Make sure that production db is working. Other wise, uncomment these lines.
+
   # db:
   #   container_name: ${CONTAINER_DB}
   #   image: postgres
   #   restart: unless-stopped
   #   environment:
-  #     POSTGRES_PASSWORD: 4dmnpoH9TvA3KzQW
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
   #   volumes:
   #     - sklec_vis_db:/var/lib/postgresql/data
   #   ports:
@@ -27,16 +27,18 @@ services:
       DB_HOST: 172.20.5.126 # For local debugging
       DB_PORT: 5432
       DB_USERNAME: postgres
-      DB_PASSWORD: 4dmnpoH9TvA3KzQW
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: sklecvis
       PYTHONPATH: /app
     expose:
       - "8000"
     volumes:
       - ./server:/app
-
       # 如果使用生产环境 media：
       - /srv/sklec-vis/server/media:/app/media
+
+      # 监听文件夹
+      - /home/public/sklecvis-autoupload:/data/autoupload
 
 
   client:

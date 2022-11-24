@@ -103,6 +103,10 @@ export default class TagStore {
     return res;
   }
 
+  public getTag(uuid: string): IDatasetTag {
+    return this.uuid2NodeTable[uuid]?.tag || null;
+  }
+
   private _getAllTags(root: TagNode, current: IDatasetTag[]) {
     if (root.tag) {
       current.push(root.tag);

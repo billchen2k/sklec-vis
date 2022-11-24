@@ -3,6 +3,7 @@ import DataDetails from '@/components/sidebar/DataDetails';
 import DatasetList from '@/components/sidebar/DatasetList';
 import demoData from '@/lib/demoData';
 import {siteSlice} from '@/store/siteSlice';
+import {uiSlice} from '@/store/uiSlice';
 import {INCFVariable} from '@/types/ncf.type';
 import {ArrowBack} from '@mui/icons-material';
 import {Box, Card, FormControl, IconButton, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, SxProps, Tooltip, Typography} from '@mui/material';
@@ -33,6 +34,13 @@ const Sidebar = (props: ISidebarProps) => {
     dispatch(siteSlice.actions.setInspectingState({
       selectedChannel: index,
     }));
+    // Instant preview
+    const previewInfo = datasetDetailCache.vis_files[selectedVisFile]?.meta_data?.variables[index].preview_info;
+    if (previewInfo) {
+      dispatch(siteSlice.actions.setRasterState({
+        rasterLink: '/' + previewInfo.file,
+      }));
+    }
   };
 
   let sidebarContent = null;

@@ -196,6 +196,7 @@ const DatasetList = (props: IDatasetListProps) => {
     if ((tagFilterStatus.tags || []).length > 0) {
       isTagEligible = _.intersection(tagFilterStatus.tags, one.tags.map((tag) => tag.uuid)).length > 0;
     }
+
     const isTypeEligible = !typeStatus.type || (one.dataset_type == typeStatus.type);
     return searchHit && isVisible && isTagEligible && isTypeEligible;
   });
@@ -228,9 +229,13 @@ const DatasetList = (props: IDatasetListProps) => {
   const handleDatasetClickedInList = (dataset: IDataset) => {
     document.dispatchEvent(new CustomEvent(consts.EVENT.MAP_FLY_TO, {
       detail: {
-        lat: dataset.latitude,
-        lng: dataset.longitude,
+        latlng: {
+          lat: dataset.latitude,
+          lng: dataset.longitude,
+        },
+        zoom: 8,
       },
+
     }));
   };
 
@@ -282,9 +287,11 @@ const DatasetList = (props: IDatasetListProps) => {
             onClose={() => setTagFilterStatus({...tagFilterStatus, open: false})}
           >
             <ListSubheader>Filter dataset tags</ListSubheader>
-            <TagSelector onTagSelected={(tags: string[], displayText? : string) => {
-              setTagFilterStatus({...tagFilterStatus, tags, displayText});
-            }} />
+            <TagSelector onTagSelected={(tags: IDatasetTag[], displayText? : string) => {
+              setTagFilterStatus({...tagFilterStatus, tags: tags.map((one) => one.uuid), displayText});
+            }}
+            alreadySelectedTags={tagFilterStatus.tags}
+            />
           </Popover>
 
           <Popover open={sortingStatus.open}

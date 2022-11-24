@@ -26,8 +26,9 @@ class SuccessResponseSerializer(ResponseSerializer):
 
 class GetVisContentRequestSerializer(serializers.Serializer):
 
-    datetime_start = serializers.DateTimeField(required=False, help_text='开始时间。')
-    datetime_end = serializers.DateTimeField(required=False, help_text='结束时间。')
+    datetime_start = serializers.DateTimeField(
+        required=False, help_text='开始时间。应当为 ISO 格式，如 2020-09-30T16:08:58.000Z。')
+    datetime_end = serializers.DateTimeField(required=False, help_text='结束时间。应当为 ISO 格式，如 2020-09-30T16:08:58.000Z。')
     channels = serializers.ListField(child=serializers.CharField(), required=False, help_text='要获取的数据通道。如果指定了 all_channel，请留空。')
     all_channels = serializers.BooleanField(required=False, help_text='是否获取所有通道。如果为 true，则 channels 字段将被忽略。', default=False)
     target_samples = serializers.IntegerField(required=False, help_text='要获取的样本数。默认为 1000，不一定精确。')
@@ -83,7 +84,7 @@ class PostVQDataStreamResponseSerializer(SuccessResponseSerializer):
     class DataSerializer(serializers.Serializer):
         date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
         stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
-        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        lat_lngs = serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
 
         class Meta:
             ref_name = 'VQDataStreamResponseData'
@@ -94,20 +95,21 @@ class GetNcfContentRequestSerializer(serializers.Serializer):
 
     # class IntegerListField(serializers.ListField):
     #     child = serializers.CharField()
-    datetime_start = serializers.IntegerField(required=False, default=-1, help_text="时间起点下标，-1表示无限制")
-    datetime_end = serializers.IntegerField(required=False, default=-1, help_text="时间终点下标，-1表示无限制")
+    datetime_start = serializers.IntegerField(required=False, allow_null=True, help_text="时间起点下标，留空表示无限制")
+    datetime_end = serializers.IntegerField(required=False, allow_null=True, help_text="时间终点下标，留空表示无限制")
     # datetime = IntegerListField(required=False, help_text="长度为2的列表，表示时间两端的下标，用-1表示某端无限制，可留空")
-    longitude_start = serializers.IntegerField(required=False, default=-1, help_text="经度起点下标，-1表示无限制")
-    longitude_end = serializers.IntegerField(required=False, default=-1, help_text="经度终点下标，-1表示无限制")
+    longitude_start = serializers.IntegerField(required=False, allow_null=True, help_text="经度起点下标，留空表示无限制")
+    longitude_end = serializers.IntegerField(required=False, allow_null=True, help_text="经度终点下标，留空表示无限制")
 
-    latitude_start = serializers.IntegerField(required=False, default=-1, help_text="纬度起点下标，-1表示无限制")
-    latitude_end = serializers.IntegerField(required=False, default=-1, help_text="纬度终点下标，-1表示无限制")
+    latitude_start = serializers.IntegerField(required=False, allow_null=True, help_text="纬度起点下标，留空表示无限制")
+    latitude_end = serializers.IntegerField(required=False, allow_null=True, help_text="纬度终点下标，留空表示无限制")
 
-    depth_start = serializers.IntegerField(required=False, default=-1, help_text="深度起点下标，-1表示无限制")
-    depth_end = serializers.IntegerField(required=False, default=-1, help_text="深度终点下标，-1表示无限制")
+    depth_start = serializers.IntegerField(required=False, allow_null=True, help_text="深度起点下标，留空表示无限制")
+    depth_end = serializers.IntegerField(required=False, allow_null=True, help_text="深度终点下标，留空表示无限制")
 
-    res_limit = serializers.IntegerField(required=False, default=-1, help_text="生成的每个 tiff 像素大小上界。留空或-1表示无限制")
-    filenum_limit = serializers.IntegerField(required=False, default=-1, help_text="生成 tiff 文件的数量上界。留空或-1表示无限制")
+    res_limit = serializers.IntegerField(required=False, allow_null=True, help_text="生成的每个 tiff 像素大小上界。留空表示无限制")
+    filenum_limit = serializers.IntegerField(required=False, allow_null=True, help_text="生成 tiff 文件的数量上界。留空表示无限制")
+
     return_type = serializers.CharField(required=False, help_text="留空则默认为tiff。")
     channel_label = serializers.CharField(help_text="表示所请求的channel，应与dataset.variables.variable_name一致")
     scalar_format = serializers.IntegerField(required=False, help_text="array标量数据的format规则")
@@ -182,22 +184,63 @@ class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)
     format = serializers.CharField(max_length=256, allow_blank=True, required=False)
 
-class GetNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
+class PostNcfContentVQDatastreamRequestSerializer(serializers.Serializer):
 
-    lat = serializers.FloatField(required=True)
-    lng = serializers.FloatField(required=True)
-    dpt = serializers.FloatField(required=False, default=0)
-    label = serializers.CharField(max_length=256, required=True)
-    # radius = serializers.IntegerField(required=False, help_text="")
+    class NcfContentLatLngItemSerializer(serializers.Serializer):
+        lat = serializers.FloatField(required=False)
+        lng = serializers.FloatField(required=False)
+
+    lat_lngs = serializers.ListField(child=NcfContentLatLngItemSerializer(), required=False, help_text='采样点的经纬度列表。', )
+    # radius = serializers.FloatField(required=False, default=1,
+    #                                 help_text='采样半径。应为大于等于 1，小于等于 100 的整数。默认为 1。')
+    visfile_uuid = serializers.ListField(child=serializers.CharField(), required=False,
+                                         help_text='要获取的 Vis Content。此处必须为 netCDF 形式的 visFile。')
+    # dataset_uuid = serializers.CharField(required=False,
+    #                                      help_text='数据集 UUID。如果指定了 vis_uuid，则该字段将被忽略。' +
+    #                                                '如果没有指定 vis_uuid，则必须指定该字段，且数据的获取范围为该数据集下的全部数据。')
+    dep = serializers.FloatField(required=False, default=0)
+    channel_label = serializers.CharField(max_length=256, required=False)
 
 
-class GetNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
+class PostNcfContentVQDatastreamResponseSerializer(serializers.Serializer):
 
     class DataSerializer(serializers.Serializer):
         date_data = serializers.ListField(child=serializers.DateTimeField(), required=False)
         stream_data = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()), required=False)
-        lat_lngs =  serializers.ListField(child=PostVQDataStreamRequestSerializer.LatLngItemSerializer(), required=False)
+        lat_lngs = serializers.ListField(child=PostNcfContentVQDatastreamRequestSerializer.NcfContentLatLngItemSerializer(), required=False)
+
         class Meta:
-            ref_name = 'GetNcfContentVQDatastreamData'
+            ref_name = 'VQDataStreamResponseData'
 
     data = DataSerializer()
+
+
+class PostSetDatasetTagsSerializer(serializers.Serializer):
+
+    tags = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text='新的标签列表。如果为空或不存在，则会清空数据集的所有标签。'
+    )
+
+
+class GetNcfContentResponseSerializer2(serializers.Serializer):
+
+    class DataSerializer(serializers.Serializer):
+
+        class TiffFileSerializer(serializers.Serializer):
+            pass
+
+        files = serializers.ListField(required=True)
+
+        class Meta:
+            ref_name = 'NcfContentResponseData'
+
+    data = DataSerializer()
+
+
+class PostFormDataCSVSerializer(serializers.Serializer):
+
+    dataset_uuid = serializers.CharField(max_length=256, allow_blank=True, required=True)
+    table_meta_uuid = serializers.CharField(max_length=256, allow_blank=True, required=False, default=None)
+    csv_file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)

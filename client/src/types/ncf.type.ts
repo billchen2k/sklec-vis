@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
-export type IDimensionType = 'longitude' | 'latitude' | 'depth' | 'datetime'
+// `time` ?
+export type IDimensionType = 'longitude' | 'latitude' | 'depth' | 'datetime' | 'time';
 
 export interface INCFDimension {
+    dimension_units: string;
     dimension_length: number;
     dimension_name: string;
     dimension_type: IDimensionType;

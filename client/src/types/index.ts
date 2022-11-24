@@ -1,4 +1,7 @@
 /* eslint-disable camelcase */
+
+import {IDimensionType} from './ncf.type';
+
 /**
  * RT = Raster files
  * NCF = NetCDF files
@@ -19,6 +22,29 @@ export interface IGroupingResult {
 };
 
 export type IFileFormat = 'tiff' | 'ncf' | 'rsk' | 'csv' | 'other';
+
+export interface IVisFileMetaData {
+  // Variables and dimensions are preserved keywrods for metadata.
+  [key: string]: any; // Meta data can contain any keys
+}
+
+export interface IVisFileInfo {
+  variables: {
+    variable_name: string;
+    variable_units: string;
+    variable_longname: string;
+    preview_info: | INCFContentFile;
+    variable_dimensions: IDimensionType[];
+  }[];
+  dimensions: {
+    dimension_name: string;
+    dimension_type: string;
+    dimension_length: number;
+    dimension_values: (number | string)[];
+  }[];
+  date_data: string[];
+}
+
 export interface IVisFile {
   data_channels: any[];
   file: string;
@@ -27,7 +53,8 @@ export interface IVisFile {
   file_size: number;
   format: IFileFormat;
   default_sample_count: number;
-  meta_data: any;
+  meta_data: IVisFileMetaData;
+  info: IVisFileInfo; // Date data, dimension information etc.
   first_dimension_name: string;
   is_georeferenced: boolean;
   georeferenced_type: string;
@@ -37,6 +64,7 @@ export interface IVisFile {
   latitude2: number;
   datetime_start: string;
   datetime_end: string;
+  display_name?: string;
 }
 
 export interface INCFContentFile extends IVisFile {

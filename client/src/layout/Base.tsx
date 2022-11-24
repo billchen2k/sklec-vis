@@ -48,7 +48,7 @@ const Base = (props: IBaseProps) => {
   return (
     <Box className={'app'}>
       <AppBar position='fixed' color={isManaging ? 'warning' : 'primary'}
-        sx={{height: config.appearance.appBarHeight}}>
+        sx={{height: config.appearance.appBarHeight, zIndex: 900}}>
         <SKToolbar sidebarOpen={sidebarOpen}
           onToggleOpen={toggleSidebar}
         ></SKToolbar>
