@@ -101,12 +101,15 @@ export function NCFViewer(props: INCFViewerProps) {
       if (latlng1 && latlng2) {
         const latValRange = [latlng1.lat, latlng2.lat];
         const lngValRange = [latlng1.lng, latlng2.lng];
-        latValRange.sort();
-        lngValRange.sort();
-        handleDimensionsRangeChange({
+        // JavaScript sort arrays alphabetically by default
+        latValRange.sort((a, b) => a - b);
+        lngValRange.sort((a, b) => a - b);
+        const newLatLngRange: RangeState = {
           'latitude': latValRange.map((lat) => getDimensionIndex('latitude', lat)),
           'longitude': lngValRange.map((lng) => getDimensionIndex('longitude', lng)),
-        });
+        };
+        handleDimensionsRangeChange(newLatLngRange);
+        handleExecute({...ranges, ...newLatLngRange});
       }
     };
     document.addEventListener(consts.EVENT.MAP_BOX_SELECTED, onMapBoxSelected);
@@ -187,9 +190,16 @@ export function NCFViewer(props: INCFViewerProps) {
       }));
     }
 
+
     const uuid = props.data.vis_files[selectedVisFile].uuid;
     const channelLabel = props.data.vis_files[selectedVisFile].meta_data.variables[selectedChannel].variable_name;
-    const guardRangeVal = (key: IDimensionType, index: number) => requestRange[key] != undefined && requestRange[key][index] || undefined;
+    const guardRangeVal = (key: IDimensionType, index: number) => {
+      if (requestRange[key]) {
+        requestRange[key].sort((a, b) => a - b);
+        return requestRange[key][index];
+      }
+      return undefined;
+    };
 
     execute(
         endpoints.getNcfContent(uuid, channelLabel, {
@@ -241,10 +251,10 @@ export function NCFViewer(props: INCFViewerProps) {
 
   const handleDimensionRangeChange = (label: IDimensionType, newRange: number | number[]) => {
     const newRanges: RangeState = {...ranges};
-      if (typeof newRange != 'object') { // If it is not an array
-        newRange = [newRange, newRange];
-      }
-      newRanges[label] = newRange;
+    if (typeof newRange != 'object') { // If it is not an array
+      newRange = [newRange, newRange];
+    }
+    newRanges[label] = newRange;
     console.log('new ranges:', newRanges);
     setRanges(newRanges);
     dispatch(siteSlice.actions.setInspectingState({
