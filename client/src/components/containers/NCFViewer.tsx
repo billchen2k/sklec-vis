@@ -25,6 +25,7 @@ interface IDimensionSliderRes {
   max: number;
   marks: Mark[];
   values: any[];
+  dateValues?: string[];
 }
 
 type RangeState = Partial<Record<IDimensionType, number[]>>;
@@ -72,9 +73,9 @@ export function NCFViewer(props: INCFViewerProps) {
       try {
         const defaultRange: RangeState = {};
         const visFileData = props.data.vis_files[selectedVisFile];
-        const channelData = visFileData.meta_data.variables[selectedChannel];
+        const channelData = visFileData.info.variables[selectedChannel];
         channelData.variable_dimensions.forEach((dim: IDimensionType) => {
-          const dimensionMeta = visFileData.meta_data.dimensions.filter((one: any) => one.dimension_type === dim)[0];
+          const dimensionMeta = visFileData.info.dimensions.filter((one: any) => one.dimension_type === dim)[0];
           if (dimensionMeta.dimension_length > 1) {
             // defaultRange[dim] = [dimensionMeta.dimension_values[0], dimensionMeta.dimension_values.slice(-1)[0]];
             defaultRange[dim] = [0, dimensionMeta.dimension_length - 1];
@@ -128,7 +129,7 @@ export function NCFViewer(props: INCFViewerProps) {
 
   const getDimensionValue = (label: string, index: number) => {
     if (selectedChannel != -1 && selectedVisFile >= 0) {
-      const dimension: INCFDimension = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
+      const dimension: INCFDimension = props.data.vis_files[selectedVisFile].info.dimensions.filter((one: INCFDimension) => {
         return one.dimension_type == label;
       })[0];
       if (index > dimension.dimension_values.length - 1) {
@@ -142,7 +143,7 @@ export function NCFViewer(props: INCFViewerProps) {
   // Get the closest value in the dimension values
   const getDimensionIndex = (label: string, value: number): number => {
     if (selectedChannel != -1 && selectedVisFile >= 0) {
-      const dimension: INCFDimension = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
+      const dimension: INCFDimension = props.data.vis_files[selectedVisFile].info.dimensions.filter((one: INCFDimension) => {
         return one.dimension_type == label;
       })[0];
       if (!dimension) {
@@ -192,7 +193,7 @@ export function NCFViewer(props: INCFViewerProps) {
 
 
     const uuid = props.data.vis_files[selectedVisFile].uuid;
-    const channelLabel = props.data.vis_files[selectedVisFile].meta_data.variables[selectedChannel].variable_name;
+    const channelLabel = props.data.vis_files[selectedVisFile].info.variables[selectedChannel].variable_name;
     const guardRangeVal = (key: IDimensionType, index: number) => {
       if (requestRange[key]) {
         requestRange[key].sort((a, b) => a - b);
@@ -219,7 +220,7 @@ export function NCFViewer(props: INCFViewerProps) {
 
   const getDimensionForSlider = (label: string): IDimensionSliderRes => {
     const res: IDimensionSliderRes={min: 0, max: 1, marks: [], values: [0]};
-    const dimensions: INCFDimension[] = props.data.vis_files[selectedVisFile].meta_data.dimensions.filter((one: INCFDimension) => {
+    const dimensions: INCFDimension[] = props.data.vis_files[selectedVisFile].info.dimensions.filter((one: INCFDimension) => {
       return one.dimension_type == label;
     });
     if (dimensions.length == 0) {
@@ -240,10 +241,15 @@ export function NCFViewer(props: INCFViewerProps) {
     }
     ticks.push(dimension.dimension_length - 1);
     for (const index of ticks) {
-      res.marks.push({
+      const tickItem = {
         value: index,
         label: Number(dimension.dimension_values[index]).toFixed(2),
-      });
+      };
+      if (dimension.dimension_type == 'time') {
+        tickItem.label = props.data.vis_files[selectedVisFile].info.date_data[index];
+        res.dateValues = props.data.vis_files[selectedVisFile].info.date_data;
+      }
+      res.marks.push(tickItem);
     }
     res.values = dimension.dimension_values;
     return res;
@@ -307,7 +313,7 @@ export function NCFViewer(props: INCFViewerProps) {
               </Button>
             </Box>
             {
-              props.data.vis_files[selectedVisFile].meta_data.variables[selectedChannel].variable_dimensions.map((dim: IDimensionType, index: number) => {
+              props.data.vis_files[selectedVisFile].info.variables[selectedChannel].variable_dimensions.map((dim: IDimensionType, index: number) => {
                 const sliderConfig = getDimensionForSlider(dim);
                 const sliderRange = ranges[dim];
                 const dimName = capitalize(dim);
@@ -317,7 +323,9 @@ export function NCFViewer(props: INCFViewerProps) {
                       <Typography variant={'body1'} sx={{lineHeight: '50px'}}>{dimName}:</Typography>
                     </Box>
                     {sliderConfig.max == sliderConfig.min &&
-                      <Typography variant={'body1'}>{sliderConfig.min}</Typography>
+                      <Typography variant={'body1'}>
+                        {dim == 'time' ? props.data.vis_files[selectedVisFile].info.date_data[0] : sliderConfig.min}
+                      </Typography>
                     }
                     {sliderConfig.max != sliderConfig.min &&
                       <Box sx={{px: 3, width: '25rem'}}>
@@ -329,7 +337,7 @@ export function NCFViewer(props: INCFViewerProps) {
                           value={sliderRange || 0}
                           step={1}
                           valueLabelDisplay={'auto'}
-                          valueLabelFormat={(value) => sliderConfig.values[value]}
+                          valueLabelFormat={(value, index) => sliderConfig.dateValues ? sliderConfig.dateValues[value] : sliderConfig.values[value]}
                           marks={sliderConfig.marks}
                         />
                       </Box>
