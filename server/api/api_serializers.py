@@ -237,3 +237,10 @@ class GetNcfContentResponseSerializer2(serializers.Serializer):
             ref_name = 'NcfContentResponseData'
 
     data = DataSerializer()
+
+
+class PostFormDataCSVSerializer(serializers.Serializer):
+
+    dataset_uuid = serializers.CharField(max_length=256, allow_blank=True, required=True)
+    table_meta_uuid = serializers.CharField(max_length=256, allow_blank=True, required=False, default=None)
+    csv_file = serializers.FileField(max_length=256, allow_empty_file=False, use_url=True)

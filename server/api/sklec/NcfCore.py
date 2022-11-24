@@ -531,16 +531,8 @@ class NcfCore(SKLECBaseCore):
     def generate_thumbnail_for_label(self, label):
         pass
 
-    def save_visfile_and_rawfile_to_dataset(self, dataset_uuid) -> (str, str):
-        """
-        为指定 dataset 生成 visfile 和 rawfile
-        :param dataset_uuid: 指定 dataset 的 uuid
-        :return: (rawfile.uuid, visfile.uuid)
-        """
-        # remain to be reconstructed...
-        dataset = Dataset.objects.get(uuid=dataset_uuid)
-        fobj = open(self.filepath, 'rb')
-        meta = {}
+    def get_visfile_info(self):
+        info = {}
         dimensions = []
         variables = []
         core_ncf = NcfCoreClass(self.filepath)
@@ -559,14 +551,14 @@ class NcfCore(SKLECBaseCore):
                 'dimension_length': self.dimensions[ds_dim].size,
                 'dimension_type': dimension_type,
                 'dimension_values': np.asarray(self.dataset[ds_dim][:], dtype=np.float32).tolist(),
-                # 'dimension_units': self.dimensions[ds_dim].units,
+                'dimension_units': self.variables[ds_dim].units if hasattr(self.variables[ds_dim], 'units') else '',
             }
             dimensions.append(dim_dict)
 
         for variable in self.variables.keys():
-            if variable in self.dataset.dimensions.keys(): continue
-            var_dict = {}
-            var_dict['variable_name'] = variable
+            if variable in self.dataset.dimensions.keys():
+                continue
+            var_dict = {'variable_name': variable}
             if hasattr(self.dataset[variable], 'units'):
                 var_dict['variable_units'] = self.dataset[variable].units
             else:
@@ -582,6 +574,7 @@ class NcfCore(SKLECBaseCore):
                     if var_dim in NcfUtils.DIMENSION_MATCH[dim]:
                         dimension_type = dim
                 var_dict['variable_dimensions'].append(dimension_type)
+            # preview info generator remains to be reconstructed...
             preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
             url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
             preview_info['file'] = url
@@ -589,14 +582,31 @@ class NcfCore(SKLECBaseCore):
             var_dict['preview_info'] = preview_info
             variables.append(var_dict)
 
-        meta['dimensions'] = dimensions
-        meta['variables'] = variables
+        info['dimensions'] = dimensions
+        info['variables'] = variables
+        if (self.since_timestamp is not None) and (self.time_units is not None):
+            date_data_list = self.get_date_data_list()
+            info['date_data'] = [str(item) for item in date_data_list]
+        else:
+            info['date_data'] = []
+        return info
+
+    def save_visfile_and_rawfile_to_dataset(self, dataset_uuid) -> (str, str):
+        """
+        为指定 dataset 生成 visfile 和 rawfile
+        :param dataset_uuid: 指定 dataset 的 uuid
+        :return: (rawfile.uuid, visfile.uuid)
+        """
+        dataset = Dataset.objects.get(uuid=dataset_uuid)
+        fobj = open(self.filepath, 'rb')
+        info = self.get_visfile_info()
         visfile = VisFile(dataset=dataset,
                           format=VisFile.FileFormat.NCF,
                           file=File(fobj, name=self.filename),
                           file_name=os.path.basename(self.filepath),
                           file_size=os.path.getsize(self.filepath),
-                          meta_data=meta, )
+                          meta_data=info,
+                          info=info)
 
         rawfile = RawFile(dataset=dataset,
                           file_name=os.path.basename(self.filepath),
@@ -608,6 +618,14 @@ class NcfCore(SKLECBaseCore):
         visfile.save()
         rawfile.save()
         return rawfile.uuid, visfile.uuid
+
+    def refresh_visfile(self, visfile_uuid):
+        target_visfile = VisFile.objects.get(uuid=visfile_uuid)
+        info = self.get_visfile_info()
+        target_visfile.meta = info
+        target_visfile.info = info
+        target_visfile.save()
+        return target_visfile.uuid
 
 
 class NcfCoreClass(SKLECBaseCore):
@@ -859,152 +877,3 @@ class NcfCoreClass(SKLECBaseCore):
     def close(self):
         self.file.close()
 
-
-class NcfFileUploadClass():
-    def __init__(self, params, file_content, file_name):
-        self.params = params
-        self.file_content = file_content
-        self.file_name = file_name
-
-        self.dataset = None
-        self.save_path = None
-        self.nc = None
-        self.string_for_datetime = ['datetime', 'time']
-        self.string_for_longitude = ['lon', 'Lon', 'longitude', 'Longitude']
-        self.string_for_latitude = ['lat', 'Lat', 'latitude', 'Latitude']
-        self.string_for_depth = ['depth', 'Depth']
-
-    def _save_vis_and_raw(self):
-        fobj = open(self.save_path, 'rb')
-        nc = self.nc
-
-        meta = {}
-        dimensions = []
-        variables = []
-        core_ncf = NcfCoreClass(self.save_path)
-        for dim in nc.dimensions.keys():
-            # 'level' 字段需要特殊处理
-            if not (dim in nc.variables.keys()):
-                continue
-            dim_dict = {}
-            dim_dict['dimension_name'] = dim
-            dim_dict['dimension_length'] = nc.dimensions[dim].size
-            dimension_type = ''
-            if (dim in self.string_for_datetime):
-                dimension_type = 'datetime'
-            elif (dim in self.string_for_longitude):
-                dimension_type = 'longitude'
-            elif (dim in self.string_for_latitude):
-                dimension_type = 'latitude'
-            elif (dim in self.string_for_depth):
-                dimension_type = 'depth'
-            dim_dict['dimension_type'] = dimension_type
-            dim_dict['dimension_values'] = np.asarray(nc[dim][:], dtype=np.float32).tolist()
-            dimensions.append(dim_dict)
-
-        for variable in nc.variables.keys():
-            if (variable in nc.dimensions.keys()): continue
-            var_dict = {}
-            var_dict['variable_name'] = variable
-            if hasattr(nc[variable], 'units'):
-                var_dict['variable_units'] = nc[variable].units
-            else:
-                var_dict['variable_units'] = ''
-            if hasattr(nc[variable], 'long_name'):
-                var_dict['variable_longname'] = nc[variable].long_name
-            else:
-                var_dict['variable_longname'] = ''
-            var_dict['variable_dimensions'] = []
-            for dim in nc[variable].dimensions:
-                dimension_type = ''
-                if (dim in self.string_for_datetime):
-                    dimension_type = 'datetime'
-                elif (dim in self.string_for_longitude):
-                    dimension_type = 'longitude'
-                elif (dim in self.string_for_latitude):
-                    dimension_type = 'latitude'
-                elif (dim in self.string_for_depth):
-                    dimension_type = 'depth'
-                var_dict['variable_dimensions'].append(dimension_type)
-            preview_info = core_ncf.gen_preview(variable, uuid.uuid4().hex[:20])
-            url = preview_info['filepath'].replace(settings.MEDIA_ROOT, 'media')
-            preview_info['file'] = url
-            del preview_info['filepath']
-            var_dict['preview_info'] = preview_info
-            print(preview_info)
-            variables.append(var_dict)
-
-        meta['dimensions'] = dimensions
-        meta['variables'] = variables
-        visfile = VisFile(dataset=self.dataset,
-                          format=VisFile.FileFormat.NCF,
-                          file=File(fobj, name=self.file_name),
-                          file_name=os.path.basename(self.save_path),
-                          file_size=os.path.getsize(self.save_path) // 1024,
-                          meta_data=meta,
-                          # default_sample_count=min(rsk.npsamples().shape[0], 100000),
-                          )
-        visfile.save()
-
-        rawfile = RawFile(dataset=self.dataset,
-                          file_name=os.path.basename(self.save_path),
-                          file_size=os.path.getsize(self.save_path) // 1024,
-                          file=None,
-                          file_same_as_vis=True,
-                          visfile=visfile, )
-        rawfile.save()
-
-        channels = []
-        for c in nc.variables.keys():
-            channel = nc[c]
-            channel_meta = {}
-            datachannel = DataChannel(visfile=visfile,
-                                      name=channel.long_name if hasattr(channel, 'long_name') else '',
-                                      label=c,
-                                      unit=channel.units if hasattr(channel, 'units') else '',
-                                      # datetime_start=startdate[0],
-                                      # datetime_end=enddate[0],
-                                      shape=str(channel.shape),
-                                      meta_data=channel_meta
-                                      )
-            channels.append(datachannel)
-            datachannel.save()
-
-    def _check_dims(self):
-        has_lat = 0
-        has_lon = 0
-        for dim in self.nc.dimensions.keys():
-            # 'level' 字段需要特殊处理
-            if not (dim in self.nc.variables.keys()):
-                continue
-
-            elif (dim in self.string_for_longitude):
-                has_lon = 1
-            elif (dim in self.string_for_latitude):
-                has_lat = 1
-        return (has_lat and has_lon)
-
-    def create(self, ):
-        self.file_same_as_vis = params['file_same_as_vis']
-        path = os.path.join(settings.MEDIA_ROOT, 'datasets', 'uploads', self.file_name)
-        with open(path, 'wb') as f:
-            f.write(self.file_content)
-            f.close()
-        self.save_path = path
-        self.nc = netCDF4.Dataset(path)
-
-        if (self.file_same_as_vis):
-
-            if not self._check_dims():
-                return 'fail'
-            self.dataset = Dataset.objects.get(uuid=params['uuid'])
-            self._save_vis_and_raw()
-            return 'success'
-        else:
-            rawfile = RawFile(dataset=self.dataset,
-                              file_name=os.path.basename(self.save_path),
-                              file_size=os.path.getsize(self.save_path) // 1024,
-                              file=None,
-                              file_same_as_vis=True, )
-            rawfile.save()
-            return 'success'

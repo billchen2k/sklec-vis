@@ -27,9 +27,10 @@ from rest_framework.parsers import MultiPartParser
 from api.authentication import CsrfExemptSessionAuthentication
 from api.serializers import *
 from api.api_serializers import *
-from api.sklec.RawFileUploadCore import NcfRawFileUploadCore
+from api.sklec.RawFileUploadCore import NcfRawFileUploadCore, FormDataRawFileUploadCore
 from api.sklec.RSKCore import RSKCore
-from api.sklec.NcfCore import NcfCoreClass, NcfFileUploadClass, NcfCore
+from api.sklec.NcfCore import NcfCoreClass, NcfCore
+from api.sklec.FormDataCore import FormDataCore
 from api.sklec.VisualQueryManager import VisualQueryManager
 from api.models import Dataset
 
@@ -393,7 +394,7 @@ class PostNcfContentVQDatastream(views.APIView):
                 stream_data.append(vq_data['stream_data'])
                 date_data = vq_data['date_data']
         vqdata_response = {'date_data': date_data, 'stream_data': stream_data, 'lat_lngs': lat_lngs}
-        return JsonResponseOK(data = vqdata_response)
+        return JsonResponseOK(data=vqdata_response)
 
 
 class GetRskContent(views.APIView):
@@ -982,16 +983,121 @@ class VerifyEmailToken(views.APIView):
         return JsonResponseOK(data={'result': 'Successfully verified your email address.'})
 
 
-class FormDataTableTypeViewSet(viewsets.ModelViewSet):
-    serializer_class = FormDataTableTypeSerializer
-    queryset = FormDataTableType.objects.all()
+class FormDataTableMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableMetaSerializer
+    queryset = FormDataTableMeta.objects.all()
     lookup_field = 'uuid'
 
 
-class FormDataFieldTypeViewSet(viewsets.ModelViewSet):
-    serializer_class = FormDataFieldTypeSerializer
-    queryset = FormDataFieldType.objects.all()
+class FormDataFieldMetaViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataFieldMetaSerializer
+    queryset = FormDataFieldMeta.objects.all()
     lookup_field = 'uuid'
+
+
+class FormDataTableViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataTableSerializer
+    queryset = FormDataTable.objects.all()
+    lookup_field = 'uuid'
+
+
+class FormDataCellViewSet(viewsets.ModelViewSet):
+    serializer_class = FormDataCellSerializer
+    queryset = FormDataCell.objects.all()
+    lookup_field = 'uuid'
+
+
+class PostFormDataFieldMetaBatch(views.APIView):
+    serializer_class = FormDataFieldMetaBatchSerializer
+
+    @swagger_auto_schema(operation_description='批量添加 FormDataFieldMeta',
+                         request_body=FormDataFieldMetaBatchSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        try:
+            jdata = json.loads(request.body.decode('utf-8'))
+        except JSONDecodeError as e:
+            return JsonResponseError('Invalid request body. Check your json format.')
+
+        field_metas = jdata['field_metas']
+        validation = FormDataFieldMetaBatchSerializer(data=jdata)
+        if not validation.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation.validated_data
+        field_meta_uuids = []
+        for field_meta in validated_data['field_metas']:
+            file_meta_obj = FormDataFieldMeta(**field_meta)
+            file_meta_obj.save()
+            field_meta_uuids.append(file_meta_obj.uuid)
+        return JsonResponseOK(data={'field_meta_uuids': appended_uuids})
+
+
+class GetFormDataTableCSV(views.APIView):
+
+    def get(self, request, *args, **kwargs):
+        table_uuid = kwargs['uuid']
+        table = FormDataTable.objects.get(uuid=table_uuid)
+        table_meta = table.table_meta
+        field_metas = FormDataFieldMeta.objects.filter(table_meta=table_meta).order_by('index')
+        col_tuple = []
+        res = ''
+        for field_meta in field_metas:
+            row = []
+            res += field_meta.name + ','
+            field_values = FormDataCell.objects.filter(field_meta=field_meta)\
+                .filter(table=table).order_by('index_row')
+            for field_value in field_values:
+                if field_meta.attribute_type == 'numerical':
+                    row.append(field_value.value_numerical)
+                elif field_meta.attribute_type == 'temporal':
+                    row.append(field_value.value_temporal)
+                elif field_meta.attribute_type == 'spacial':
+                    row.append(field_value.value_spacial)
+                elif field_meta.attribute_type == 'categorical':
+                    row.append(field_value.value_categorical)
+                else:  # default type
+                    row.append(field_value.value_default)
+            col_tuple.append(row)
+
+        res += '\n'
+        for i in range(len(col_tuple[0])):
+            for j in range(len(col_tuple)):
+                res += str(col_tuple[j][i]) + ','
+            res += '\n'
+
+        return JsonResponseOK(data=res)
+
+
+class PostFormDataTableCSV(views.APIView):
+    parser_classes = (MultiPartParser,)
+
+    @swagger_auto_schema(operation_description='将 CSV 文件作为表格数据添加入指定 dataset，需指定对应的 table_meta',
+                         request_body=PostFormDataCSVSerializer,
+                         responses={
+                             200: SuccessResponseSerializer,
+                             400: ErrorResponseSerializer,
+                         })
+    def post(self, request, *args, **kwargs):
+        validation_data = PostFormDataCSVSerializer(data=request.data)
+        if not validation_data.is_valid():
+            return JsonResponseError(validation.errors)
+
+        validated_data = validation_data.validated_data
+        csv_file = validated_data['csv_file']
+        upload_core = FormDataRawFileUploadCore()
+        upload_core.save_from_uploaded_file(csv_file)
+
+        dataset_uuid = validated_data['dataset_uuid']
+        table_meta_uuid = validated_data['table_meta_uuid']
+        formdata_core = FormDataCore()
+        table_uuid = formdata_core.generate_table_from_csv(upload_core.rawfile_path, dataset_uuid, table_meta_uuid)
+        return JsonResponseOK(data={
+            'table_uuid': table_uuid
+        })
 
 
 def not_found(request: HttpRequest) -> HttpResponse:
